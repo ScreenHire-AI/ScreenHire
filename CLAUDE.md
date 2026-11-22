@@ -23,7 +23,7 @@ subsystem.
 | `packages/api-client` | Orval-generated TS fetch client, TanStack Query hooks (`./svelte-query`) and Zod schemas (do not edit `src/generated`), from `openapi.json`; the public OpenAPI document (`openapi_public.json`, only what a key can call) and the MCP tools catalogue (`mcp-tools.json`) that the developer docs and the dashboard read ([`docs/architecture/api-reference.md`](docs/architecture/api-reference.md)) |
 | `packages/telemetry` | Framework-free form telemetry for the apply flow: per-field counts only (never key values, timings per key or content), automation markers, the device fingerprint, `sendBeacon` snapshots; under 5 KB brotli, checked by its `build` |
 | `packages/realtime` | SignalR client for live updates: reconnect and re-subscribe, a runes connection-state store, Zod schemas per tenant event (checked against `contract/events.json`), cache invalidation by event type |
-| `packages/plans` | The plan catalogue, `plans.json`: each plan's name, monthly price, active job limit and Stripe price id, the free trial, `trial.json` (days and plan), and the margin on AI use, `ai.json`, as shared defaults. The API embeds all three, the marketing site reads them (`catalogPlans`, `trial`, `ai`), and `ScreenHire:Billing:Plans:<key>:*` and `Trial:*` override them for the API ([`docs/architecture/billing.md`](docs/architecture/billing.md)) |
+| `packages/plans` | The plan catalogue, `plans.json`: each plan's name, monthly price, active job limit and Stripe price id, the free trial, `trial.json` (days and plan), the margin on AI use, `ai.json`, and the prepaid AI credit amounts, `credits.json`, as shared defaults. The API embeds all four, the marketing site reads them (`catalogPlans`, `trial`, `ai`, `credits`), and `ScreenHire:Billing:Plans:<key>:*` and `Trial:*` override them for the API ([`docs/architecture/billing.md`](docs/architecture/billing.md)) |
 | `src/ScreenHire.Application` | Message contracts (`ITenantMessage`, `ITenantEvent`), Wolverine handlers and the shared messaging setup; referenced by API and worker |
 | `src/ScreenHire.Domain` | Domain model (no framework dependencies) |
 | `src/ScreenHire.Infrastructure` | EF Core (Postgres, snake_case), migrations |
@@ -80,9 +80,9 @@ subsystem.
   `ScreenHire:Distribution:*` (the local sandbox board, `GoogleIndexing:Mode` `Off`/`Local`/`Google`) is forwarded to
   the API and worker alike; see [`docs/architecture/job-distribution.md`](docs/architecture/job-distribution.md) §5.
   `ScreenHire:Verification:Llm:*` (the consistency check's model: `Fake` in Development, `None`, or `Anthropic` with the
-  `anthropic-api-key` secret; `Prices:<modelId>:Input|Output` in US dollars per million tokens, `DefaultMonthlyTokenBudget` and
-  `DefaultMonthlyTokenCap`) goes to the worker and the API alike: the API reads `Provider` to test an organization's own key (Anthropic, OpenAI, OpenRouter,
-  Azure OpenAI, Google Gemini or any OpenAI-compatible address), and the prices, model ids and defaults to show the default budget and cap in dollars. `ScreenHire:AiUsage:*` (the spike rule and the resume batch) goes to the API and worker alike; see
+  `anthropic-api-key` secret; `Prices:<modelId>:Input|Output` in US dollars per million tokens) goes to the worker and the API alike: the API reads
+  `Provider` to test an organization's own key (Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini or any OpenAI-compatible address), and the
+  prices to show AI use in dollars. `ScreenHire:AiUsage:*` (the spike rule and the resume batch) goes to the API and worker alike; see
   [`docs/architecture/ai-usage.md`](docs/architecture/ai-usage.md). `ScreenHire:Slack:*` (real Slack with `ClientId` and the
   `slack-client-secret` parameter, or `Sandbox:Enabled` for the local sandbox workspace; off in `pnpm dev`, on in the
   test stacks) goes to the API and worker alike; see [`docs/architecture/slack.md`](docs/architecture/slack.md).
@@ -91,9 +91,11 @@ subsystem.
   and `Trial:Plan` over `packages/plans/trial.json`, and `Plans:<key>:*` over `packages/plans/plans.json`; `Trial:RemindDaysBefore` (default `[7, 1]`) is
   the days before the trial ends that the Owners are emailed, besides the day it ends; `Stripe:Tax:Enabled` (off) makes Checkout calculate tax with Stripe Tax and
   `Stripe:Tax:CollectTaxIds` (on with tax) asks a business for its tax id; hidden and limiting nothing when neither; `Ai:Margin` (default `packages/plans/ai.json`, 0.20) is the share added to the provider's price for AI use on ScreenHire's key,
-  which the worker reports to a Stripe meter every 15 minutes, once per call, once `Ai:StripePriceId` (the metered price) is set; `Ai:MeterEventName`, `Ai:TrialAllowance`
-  (US dollars the trial includes, 5.00) and `Ai:ReportBatchSize` (200) tune it; an organization's own key is never charged) goes to the API, and its `Trial:*`, `Plans:*`,
-  `Ai:*`, `Sandbox:*` and `Stripe:*` keys to the worker, which sends the trial's reminders and reports the AI use, and gets both Stripe parameters; see
+  which draws on prepaid AI credits (ADR-0032); `Ai:TrialAllowance` (5.00) is every organization's starting credit; `Credits:Amounts` (default `[10, 25, 50, 100]`
+  US dollars from `packages/plans/credits.json`) are the fixed amounts an Owner buys through Checkout, `Credits:ExpiryMonths` (12, empty never) how long a credit
+  lasts and `Credits:LowBalanceAlert` (5.00) a new organization's low-balance alert; credits are granted only from the provider's signed confirmation, and an
+  organization's own key never touches the balance) goes to the API, and its `Trial:*`, `Plans:*`, `Ai:*`, `Credits:*`, `Sandbox:*` and `Stripe:*` keys to the
+  worker, which sends the trial's reminders and grants, auto-reloads and expires credits, and gets both Stripe parameters; see
   [`docs/architecture/billing.md`](docs/architecture/billing.md).
   `ScreenHire:Fonts:*` (heading fonts: `Sandbox:Enabled`, on in `pnpm dev` and the test stacks, is a dozen bundled fonts; otherwise the API lists Google Fonts
   through Fontsource, which needs no key, and the branding save downloads a family once into the `heading-fonts` container) goes to the API; see

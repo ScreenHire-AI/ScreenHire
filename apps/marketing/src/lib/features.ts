@@ -4,24 +4,32 @@
 // competitors.md hold the sources and the date each was read), and nothing here says how a check works or gives a score
 // (public-copy.test.ts guards it).
 
-import { aiMarginPercent } from '@screenhire/plans';
+import { aiMarginPercent, credits } from '@screenhire/plans';
 
 /**
  * What the AI consistency check costs beyond the plan, in the words every page uses. The plan includes ScreenHire's checks. The AI
  * check calls a model, and use of ScreenHire's own AI key is billed at the provider's price plus a margin, which is the share in
- * packages/plans/ai.json that the product reads too (docs/architecture/billing.md, "AI usage"). With the customer's own AI key
- * ScreenHire charges nothing for it. Never say the AI is free, and never retype the margin: it comes from the catalogue.
+ * packages/plans/ai.json that the product reads too (docs/architecture/billing.md, "AI credits"). It is paid for in advance as AI
+ * credits, in the amounts packages/plans/credits.json lists (ADR-0032). With the customer's own AI key ScreenHire charges nothing
+ * for it. Never say the AI is free, and never retype the margin or an amount: they come from the catalogue. The `billed` sentence is
+ * the owner's open question, so it stays word for word.
  */
 const billed = `Use of our AI key is billed at the provider's price plus ${aiMarginPercent}%.`;
 const ownKey = 'Bring your own AI key and we charge nothing for it.';
+const smallestCredit = Math.min(...credits.amounts);
+const prepaid = `AI use is prepaid: buy credits from $${smallestCredit}, and turn on auto-reload if you want it.`;
 
 export const aiCost = {
   /** The margin as a whole percentage, from the catalogue. */
   marginPercent: aiMarginPercent,
   billed,
   ownKey,
-  /** Both sentences, for a place with room for them. */
-  both: `${billed} ${ownKey}`,
+  /** How AI use is paid for: credits bought in advance, from the smallest amount on offer. */
+  prepaid,
+  /** The smallest credit purchase, in US dollars, from the catalogue. */
+  smallestCredit,
+  /** The three sentences, for a place with room for them. */
+  both: `${billed} ${prepaid} ${ownKey}`,
 };
 
 export interface Source {

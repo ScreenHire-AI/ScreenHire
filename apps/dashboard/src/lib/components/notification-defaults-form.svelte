@@ -32,7 +32,7 @@
     {
       label: 'AI usage',
       about:
-        'Tells people who can see AI usage when the monthly budget passes 50%, 80% and 100%, when the cap is reached, and after an unusually busy day.',
+        'Tells people who can see AI usage after an unusually busy day. Owners hear about low AI credits and a failed auto-reload by their own choice.',
       inApp: 'The bell tells everyone who can see AI usage.',
       email: 'budgetEmail',
       slack: 'budgetSlack',

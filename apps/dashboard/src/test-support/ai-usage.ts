@@ -1,5 +1,4 @@
 import type { AiUsageSummary } from '@screenhire/api-client';
-import { limits } from './verification-settings.js';
 
 /**
  * A fictional month of AI use, shaped like `GET /v1/organization/ai-usage/summary`: two days, ScreenHire's key and an own key,
@@ -21,7 +20,6 @@ export const aiUsageSummary: AiUsageSummary = {
     { provider: '', model: '', keySource: 'BuiltIn', calls: 8, inputTokens: 6000, outputTokens: 500, cost: 0.3, callsWithUnknownCost: 0 },
     { provider: '', model: '', keySource: 'OwnKey', calls: 4, inputTokens: 3000, outputTokens: 1000, cost: 0.12, callsWithUnknownCost: 0 },
   ],
-  limits,
   // Five minutes before the test runs, so it always reads as time ago.
   lastCallAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
 };

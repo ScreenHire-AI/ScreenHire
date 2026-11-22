@@ -2,8 +2,10 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using ScreenHire.Application.Billing;
 using ScreenHire.Application.Verification;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Billing;
 using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Persistence;
 using ScreenHire.Infrastructure.Tenancy;
@@ -83,13 +85,15 @@ internal static class VerificationSupport
     }
 
     /// <summary>
-    /// Records one call on ScreenHire's key that cost <paramref name="cost"/> dollars this month, so a budget or cap in dollars is passed
-    /// by a known amount rather than by what the fake model's answers happen to cost (well under a cent a check).
+    /// Records one call on ScreenHire's key that cost <paramref name="cost"/> dollars at the provider, and the debit from the AI credits
+    /// that call makes (the production rule, at the shipped margin), so the balance follows the ledger the way a real check leaves it.
+    /// The starting credit is granted first, so the balance is the one the organization would have.
     /// </summary>
     public static async Task SpendAsync(AppHostFixture fixture, Guid organizationId, decimal cost)
     {
         await using var db = await TenantDbAsync(fixture, organizationId);
-        db.AiUsageCalls.Add(new AiUsageCall
+        await AiCreditLedger.EnsureStartingCreditAsync(db, organizationId, SandboxBilling, DateTimeOffset.UtcNow, Ct);
+        var call = new AiUsageCall
         {
             OrganizationId = organizationId,
             OccurredAt = DateTimeOffset.UtcNow,
@@ -103,9 +107,39 @@ internal static class VerificationSupport
             CostBasis = AiCostBasis.Priced,
             Cost = cost,
             Outcome = AiCallOutcome.Ok,
+        };
+        db.AiUsageCalls.Add(call);
+        db.CreditEntries.AddRange(AiCreditLedger.UsageEntries([call], SandboxBilling.AiMarginInForce, Guid.Empty, Guid.Empty));
+        await db.SaveChangesAsync(Ct);
+    }
+
+    /// <summary>
+    /// Takes the organization's AI credits to exactly zero with one usage entry for what is left (the starting credit is granted first,
+    /// or the next check would grant it and run). The AI check then pauses, as it does for an organization that has used its credits.
+    /// </summary>
+    public static async Task DrainCreditsAsync(AppHostFixture fixture, Guid organizationId)
+    {
+        await using var db = await TenantDbAsync(fixture, organizationId);
+        await AiCreditLedger.EnsureStartingCreditAsync(db, organizationId, SandboxBilling, DateTimeOffset.UtcNow, Ct);
+        var balance = await AiCreditLedger.BalanceMicrosAsync(db, Ct);
+        if (balance <= 0)
+        {
+            return;
+        }
+
+        db.CreditEntries.Add(new CreditEntry
+        {
+            OrganizationId = organizationId,
+            Kind = CreditEntryKind.Usage,
+            Micros = -balance,
+            At = DateTimeOffset.UtcNow,
+            SourceKey = CreditSourceKeys.Call(Guid.CreateVersion7()),
         });
         await db.SaveChangesAsync(Ct);
     }
+
+    /// <summary>The billing settings the test stack runs with (the sandbox), for the production rules these helpers call.</summary>
+    public static BillingOptions SandboxBilling { get; } = new() { Sandbox = new BillingSandboxOptions { Enabled = true } };
 
     public static async Task<ScreenHireDbContext> TenantDbAsync(AppHostFixture fixture, Guid organizationId)
     {

@@ -30,8 +30,10 @@ import type {
   AddFromTalentPoolRequest,
   AddVerificationNoteRequest,
   AddedFromTalentPool,
+  AiCreditDeductionList,
+  AiCreditPurchaseList,
+  AiCreditsView,
   AiUsageCallPage,
-  AiUsageLimitsView,
   AiUsageSummary,
   ApiKeySummary,
   ApiMeta,
@@ -169,6 +171,7 @@ import type {
   KeepInMindRequest,
   KeptInMind,
   LastUpdate,
+  ListAiCreditDeductionsParams,
   ListAiUsageCallsParams,
   ListInterviewersParams,
   ListJobBoardJobsParams,
@@ -271,6 +274,7 @@ import type {
   SlackTestResult,
   SourceApplications,
   StageKind,
+  StartAiCreditCheckoutRequest,
   StartBillingCheckoutRequest,
   StartCalendarConnectRequest,
   StartSlackLinkRequest,
@@ -292,7 +296,7 @@ import type {
   TryItEmailsSent,
   UpdateAccountNotificationsRequest,
   UpdateAccountPreferencesRequest,
-  UpdateAiUsageLimitsRequest,
+  UpdateAiCreditSettingsRequest,
   UpdateBrandingRequest,
   UpdateCareersEmbeddingRequest,
   UpdateEmailTemplateRequest,
@@ -29562,6 +29566,535 @@ export function createGetBillingPaymentMethod<TData = Awaited<ReturnType<typeof 
 
 
 
+export type getAiCreditsResponse200 = {
+  data: AiCreditsView
+  status: 200
+}
+
+export type getAiCreditsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getAiCreditsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getAiCreditsResponseSuccess = (getAiCreditsResponse200) & {
+  headers: Headers;
+};
+export type getAiCreditsResponseError = (getAiCreditsResponse401 | getAiCreditsResponse403) & {
+  headers: Headers;
+};
+
+export const getGetAiCreditsUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/credits`
+}
+
+export const getAiCredits = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<getAiCreditsResponseSuccess> => {
+
+  return apiQueryFetch<getAiCreditsResponseSuccess>(getGetAiCreditsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAiCreditsQueryKey = () => {
+    return [
+    'v1','organization','billing','credits'
+    ] as const;
+    }
+
+
+export const getGetAiCreditsQueryOptions = <TData = Awaited<ReturnType<typeof getAiCredits>>, TError = ErrorType<void | ProblemDetails>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getAiCredits>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAiCreditsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiCredits>>> = ({ signal }) => getAiCredits({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getAiCredits>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAiCreditsQueryResult = NonNullable<Awaited<ReturnType<typeof getAiCredits>>>
+export type GetAiCreditsQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createGetAiCredits<TData = Awaited<ReturnType<typeof getAiCredits>>, TError = ErrorType<void | ProblemDetails>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getAiCredits>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetAiCreditsQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type listAiCreditDeductionsResponse200 = {
+  data: AiCreditDeductionList
+  status: 200
+}
+
+export type listAiCreditDeductionsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAiCreditDeductionsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listAiCreditDeductionsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listAiCreditDeductionsResponseSuccess = (listAiCreditDeductionsResponse200) & {
+  headers: Headers;
+};
+export type listAiCreditDeductionsResponseError = (listAiCreditDeductionsResponse401 | listAiCreditDeductionsResponse403 | listAiCreditDeductionsResponse404) & {
+  headers: Headers;
+};
+
+export const getListAiCreditDeductionsUrl = (params?: ListAiCreditDeductionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/organization/billing/credits/deductions?${stringifiedParams}` : `/v1/organization/billing/credits/deductions`
+}
+
+export const listAiCreditDeductions = async (params?: ListAiCreditDeductionsParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<listAiCreditDeductionsResponseSuccess> => {
+
+  return apiQueryFetch<listAiCreditDeductionsResponseSuccess>(getListAiCreditDeductionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAiCreditDeductionsQueryKey = (params?: ListAiCreditDeductionsParams,) => {
+    return [
+    'v1','organization','billing','credits','deductions', ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAiCreditDeductionsQueryOptions = <TData = Awaited<ReturnType<typeof listAiCreditDeductions>>, TError = ErrorType<void | ProblemDetails>>(params?: ListAiCreditDeductionsParams, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listAiCreditDeductions>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAiCreditDeductionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAiCreditDeductions>>> = ({ signal }) => listAiCreditDeductions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listAiCreditDeductions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAiCreditDeductionsQueryResult = NonNullable<Awaited<ReturnType<typeof listAiCreditDeductions>>>
+export type ListAiCreditDeductionsQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createListAiCreditDeductions<TData = Awaited<ReturnType<typeof listAiCreditDeductions>>, TError = ErrorType<void | ProblemDetails>>(
+ params?: () =>  ListAiCreditDeductionsParams, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listAiCreditDeductions>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListAiCreditDeductionsQueryOptions(params?.(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type listAiCreditPurchasesResponse200 = {
+  data: AiCreditPurchaseList
+  status: 200
+}
+
+export type listAiCreditPurchasesResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listAiCreditPurchasesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listAiCreditPurchasesResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listAiCreditPurchasesResponseSuccess = (listAiCreditPurchasesResponse200) & {
+  headers: Headers;
+};
+export type listAiCreditPurchasesResponseError = (listAiCreditPurchasesResponse401 | listAiCreditPurchasesResponse403 | listAiCreditPurchasesResponse404) & {
+  headers: Headers;
+};
+
+export const getListAiCreditPurchasesUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/credits/purchases`
+}
+
+export const listAiCreditPurchases = async ( options?: Parameters<typeof apiQueryFetch>[1]): Promise<listAiCreditPurchasesResponseSuccess> => {
+
+  return apiQueryFetch<listAiCreditPurchasesResponseSuccess>(getListAiCreditPurchasesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAiCreditPurchasesQueryKey = () => {
+    return [
+    'v1','organization','billing','credits','purchases'
+    ] as const;
+    }
+
+
+export const getListAiCreditPurchasesQueryOptions = <TData = Awaited<ReturnType<typeof listAiCreditPurchases>>, TError = ErrorType<void | ProblemDetails>>( options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listAiCreditPurchases>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAiCreditPurchasesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAiCreditPurchases>>> = ({ signal }) => listAiCreditPurchases({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listAiCreditPurchases>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAiCreditPurchasesQueryResult = NonNullable<Awaited<ReturnType<typeof listAiCreditPurchases>>>
+export type ListAiCreditPurchasesQueryError = ErrorType<void | ProblemDetails>
+
+
+
+export function createListAiCreditPurchases<TData = Awaited<ReturnType<typeof listAiCreditPurchases>>, TError = ErrorType<void | ProblemDetails>>(
+  options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listAiCreditPurchases>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getListAiCreditPurchasesQueryOptions(options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
+
+export type startAiCreditCheckoutResponse200 = {
+  data: BillingRedirect
+  status: 200
+}
+
+export type startAiCreditCheckoutResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type startAiCreditCheckoutResponse401 = {
+  data: void
+  status: 401
+}
+
+export type startAiCreditCheckoutResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type startAiCreditCheckoutResponse404 = {
+  data: void
+  status: 404
+}
+
+export type startAiCreditCheckoutResponse502 = {
+  data: ProblemDetails
+  status: 502
+}
+
+export type startAiCreditCheckoutResponseSuccess = (startAiCreditCheckoutResponse200) & {
+  headers: Headers;
+};
+export type startAiCreditCheckoutResponseError = (startAiCreditCheckoutResponse400 | startAiCreditCheckoutResponse401 | startAiCreditCheckoutResponse403 | startAiCreditCheckoutResponse404 | startAiCreditCheckoutResponse502) & {
+  headers: Headers;
+};
+
+export const getStartAiCreditCheckoutUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/credits/checkout`
+}
+
+export const startAiCreditCheckout = async (startAiCreditCheckoutRequest: StartAiCreditCheckoutRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<startAiCreditCheckoutResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<startAiCreditCheckoutResponseSuccess>(getStartAiCreditCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startAiCreditCheckoutRequest)
+  }
+);}
+
+
+
+
+
+export const getStartAiCreditCheckoutMutationKey = () => ['startAiCreditCheckout'] as const;
+
+export const getStartAiCreditCheckoutMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof startAiCreditCheckout>>, TError,StartAiCreditCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof startAiCreditCheckout>>, TError,StartAiCreditCheckoutMutationVariables, TContext> => {
+
+const mutationKey = getStartAiCreditCheckoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startAiCreditCheckout>>, StartAiCreditCheckoutMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  startAiCreditCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartAiCreditCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof startAiCreditCheckout>>>
+    export type StartAiCreditCheckoutMutationBody = StartAiCreditCheckoutRequest
+    export type StartAiCreditCheckoutMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type StartAiCreditCheckoutMutationVariables = {data: StartAiCreditCheckoutRequest}
+
+    export const createStartAiCreditCheckout = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof startAiCreditCheckout>>, TError,StartAiCreditCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof startAiCreditCheckout>>,
+        TError,
+        StartAiCreditCheckoutMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getStartAiCreditCheckoutMutationOptions(options?.()) }), queryClient);
+    }
+
+export type updateAiCreditSettingsResponse204 = {
+  data: void
+  status: 204
+}
+
+export type updateAiCreditSettingsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateAiCreditSettingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateAiCreditSettingsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateAiCreditSettingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateAiCreditSettingsResponseSuccess = (updateAiCreditSettingsResponse204) & {
+  headers: Headers;
+};
+export type updateAiCreditSettingsResponseError = (updateAiCreditSettingsResponse400 | updateAiCreditSettingsResponse401 | updateAiCreditSettingsResponse403 | updateAiCreditSettingsResponse404) & {
+  headers: Headers;
+};
+
+export const getUpdateAiCreditSettingsUrl = () => {
+
+
+
+
+  return `/v1/organization/billing/credits/settings`
+}
+
+export const updateAiCreditSettings = async (updateAiCreditSettingsRequest: UpdateAiCreditSettingsRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateAiCreditSettingsResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<updateAiCreditSettingsResponseSuccess>(getUpdateAiCreditSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateAiCreditSettingsRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateAiCreditSettingsMutationKey = () => ['updateAiCreditSettings'] as const;
+
+export const getUpdateAiCreditSettingsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateAiCreditSettings>>, TError,UpdateAiCreditSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof updateAiCreditSettings>>, TError,UpdateAiCreditSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAiCreditSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAiCreditSettings>>, UpdateAiCreditSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAiCreditSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAiCreditSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateAiCreditSettings>>>
+    export type UpdateAiCreditSettingsMutationBody = UpdateAiCreditSettingsRequest
+    export type UpdateAiCreditSettingsMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type UpdateAiCreditSettingsMutationVariables = {data: UpdateAiCreditSettingsRequest}
+
+    export const createUpdateAiCreditSettings = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateAiCreditSettings>>, TError,UpdateAiCreditSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof updateAiCreditSettings>>,
+        TError,
+        UpdateAiCreditSettingsMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getUpdateAiCreditSettingsMutationOptions(options?.()) }), queryClient);
+    }
+
 export type getAiUsageSummaryResponse200 = {
   data: AiUsageSummary
   status: 200
@@ -29876,115 +30409,6 @@ export function createExportAiUsageCalls<TData = Awaited<ReturnType<typeof expor
 
 
 
-
-export type updateAiUsageLimitsResponse200 = {
-  data: AiUsageLimitsView
-  status: 200
-}
-
-export type updateAiUsageLimitsResponse400 = {
-  data: HttpValidationProblemDetails
-  status: 400
-}
-
-export type updateAiUsageLimitsResponse401 = {
-  data: void
-  status: 401
-}
-
-export type updateAiUsageLimitsResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type updateAiUsageLimitsResponseSuccess = (updateAiUsageLimitsResponse200) & {
-  headers: Headers;
-};
-export type updateAiUsageLimitsResponseError = (updateAiUsageLimitsResponse400 | updateAiUsageLimitsResponse401 | updateAiUsageLimitsResponse403) & {
-  headers: Headers;
-};
-
-export const getUpdateAiUsageLimitsUrl = () => {
-
-
-
-
-  return `/v1/organization/ai-usage/limits`
-}
-
-export const updateAiUsageLimits = async (updateAiUsageLimitsRequest: UpdateAiUsageLimitsRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<updateAiUsageLimitsResponseSuccess> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return apiQueryFetch<updateAiUsageLimitsResponseSuccess>(getUpdateAiUsageLimitsUrl(),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(updateAiUsageLimitsRequest)
-  }
-);}
-
-
-
-
-
-export const getUpdateAiUsageLimitsMutationKey = () => ['updateAiUsageLimits'] as const;
-
-export const getUpdateAiUsageLimitsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateAiUsageLimits>>, TError,UpdateAiUsageLimitsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
-): CreateMutationOptions<Awaited<ReturnType<typeof updateAiUsageLimits>>, TError,UpdateAiUsageLimitsMutationVariables, TContext> => {
-
-const mutationKey = getUpdateAiUsageLimitsMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAiUsageLimits>>, UpdateAiUsageLimitsMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  updateAiUsageLimits(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateAiUsageLimitsMutationResult = NonNullable<Awaited<ReturnType<typeof updateAiUsageLimits>>>
-    export type UpdateAiUsageLimitsMutationBody = UpdateAiUsageLimitsRequest
-    export type UpdateAiUsageLimitsMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
-    export type UpdateAiUsageLimitsMutationVariables = {data: UpdateAiUsageLimitsRequest}
-
-    export const createUpdateAiUsageLimits = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
-    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof updateAiUsageLimits>>, TError,UpdateAiUsageLimitsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
- , queryClient?: () => QueryClient): CreateMutationResult<
-        Awaited<ReturnType<typeof updateAiUsageLimits>>,
-        TError,
-        UpdateAiUsageLimitsMutationVariables,
-        TContext
-      > => {
-      return createMutation(() => ({ ...getUpdateAiUsageLimitsMutationOptions(options?.()) }), queryClient);
-    }
 
 export type getVerificationOverviewResponse200 = {
   data: VerificationOverviewView

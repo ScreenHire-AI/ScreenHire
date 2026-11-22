@@ -15,8 +15,8 @@ import type { VerificationChecks } from './verificationChecks.ts';
  * Replaces the organization's verification settings. `apiKey` is the one place a key travels: null keeps the saved key,
  * text replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or
  * model is tested before it is saved. `modelSource` `Included` erases the saved key, provider and price fields.
- * A preset with a fixed address takes no `baseUrl`. The monthly budget and cap are not here: an Owner sets them with
- * `/v1/organization/ai-usage/limits`.
+ * A preset with a fixed address takes no `baseUrl`. AI credits and auto-reload are not here: an Owner sets them in Billing
+ * (`/v1/organization/billing/credits/settings`).
  */
 export interface UpdateVerificationSettingsRequest {
   llmConsistencyCheck: boolean;

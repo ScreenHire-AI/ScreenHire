@@ -10,9 +10,19 @@ describe('notification lines', () => {
     expect(notificationLine('sending-domain-failing', {})).toBe('Your email domain stopped verifying');
   });
 
-  it('words the AI usage alerts from their facts, and never makes a number up when the fact is missing', () => {
-    expect(notificationLine('ai-usage-budget', { percent: '80' })).toBe("AI usage is at 80% of this month's budget");
-    expect(notificationLine('ai-usage-cap', {})).toBe("AI checks are paused: this month's cap is reached");
+  it('words the AI credit alerts, the balance to the cent from the payload, and never makes a number up when it is missing', () => {
+    expect(notificationLine('ai-credits-low', { balance: '4.5' })).toBe('AI credits are running low: $4.50 left');
+    expect(notificationLine('ai-credits-low', {})).toBe('AI credits are running low');
+    expect(notificationLine('ai-credits-empty', {})).toBe('AI credits ran out: the AI checks are paused');
+    expect(notificationLine('ai-credits-reload-failed', {})).toBe('Auto-reload could not add AI credits, so it is off');
+  });
+
+  it('retired the budget and cap alerts: a notification of either kind still on file reads as the generic line, never raw', () => {
+    expect(notificationLine('ai-usage-budget', { percent: '80' })).toBe('Something needs a look');
+    expect(notificationLine('ai-usage-cap', {})).toBe('Something needs a look');
+  });
+
+  it('words the AI usage spike alert', () => {
     expect(notificationLine('ai-usage-spike', { day: '2026-11-08' })).toBe('AI usage yesterday was well above the recent average');
   });
 

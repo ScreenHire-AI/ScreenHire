@@ -36,5 +36,21 @@ internal static class BillingTestSupport
         location!.ToString().Should().Contain("/settings/billing");
     }
 
+    public const string Credits = "/v1/organization/billing/credits";
+
+    /// <summary>
+    /// Buys <paramref name="amount"/> of AI credits as the owner does: starts the credit checkout and follows the sandbox's page, which
+    /// confirms the payment to the worker. The credit is added a moment later, by the worker, so a caller waits for the balance.
+    /// </summary>
+    public static async Task BuyCreditsAsync(this AppHostFixture fixture, Tenant owner, decimal amount)
+    {
+        var checkout = (await owner.PostAsync($"{Credits}/checkout", new JsonObject { ["amount"] = amount })).Expect(HttpStatusCode.OK);
+        var (status, location) = await fixture.FollowAsync(checkout.Text("url"));
+        status.Should().Be(HttpStatusCode.Redirect);
+        location!.ToString().Should().Contain("/settings/billing").And.Contain("credits=success");
+    }
+
+    public static async Task<ApiResult> CreditsAsync(this Tenant tenant) => (await tenant.GetAsync(Credits)).Expect(HttpStatusCode.OK);
+
     public static async Task<ApiResult> BillingAsync(this Tenant tenant) => (await tenant.GetAsync(Overview)).Expect(HttpStatusCode.OK);
 }

@@ -894,145 +894,7 @@ public sealed class StripeBillingProviderTests : IDisposable
 
     // ---- The stand-in for Stripe ----
 
-    // ---- AI use on ScreenHire's key: the metered price and the meter events ----
-
-    private const string MeterPrice = "price_meter_fictional";
-
-    private static BillingOptions MeteredOptions()
-    {
-        var options = Options();
-        options.Ai.StripePriceId = MeterPrice;
-        return options;
-    }
-
-    private static AiUsageReport Report(string? customer, params (Guid Id, long Micros)[] events) =>
-        new(Guid.CreateVersion7(), customer, [.. events.Select(e => new AiUsageEvent(e.Id, e.Micros))], Now);
-
-    [Fact]
-    public async Task Checkout_adds_the_metered_price_beside_the_plan_with_no_quantity_when_one_is_set()
-    {
-        stripe.Answer("""{"url":"https://checkout.stripe.com/c/pay/cs_fictional"}""");
-        var options = MeteredOptions();
-
-        await Provider(options).CreateCheckoutAsync(Checkout(Plan("starter", options)), TestContext.Current.CancellationToken);
-
-        var form = stripe.Calls.Single().Form;
-        form["line_items[0][price]"].Should().Be(StarterPrice);
-        form["line_items[1][price]"].Should().Be(MeterPrice);
-        form.Should().NotContainKey("line_items[1][quantity]", "a metered price takes no quantity");
-    }
-
-    [Fact]
-    public async Task Checkout_is_the_plan_alone_when_no_metered_price_is_set()
-    {
-        stripe.Answer("""{"url":"https://checkout.stripe.com/c/pay/cs_fictional"}""");
-
-        await Provider().CreateCheckoutAsync(Checkout(Plan("starter")), TestContext.Current.CancellationToken);
-
-        stripe.Calls.Single().Form.Keys.Should().NotContain(k => k.StartsWith("line_items[1]", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public async Task Usage_is_posted_to_the_meter_one_event_per_call_with_the_ledger_id_as_the_identifier_and_the_charge_as_the_value()
-    {
-        stripe.Answer("{}");
-        stripe.Answer("{}");
-        var first = Guid.CreateVersion7();
-        var second = Guid.CreateVersion7();
-        var options = MeteredOptions();
-        options.Ai.MeterEventName = "ai_usage_fictional";
-
-        var result = await Provider(options).ReportAiUsageAsync(Report("cus_fictional", (first, 1_234), (second, 5)), TestContext.Current.CancellationToken);
-
-        result.Failure.Should().BeNull();
-        result.Accepted.Should().Equal(first, second);
-        stripe.Calls.Should().HaveCount(2);
-        var call = stripe.Calls[0];
-        call.Method.Should().Be(HttpMethod.Post);
-        call.Uri.Should().Be(new Uri("https://api.stripe.com/v1/billing/meter_events"));
-        call.Authorization.Should().Be($"Bearer {SecretKey}");
-        call.StripeVersion.Should().Be(StripeBillingProvider.ApiVersion);
-        call.Form["event_name"].Should().Be("ai_usage_fictional");
-        call.Form["identifier"].Should().Be(first.ToString());
-        call.Form["payload[stripe_customer_id]"].Should().Be("cus_fictional");
-        call.Form["payload[value]"].Should().Be("1234");
-        call.Form["timestamp"].Should().Be(Seconds(Now));
-        stripe.Calls[1].Form["identifier"].Should().Be(second.ToString());
-        stripe.Calls[1].Form["payload[value]"].Should().Be("5");
-    }
-
-    [Fact]
-    public async Task An_event_stripe_already_has_counts_as_taken_because_an_earlier_run_sent_it_before_it_failed_to_save()
-    {
-        stripe.Answer(HttpStatusCode.BadRequest, """{"error":{"type":"invalid_request_error","code":"duplicate_meter_event"}}""");
-        stripe.Answer("{}");
-        var first = Guid.CreateVersion7();
-        var second = Guid.CreateVersion7();
-
-        var result = await Provider(MeteredOptions()).ReportAiUsageAsync(Report("cus_fictional", (first, 10), (second, 20)), TestContext.Current.CancellationToken);
-
-        result.Failure.Should().BeNull();
-        result.Accepted.Should().Equal(first, second);
-    }
-
-    [Fact]
-    public async Task A_refusal_stops_the_batch_after_the_events_stripe_took_and_names_neither_the_key_nor_the_customer()
-    {
-        stripe.Answer("{}");
-        stripe.Answer(HttpStatusCode.Conflict, """{"error":{"type":"invalid_request_error","code":"too_many_concurrent_requests"}}""");
-        var ids = new[] { Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7() };
-
-        var result = await Provider(MeteredOptions()).ReportAiUsageAsync(
-            Report("cus_fictional", (ids[0], 10), (ids[1], 20), (ids[2], 30)), TestContext.Current.CancellationToken);
-
-        result.Accepted.Should().Equal(ids[0]);
-        result.Failure.Should().NotBeNull();
-        result.Failure!.Status.Should().Be(409);
-        result.Failure.Code.Should().Be("too_many_concurrent_requests");
-        result.Failure.Message.Should().NotContain(SecretKey).And.NotContain("cus_fictional");
-        stripe.Calls.Should().HaveCount(2, "the third event is not sent after the second was refused");
-    }
-
-    [Fact]
-    public async Task An_unreachable_stripe_stops_the_batch_without_throwing()
-    {
-        stripe.Fail(new HttpRequestException("network down"));
-
-        var result = await Provider(MeteredOptions()).ReportAiUsageAsync(Report("cus_fictional", (Guid.CreateVersion7(), 10)), TestContext.Current.CancellationToken);
-
-        result.Accepted.Should().BeEmpty();
-        result.Failure.Should().NotBeNull();
-        result.Failure!.Message.Should().NotContain(SecretKey);
-    }
-
-    [Fact]
-    public async Task Usage_for_an_organization_with_no_stripe_customer_sends_nothing()
-    {
-        var result = await Provider(MeteredOptions()).ReportAiUsageAsync(Report(null, (Guid.CreateVersion7(), 10)), TestContext.Current.CancellationToken);
-
-        result.Accepted.Should().BeEmpty();
-        result.Failure.Should().NotBeNull();
-        stripe.Calls.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task A_preview_leaves_the_metered_line_out_of_the_next_payment_and_its_date()
-    {
-        stripe.Answer(SubscriptionJson(("si_plan", StarterPrice), ("si_meter", MeterPrice)));
-        var usage = Line(4_321, false, ProrationDate.ToUnixTimeSeconds() - 86_400 * 10);
-        usage["price"] = new JsonObject { ["id"] = MeterPrice };
-        var proration = Line(4500, true, ProrationDate.ToUnixTimeSeconds());
-        proration["price"] = new JsonObject { ["id"] = GrowthPrice };
-        var next = Line(14900, false, NextPeriodStart);
-        next["price"] = new JsonObject { ["id"] = GrowthPrice };
-        stripe.Answer(PreviewJson("usd", usage, proration, next));
-
-        var preview = await Provider(MeteredOptions()).PreviewPlanChangeAsync(Change("starter", "growth"), TestContext.Current.CancellationToken);
-
-        preview.NextPaymentAmount.Should().Be(149.00m, "the usage so far is not the plan's price");
-        preview.NextPaymentAt.Should().Be(DateTimeOffset.FromUnixTimeSeconds(NextPeriodStart), "the usage line starts earlier and must not pull the date back");
-        preview.AmountDueNow.Should().Be(45.00m);
-    }
+    private const string MeterPrice = "price_other_fictional";
 
     [Fact]
     public void The_plan_is_read_from_the_item_with_a_plan_price_whichever_item_is_listed_first()
@@ -1052,6 +914,227 @@ public sealed class StripeBillingProviderTests : IDisposable
 
         evt.PlanKey.Should().Be("growth");
         evt.CurrentPeriodEnd.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1_775_120_400L));
+    }
+
+    // ---- Credit purchases: Checkout, the auto-reload charge and the confirming events ----
+
+    private static readonly Guid PurchaseId = Guid.Parse("0f0f0f0f-1111-2222-3333-444444444444");
+
+    private CreditCheckoutRequest CreditCheckout(string? customerId = null, string? email = null, decimal amount = 25m) =>
+        new(organization, PurchaseId, amount, customerId, email, Success, Cancelled);
+
+    [Fact]
+    public async Task A_credit_checkout_is_a_payment_for_the_amount_in_cents_that_saves_the_card_and_names_the_purchase()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/c/pay/cs_fictional"}""");
+
+        var url = await Provider().CreateCreditCheckoutAsync(CreditCheckout(customerId: "cus_fictional", amount: 12.5m), TestContext.Current.CancellationToken);
+
+        url.Should().Be(new Uri("https://checkout.stripe.com/c/pay/cs_fictional"));
+        var form = stripe.Calls.Single().Form;
+        form["mode"].Should().Be("payment");
+        form["line_items[0][price_data][currency]"].Should().Be("usd");
+        form["line_items[0][price_data][unit_amount]"].Should().Be("1250");
+        form["line_items[0][quantity]"].Should().Be("1");
+        form["payment_intent_data[setup_future_usage]"].Should().Be("off_session");
+        form["invoice_creation[enabled]"].Should().Be("true");
+        form["metadata[purpose]"].Should().Be("ai-credits");
+        form["metadata[purchase_id]"].Should().Be(PurchaseId.ToString());
+        form["metadata[organization_id]"].Should().Be(organization.ToString());
+        form["customer"].Should().Be("cus_fictional");
+        form.Should().NotContainKey("customer_creation");
+        form.Keys.Where(k => k.StartsWith("invoice_creation[invoice_data][metadata]", StringComparison.Ordinal)).Should()
+            .Equal(["invoice_creation[invoice_data][metadata][organization_id]"], "the invoice carries no purpose, so its invoice.paid grants nothing");
+    }
+
+    [Fact]
+    public async Task A_credit_checkout_without_a_customer_has_checkout_create_one_and_prefills_the_email()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+
+        await Provider().CreateCreditCheckoutAsync(CreditCheckout(email: "owner@example.com"), TestContext.Current.CancellationToken);
+
+        var form = stripe.Calls.Single().Form;
+        form["customer_creation"].Should().Be("always");
+        form["customer_email"].Should().Be("owner@example.com");
+        form.Should().NotContainKey("customer");
+    }
+
+    [Fact]
+    public async Task A_credit_checkout_with_tax_on_calculates_tax_and_keeps_the_price_tax_exclusive()
+    {
+        stripe.Answer("""{"url":"https://checkout.stripe.com/a"}""");
+        var options = Options();
+        options.Stripe.Tax.Enabled = true;
+
+        await Provider(options).CreateCreditCheckoutAsync(CreditCheckout(customerId: "cus_fictional"), TestContext.Current.CancellationToken);
+
+        var form = stripe.Calls.Single().Form;
+        form["automatic_tax[enabled]"].Should().Be("true");
+        form["billing_address_collection"].Should().Be("required");
+        form["customer_update[address]"].Should().Be("auto");
+        form["line_items[0][price_data][tax_behavior]"].Should().Be("exclusive");
+    }
+
+    private CreditChargeRequest Charge() => new(organization, PurchaseId, 25m, "cus_fictional", "pm_fictional");
+
+    [Fact]
+    public async Task An_auto_reload_is_a_draft_invoice_one_item_finalize_and_pay_each_keyed_on_the_purchase()
+    {
+        stripe.Answer("""{"id":"in_fictional"}""");
+        stripe.Answer("{}");
+        stripe.Answer("{}");
+        stripe.Answer("""{"id":"in_fictional","status":"paid"}""");
+
+        var charge = await Provider().ChargeCreditsAsync(Charge(), TestContext.Current.CancellationToken);
+
+        charge.Status.Should().Be(CreditChargeStatus.Succeeded);
+        charge.PaymentId.Should().Be("in_fictional");
+        var key = $"credit-reload-{PurchaseId:N}";
+        stripe.Calls.Select(c => (c.Uri.AbsolutePath, c.IdempotencyKey)).Should().Equal(
+            ("/v1/invoices", $"{key}-invoice"),
+            ("/v1/invoiceitems", $"{key}-item"),
+            ("/v1/invoices/in_fictional/finalize", $"{key}-finalize"),
+            ("/v1/invoices/in_fictional/pay", $"{key}-pay"));
+        var draft = stripe.Calls[0].Form;
+        draft["auto_advance"].Should().Be("false");
+        draft["pending_invoice_items_behavior"].Should().Be("exclude");
+        draft["collection_method"].Should().Be("charge_automatically");
+        draft["metadata[purpose]"].Should().Be("ai-credits");
+        draft["metadata[purchase_id]"].Should().Be(PurchaseId.ToString());
+        stripe.Calls[1].Form["amount"].Should().Be("2500");
+        stripe.Calls[1].Form["invoice"].Should().Be("in_fictional");
+        stripe.Calls[3].Form["payment_method"].Should().Be("pm_fictional");
+        stripe.Calls[3].Form["off_session"].Should().Be("true");
+    }
+
+    [Theory]
+    [InlineData("card_declined")]
+    [InlineData("authentication_required")]
+    public async Task A_card_stripe_refuses_with_402_is_declined_and_the_invoice_is_voided(string code)
+    {
+        stripe.Answer("""{"id":"in_fictional"}""");
+        stripe.Answer("{}");
+        stripe.Answer("{}");
+        stripe.Answer(HttpStatusCode.PaymentRequired, $$$"""{"error":{"type":"card_error","code":"{{{code}}}"}}""");
+        stripe.Answer("{}");
+
+        var charge = await Provider().ChargeCreditsAsync(Charge(), TestContext.Current.CancellationToken);
+
+        charge.Status.Should().Be(CreditChargeStatus.Declined);
+        charge.FailureCode.Should().Be(code);
+        stripe.Calls.Should().HaveCount(5);
+        stripe.Calls[4].Uri.AbsolutePath.Should().Be("/v1/invoices/in_fictional/void");
+        stripe.Calls[4].IdempotencyKey.Should().Be($"credit-reload-{PurchaseId:N}-void");
+    }
+
+    [Fact]
+    public async Task A_server_error_while_paying_an_auto_reload_throws_so_the_message_retries_and_does_not_void()
+    {
+        stripe.Answer("""{"id":"in_fictional"}""");
+        stripe.Answer("{}");
+        stripe.Answer("{}");
+        stripe.Answer(HttpStatusCode.InternalServerError, """{"error":{"type":"api_error"}}""");
+
+        var act = () => Provider().ChargeCreditsAsync(Charge(), TestContext.Current.CancellationToken);
+
+        (await act.Should().ThrowAsync<BillingProviderException>()).Which.Message.Should().NotContain(SecretKey);
+        stripe.Calls.Should().HaveCount(4, "a 500 is not a refusal of the card, so nothing is voided");
+    }
+
+    private JsonObject CreditSession(string paymentStatus = "paid") => new()
+    {
+        ["id"] = "cs_fictional",
+        ["mode"] = "payment",
+        ["payment_status"] = paymentStatus,
+        ["payment_intent"] = "pi_fictional",
+        ["customer"] = "cus_fictional",
+        ["metadata"] = new JsonObject
+        {
+            ["organization_id"] = organization.ToString(),
+            ["purpose"] = "ai-credits",
+            ["purchase_id"] = PurchaseId.ToString(),
+        },
+    };
+
+    [Theory]
+    [InlineData("checkout.session.completed")]
+    [InlineData("checkout.session.async_payment_succeeded")]
+    public void A_paid_credit_session_is_a_credit_payment_with_the_payment_intent_read_as_an_id_string(string type)
+    {
+        var webhook = Read(Event("evt_credit", type, CreditSession()));
+
+        webhook.SignatureValid.Should().BeTrue();
+        webhook.Event.Should().BeNull("a payment-mode session is never a subscription event");
+        var credit = webhook.Credit!;
+        credit.EventId.Should().Be("evt_credit");
+        credit.OrganizationId.Should().Be(organization);
+        credit.PurchaseId.Should().Be(PurchaseId);
+        credit.PaymentIntentId.Should().Be("pi_fictional");
+        credit.CustomerId.Should().Be("cus_fictional");
+    }
+
+    [Fact]
+    public void An_unpaid_credit_session_is_neither_a_credit_nor_a_subscription_event()
+    {
+        var webhook = Read(Event("evt_credit", "checkout.session.completed", CreditSession("unpaid")));
+
+        webhook.SignatureValid.Should().BeTrue();
+        webhook.Credit.Should().BeNull();
+        webhook.Event.Should().BeNull();
+    }
+
+    [Fact]
+    public void An_invoice_paid_with_the_credit_purpose_is_a_credit_payment_keyed_on_the_invoice_id()
+    {
+        var invoice = new JsonObject
+        {
+            ["id"] = "in_fictional",
+            ["customer"] = "cus_fictional",
+            ["metadata"] = CreditSession()["metadata"]!.DeepClone(),
+        };
+
+        var credit = Read(Event("evt_inv", "invoice.paid", invoice)).Credit!;
+
+        credit.ProviderPaymentId.Should().Be("in_fictional");
+        credit.PurchaseId.Should().Be(PurchaseId);
+        credit.PaymentIntentId.Should().BeNull();
+    }
+
+    [Fact]
+    public void An_invoice_paid_without_the_purpose_such_as_checkouts_own_invoice_is_nothing()
+    {
+        var invoice = new JsonObject
+        {
+            ["id"] = "in_fictional",
+            ["metadata"] = new JsonObject { ["organization_id"] = organization.ToString() },
+        };
+
+        var webhook = Read(Event("evt_inv", "invoice.paid", invoice));
+
+        webhook.SignatureValid.Should().BeTrue();
+        webhook.Credit.Should().BeNull();
+        webhook.Event.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_subscription_mode_checkout_is_still_a_subscription_event_and_no_credit()
+    {
+        var session = new JsonObject
+        {
+            ["mode"] = "subscription",
+            ["client_reference_id"] = organization.ToString(),
+            ["metadata"] = Meta("starter"),
+            ["customer"] = "cus_fictional",
+            ["subscription"] = "sub_fictional",
+            ["payment_status"] = "paid",
+        };
+
+        var webhook = Read(Event("evt_sub", "checkout.session.completed", session));
+
+        webhook.Credit.Should().BeNull();
+        webhook.Event!.PlanKey.Should().Be("starter");
+        webhook.Event.Status.Should().Be(SubscriptionStatus.Active);
     }
 
     private sealed record Call(HttpMethod Method, Uri Uri, string? Authorization, string? StripeVersion, string? ContentType, Dictionary<string, string> Form, string? IdempotencyKey);

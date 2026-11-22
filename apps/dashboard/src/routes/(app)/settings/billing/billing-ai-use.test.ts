@@ -1,15 +1,16 @@
 import type { AiUsageSummary, BillingOverview, CurrentUser, OrganizationVerificationSettings } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { creditRoutes } from '../../../../test-support/ai-credits.js';
 import { aiUsageSummary as summary } from '../../../../test-support/ai-usage.js';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import { apiStub, user, userAs } from '../../../../test-support/fixtures.js';
-import { dollarLimits, limits, ownKey, settingsWith } from '../../../../test-support/verification-settings.js';
+import { ownKey, settingsWith } from '../../../../test-support/verification-settings.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
-// Billing's AI use section (docs/architecture/billing.md, "AI use"): what the checks used, the monthly spending limits and whose
-// key runs the AI check, moved here from Verification's AI use tab. For whoever can see AI usage; an Owner also sets the limits.
+// Billing's AI use section (docs/architecture/billing.md, "AI credits"): what the checks used and whose key runs the AI check, beside
+// the prepaid credits (their own tests are in billing-credits.test.ts). For whoever can see AI usage.
 const state = vi.hoisted(() => ({ user: null as CurrentUser | null, url: new URL('http://dashboard.test/settings/billing') }));
 vi.mock('$app/state', () => ({
   page: {
@@ -40,6 +41,7 @@ function renderPage(settings: OrganizationVerificationSettings, { usage = summar
   const requests: string[] = [];
   const stub = apiStub({
     'GET /v1/organization/billing': () => Response.json(noProvider),
+    ...creditRoutes(),
     'GET /v1/organization/verification-settings': () => Response.json(settings),
     'GET /v1/organization/ai-usage/summary?timeZone=UTC': () => (usage instanceof Response ? usage : Response.json(usage)),
     ...routes,
@@ -55,7 +57,6 @@ function renderPage(settings: OrganizationVerificationSettings, { usage = summar
   return { requests };
 }
 
-const limitsPanel = async () => (await screen.findByRole('heading', { name: 'Spending limits' })).closest('section') as HTMLElement;
 // The panel once the settings have loaded: its skeleton is another element with the same name.
 const aiUse = async () => (await screen.findByText('Key', { selector: 'dt' })).closest('section') as HTMLElement;
 
@@ -68,28 +69,33 @@ afterEach(() => {
 });
 
 describe("Billing's AI use section", () => {
-  it('holds whose key runs the check, what the checks used and the spending limits, in that order, for an Owner', async () => {
-    renderPage(settingsWith({ limits: dollarLimits }));
+  it('holds the credits and auto-reload, whose key runs the check, what the checks used and the credits behind the balance, in that order, for an Owner', async () => {
+    renderPage(settingsWith());
 
     await screen.findByText('Model calls');
-    await limitsPanel();
+    await screen.findByRole('heading', { name: 'Deductions' });
     expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent?.trim())).toEqual([
+      'AI credits',
+      'Auto-reload',
       'AI use',
       'Use by day, this month',
       'By model and key',
-      'Spending limits',
+      expect.stringMatching(/^Purchases/),
+      expect.stringMatching(/^Deductions/),
     ]);
     // Whose key is a setting of its own now, in Settings > Integrations > AI model; here it is a fact with a link.
     expect(screen.queryByRole('form', { name: 'Whose key runs the AI check' })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /^Save/ }).map((button) => button.textContent?.trim())).toEqual(['Save limits']);
+    expect(screen.queryByRole('heading', { name: 'Spending limits' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Save/ }).map((button) => button.textContent?.trim())).toEqual(['Save']);
     await expectNoAxeViolations();
   });
 
   it("shows an Admin, who sees AI usage but not the plan, the section and never asks for the Owner's billing", async () => {
-    const { requests } = renderPage(settingsWith({ limits: dollarLimits }), { signedIn: userAs('Admin') });
+    const { requests } = renderPage(settingsWith(), { signedIn: userAs('Admin') });
 
     await screen.findByText('Model calls');
-    expect(requests.some((url) => url.startsWith('/v1/organization/billing'))).toBe(false);
+    // The credits are under the same path, and an Admin reads them.
+    expect(requests.some((url) => /^\/v1\/organization\/billing(\?|\/(?!credits)|$)/.test(url))).toBe(false);
     expect(screen.queryByRole('region', { name: 'Plan' })).toBeNull();
     expect(within(await aiUse()).getByRole('link', { name: 'Use your own key' })).toHaveAttribute('href', '/settings/ai-model');
   });
@@ -108,7 +114,7 @@ describe("Billing's AI use section", () => {
     renderPage(settingsWith(), { signedIn: reader });
 
     const panel = await aiUse();
-    expect(within(panel).getByText("ScreenHire's key. You're billed for what the checks use.")).toBeInTheDocument();
+    expect(within(panel).getByText("ScreenHire's key. The checks use your AI credits.")).toBeInTheDocument();
     expect(within(panel).queryByRole('link', { name: /key/ })).toBeNull();
     expect(within(panel).getByRole('link', { name: 'See every call' })).toHaveAttribute('href', '/verification/activity');
   });
@@ -222,98 +228,5 @@ describe('what the checks used', () => {
     renderPage(settingsWith(), { usage: Response.json({ detail: 'down' }, { status: 500 }) });
 
     expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
-  });
-});
-
-describe('the spending limits', () => {
-  it('shows no limits when the server sent none', async () => {
-    renderPage(settingsWith());
-    await screen.findByText('Model calls');
-
-    expect(screen.queryByRole('heading', { name: 'Spending limits' })).not.toBeInTheDocument();
-  });
-
-  it('gives an Owner the form in dollars, saying the limits apply whichever key runs the checks, and naming the default', async () => {
-    renderPage(settingsWith({ limits: dollarLimits }));
-
-    const panel = await limitsPanel();
-    expect(within(panel).getByRole('form', { name: 'Monthly AI limits' })).toBeInTheDocument();
-    expect(panel).toHaveTextContent('In US dollars. They apply whichever key runs the checks.');
-    expect(panel).not.toHaveTextContent(/own key has none/);
-    expect(within(panel).getByLabelText(/Monthly budget/)).toHaveValue('');
-    expect(within(panel).getAllByText("Empty keeps ScreenHire's default of $3.84 a month.")).toHaveLength(2);
-    // The thresholds are one press away.
-    await fireEvent.click(within(panel).getByRole('button', { name: 'About the budget and cap' }));
-    expect(await screen.findByText(/warns you at 50%, 80% and 100%/)).toBeInTheDocument();
-  });
-
-  it('shows the limits in tokens with one short note where the model has no price', async () => {
-    renderPage(settingsWith({ limits }), { signedIn: userAs('Admin') });
-
-    const panel = await limitsPanel();
-    expect(within(panel).getAllByText('420 tokens of 2,000,000 tokens')).toHaveLength(2);
-    expect(within(panel).getAllByText('In tokens until the AI model has a price.')).toHaveLength(1);
-  });
-
-  it("starts from an Owner's own limit in dollars, one stored in tokens shown as the API converted it, so saving keeps it", async () => {
-    renderPage(settingsWith({ limits: { ...dollarLimits, unit: 'Tokens', cap: 4_000_000, effectiveCap: { amount: 7.68, unit: 'Money', isDefault: false, used: 0.0683, percent: 0 } } }));
-
-    const panel = await limitsPanel();
-    expect(within(panel).getByLabelText(/Monthly cap/)).toHaveValue('7.68');
-    expect(within(panel).getByLabelText(/Monthly budget/)).toHaveValue('');
-  });
-
-  it('sends the limits in dollars with no unit', async () => {
-    const sent: unknown[] = [];
-    renderPage(settingsWith({ limits: dollarLimits }), {
-      routes: {
-        'PUT /v1/organization/ai-usage/limits': (init) => {
-          sent.push(JSON.parse(String(init?.body)));
-          return Response.json(dollarLimits);
-        },
-      },
-    });
-
-    await fireEvent.input(within(await limitsPanel()).getByLabelText(/Monthly budget/), { target: { value: '25.50' } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Save limits' }));
-
-    await waitFor(() => expect(sent).toEqual([{ budget: 25.5, cap: null }]));
-  });
-
-  it('lets an Owner remove a limit set before the model lost its price, after asking', async () => {
-    const sent: unknown[] = [];
-    renderPage(settingsWith({ limits: { ...limits, cap: 5, effectiveCap: { amount: 5, unit: 'Money', isDefault: false, used: 0, percent: 0 } } }), {
-      routes: {
-        'PUT /v1/organization/ai-usage/limits': (init) => {
-          sent.push(JSON.parse(String(init?.body)));
-          return Response.json(limits);
-        },
-      },
-    });
-
-    await fireEvent.click(await screen.findByRole('button', { name: 'Remove limits' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Remove your budget and cap?' });
-    expect(dialog).not.toHaveTextContent(/own key has none/);
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove limits' }));
-
-    await waitFor(() => expect(sent).toEqual([{ budget: null, cap: null }]));
-  });
-
-  it('offers no form where the AI model has no price, and says why once, with the limits in tokens', async () => {
-    renderPage(settingsWith({ limits }));
-
-    const panel = await limitsPanel();
-    expect(within(panel).queryByRole('form', { name: 'Monthly AI limits' })).not.toBeInTheDocument();
-    expect(panel).toHaveTextContent(/Limits count dollars, and the AI model in use has no price yet\./);
-  });
-
-  it('shows an Admin the budget and cap as facts, since only an Owner sets them', async () => {
-    renderPage(settingsWith({ limits: dollarLimits }), { signedIn: userAs('Admin') });
-
-    const panel = await limitsPanel();
-    expect(panel).toHaveTextContent(/An owner sets the budget and cap/);
-    expect(within(panel).getAllByText('$0.07 of $3.84')).toHaveLength(2);
-    expect(within(panel).queryByRole('form', { name: 'Monthly AI limits' })).not.toBeInTheDocument();
-    await expectNoAxeViolations();
   });
 });

@@ -285,18 +285,26 @@ public sealed class BillingTests(AppHostFixture fixture)
     }
 
     [Fact]
-    public async Task A_paying_month_adds_the_plan_to_ai_use_and_estimates_the_next_invoice_on_the_payment_date()
+    public async Task A_paying_month_adds_the_credits_bought_to_the_plan_and_estimates_the_next_invoice_as_the_plan_alone()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         await fixture.SubscribeAsync(owner, "starter");
+        await fixture.BuyCreditsAsync(owner, 25m);
+        ApiResult? billing = null;
+        await Messaging.WolverineStore.WaitUntilAsync(
+            async () =>
+            {
+                billing = await owner.BillingAsync();
+                return billing.At("thisMonth").GetProperty("creditsBought").GetDecimal() == 25m;
+            },
+            "the worker to grant the credits that were bought",
+            Ct);
 
-        var billing = await owner.BillingAsync();
-        var month = billing.At("thisMonth");
+        var month = billing!.At("thisMonth");
         month.GetProperty("planName").GetString().Should().Be("Starter");
         month.GetProperty("planAmount").GetDecimal().Should().Be(ShippedPlans.Starter.MonthlyPrice);
-        month.GetProperty("aiAmount").GetDecimal().Should().Be(billing.At("aiUsage.charge").GetDecimal());
-        month.GetProperty("total").GetDecimal().Should().Be(ShippedPlans.Starter.MonthlyPrice + billing.At("aiUsage.charge").GetDecimal() - month.GetProperty("trialCredit").GetDecimal());
+        month.GetProperty("total").GetDecimal().Should().Be(ShippedPlans.Starter.MonthlyPrice + 25m);
         month.GetProperty("nextInvoiceAt").GetDateTimeOffset().Should().Be(billing.At("nextPaymentAt").GetDateTimeOffset());
-        month.GetProperty("nextInvoiceAmount").GetDecimal().Should().Be(month.GetProperty("total").GetDecimal());
+        month.GetProperty("nextInvoiceAmount").GetDecimal().Should().Be(ShippedPlans.Starter.MonthlyPrice, "credits are paid for when bought and are on no invoice");
     }
 }

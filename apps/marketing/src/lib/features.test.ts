@@ -1,4 +1,4 @@
-import { ai, aiMarginPercent } from '@screenhire/plans';
+import { ai, aiMarginPercent, credits } from '@screenhire/plans';
 import { describe, expect, it } from 'vitest';
 import { aiCost, automation, careersSite, hero, includedByTopic, integrations, notPaidExtra, pricingNotes, sellingPoints } from './features';
 import { marketPains } from './market';
@@ -86,6 +86,12 @@ describe('what the AI costs', () => {
     expect(aiCost.billed).toBe(`Use of our AI key is billed at the provider's price plus ${aiMarginPercent}%.`);
     expect(aiCost.both).toContain(aiCost.billed);
     expect(aiCost.both).toContain(aiCost.ownKey);
+  });
+
+  it('says AI use is prepaid from the smallest credit amount in the catalogue, never a retyped one', () => {
+    expect(aiCost.smallestCredit).toBe(Math.min(...credits.amounts));
+    expect(aiCost.prepaid).toContain(`from $${Math.min(...credits.amounts)},`);
+    expect(aiCost.both).toBe(`${aiCost.billed} ${aiCost.prepaid} ${aiCost.ownKey}`);
   });
 
   it('says on what every plan includes that the AI check is billed on our key and costs nothing extra on your own', () => {

@@ -3,6 +3,7 @@
   import CreditCardIcon from '~icons/lucide/credit-card';
   import type { BillingPlan, BillingPortalIntent } from '@screenhire/api-client';
   import {
+    createGetAiCredits,
     createGetBilling,
     createGetBillingPaymentMethod,
     createGetOrganizationVerificationSettings,
@@ -13,10 +14,13 @@
   import { tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
+  import AiCreditsPanel from '#lib/components/ai-credits-panel.svelte';
   import AiUsageFigures from '#lib/components/ai-usage-figures.svelte';
-  import AiUsageLimitsForm from '#lib/components/ai-usage-limits-form.svelte';
+  import AutoReloadForm from '#lib/components/auto-reload-form.svelte';
   import BillingInvoices from '#lib/components/billing-invoices.svelte';
   import ChangePlanDialog from '#lib/components/change-plan-dialog.svelte';
+  import CreditDeductions from '#lib/components/credit-deductions.svelte';
+  import CreditPurchases from '#lib/components/credit-purchases.svelte';
   import DateText from '#lib/components/date-text.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
@@ -29,12 +33,10 @@
   import SummaryItem from '#lib/components/summary-item.svelte';
   import SummaryList from '#lib/components/summary-list.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
-  import LimitsSummary from '#lib/components/verification-area/limits-summary.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { formatCost } from '#lib/ai-usage.js';
-  import { aiCallsText, aiMonthText, aiUsageNotes, billingStatus, formatMoney, mayChoosePlan, openJobsText, paymentMethodText, planLimitText, priceLine } from '#lib/billing.js';
+  import { aiMonthText, aiUsageNotes, billingStatus, formatCredits, formatMoney, mayChoosePlan, openJobsText, paymentMethodText, planLimitText, priceLine } from '#lib/billing.js';
   import { can } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
   import { aiModelAddress, canEditVerification, canSeeUsage } from '#lib/verification-area.js';
@@ -42,8 +44,9 @@
 
   // Everything the organization pays, in one place (docs/architecture/billing.md). For an Owner (ManageBilling): the plan and open
   // jobs, this month so far added up with the next invoice, the payment method, the invoices and the plans, in the form template
-  // (section 7). Then the AI use section, for whoever can see AI usage (ai-usage.md): what the AI check costs this month and on
-  // whose key, what the checks used (a report at the full width), and the monthly spending limits, which an Owner sets. Someone
+  // (section 7). Then the AI use section, for whoever can see AI usage (ai-usage.md): the prepaid AI credits (ADR-0032), with buying
+  // and auto-reload for an Owner, what the AI check used this month and on whose key, what the checks used (a report at the full
+  // width), and the purchases and deductions behind the balance. Someone
   // who sees AI usage without managing billing gets only that section, and so does an Owner where no payment provider is set
   // up (A3). The card and cancelling happen on the payment provider's own pages (Change card and Cancel plan open its portal)
   // and a first plan is chosen through Checkout; the browser comes back from Checkout to `?checkout=success` or
@@ -58,14 +61,16 @@
   const checkout = createStartBillingCheckout();
   const portal = createOpenBillingPortal();
 
-  // How a round trip to Checkout ended, read once and taken out of the address, so a reload does not repeat it. The
-  // local sandbox's Checkout also adds `tax` and `taxId` when it asked for them (for its tests), which go with it.
-  const returned = page.url.searchParams.get('checkout');
-  const outcome = returned === 'success' || returned === 'cancelled' ? returned : null;
+  // How a round trip to Checkout ended, read once and taken out of the address, so a reload does not repeat it: `checkout` for a
+  // plan, `credits` for AI credits. The local sandbox's Checkout also adds `tax` and `taxId` when it asked for them (for its
+  // tests), which go with it. Coming back grants nothing: the credits arrive when the payment is confirmed.
+  const outcomeOf = (value: string | null) => (value === 'success' || value === 'cancelled' ? value : null);
+  const outcome = outcomeOf(page.url.searchParams.get('checkout'));
+  const creditOutcome = outcomeOf(page.url.searchParams.get('credits'));
   $effect(() => {
-    if (page.url.searchParams.has('checkout')) {
+    if (page.url.searchParams.has('checkout') || page.url.searchParams.has('credits')) {
       const url = new URL(page.url.href);
-      for (const key of ['checkout', 'tax', 'taxId']) url.searchParams.delete(key);
+      for (const key of ['checkout', 'credits', 'tax', 'taxId']) url.searchParams.delete(key);
       void goto(url, { replace: true, reset: false });
     }
   });
@@ -120,15 +125,18 @@
   // The Owner's charge for AI use this month, from billing.
   const charge = $derived(ownerParts && overview?.available ? overview.aiUsage : null);
 
-  // The limits and whose key runs the AI check come with the organization's verification settings.
+  // Whose key runs the AI check comes with the organization's verification settings.
   const settings = createGetOrganizationVerificationSettings(() => ({ query: { enabled: usage } }));
   const detail = $derived(settings.data?.data);
   const includedKey = $derived(detail?.modelSource !== 'OwnKey');
   const keyText = $derived(
     detail?.modelSource === 'OwnKey'
       ? `Your own key${detail.provider ? `, ${modelProviderLabels[detail.provider]}` : ''}${detail.model ? `, ${detail.model}` : ''}. Your AI provider bills you.`
-      : "ScreenHire's key. You're billed for what the checks use.",
+      : "ScreenHire's key. The checks use your AI credits.",
   );
+  // The prepaid AI credits, where a payment provider is set up.
+  const creditsQuery = createGetAiCredits(() => ({ query: { enabled: usage, refetchOnMount: 'always' } }));
+  const credits = $derived(creditsQuery.data?.data.available ? creditsQuery.data.data : null);
 
   // A link to `#ai-use` (an alert, the Activity log, the Overview) arrives before the panels above the section have loaded, so
   // the browser's one jump lands short. Once the Owner's queries above it have settled, bring the section to the top, once. The
@@ -139,9 +147,10 @@
   );
   let arrived = false;
   $effect(() => {
-    if (arrived || !usage || page.url.hash !== '#ai-use' || !aboveSettled) return;
+    const target = page.url.hash === '#ai-use' ? 'ai-use' : page.url.hash === '#ai-credits' ? 'ai-credits' : null;
+    if (arrived || !usage || !target || !aboveSettled || (target === 'ai-credits' && creditsQuery.isPending)) return;
     arrived = true;
-    void tick().then(() => document.getElementById('ai-use')?.scrollIntoView({ block: 'start' }));
+    void tick().then(() => document.getElementById(target)?.scrollIntoView({ block: 'start' }));
   });
 </script>
 
@@ -210,7 +219,7 @@
             </Panel>
 
             <!-- What the organization pays this month, each charge on its line and added up, then the next invoice (docs/architecture/billing.md,
-                 "The Billing page"). The AI line is the one amount the AI use section below shows too, and links to it. -->
+                 "The Billing page"). AI use is prepaid: the credits bought this month are the charge, and link to the credits below. -->
             {#if month}
               <Panel title="This month so far">
                 <div class="flex max-w-form flex-col gap-3">
@@ -221,22 +230,12 @@
                         <span class="tabular-nums">{formatMoney(month.planAmount, month.currency)}</span>
                       </li>
                     {/if}
-                    {#if month.aiAmount !== null}
+                    {#if month.creditsBought > 0}
                       <li class="flex items-baseline justify-between gap-4 py-1.5">
-                        <span>
-                          AI use,
-                          <a href="#ai-use" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11"
-                            >{aiCallsText(month.aiCalls)}</a
-                          >
-                        </span>
-                        <!-- As the AI usage panel shows it, so a month of use under a cent reads "Under $0.01" in both. -->
-                        <span class="tabular-nums">{formatCost(month.aiAmount)}</span>
-                      </li>
-                    {/if}
-                    {#if Math.round(month.trialCredit * 100) > 0}
-                      <li class="flex items-baseline justify-between gap-4 py-1.5">
-                        <span>Included in your trial</span>
-                        <span class="tabular-nums">{formatMoney(-month.trialCredit, month.currency)}</span>
+                        <a href="#ai-credits" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11"
+                          >AI credits</a
+                        >
+                        <span class="tabular-nums">{formatCredits(month.creditsBought)}</span>
                       </li>
                     {/if}
                     <li class="mt-1 flex items-baseline justify-between gap-4 border-t border-border-subtle pt-2.5 font-semibold">
@@ -323,11 +322,22 @@
         </div>
       {/if}
 
-      <!-- The AI use section (docs/architecture/billing.md, "AI use"), at `/settings/billing#ai-use`: the form column, then
-           what the checks used as a report at the full width (tables never stop short, S6), then the limits in the column. -->
+      <!-- The AI use section (docs/architecture/billing.md, "AI credits"), at `/settings/billing#ai-use`: the credits and auto-reload,
+           then this month's use in the form column, what the checks used as a report at the full width (tables never stop short, S6),
+           then the purchases and deductions behind the balance. -->
       {#if usage}
         <div id="ai-use" class="flex w-full min-w-0 scroll-mt-20 flex-col gap-5">
           <div class="flex w-full max-w-form flex-col gap-5">
+            {#if creditsQuery.isError && !creditsQuery.data}
+              <Panel title="AI credits">
+                <QueryError message={describeError(creditsQuery.error, 'Could not load the AI credits')} onretry={() => creditsQuery.refetch()} inset />
+              </Panel>
+            {:else if credits}
+              <AiCreditsPanel {credits} {owner} returned={creditOutcome} />
+              {#if owner && !credits.ownKey}
+                <Panel title="Auto-reload"><AutoReloadForm {credits} /></Panel>
+              {/if}
+            {/if}
             {#if settings.isError && !detail}
               <Panel title="AI use">
                 <QueryError message={describeError(settings.error, 'Could not load the AI settings')} onretry={() => settings.refetch()} inset />
@@ -348,7 +358,7 @@
                     <SummaryItem label="Key">{keyText}</SummaryItem>
                   </SummaryList>
                   {#if charge}
-                    {#each aiUsageNotes(charge, standing) as note (note)}
+                    {#each aiUsageNotes(charge) as note (note)}
                       <p class="max-w-measure text-muted-foreground">{note}</p>
                     {/each}
                   {/if}
@@ -359,19 +369,11 @@
 
           <AiUsageFigures />
 
-          {#if detail?.limits}
-            <!-- As they were on Verification. -->
+          {#if credits}
+            <!-- Every credit added and every deduction, each traceable to the check that used it. -->
             <div class="flex w-full max-w-form flex-col gap-5">
-              <Panel title="Spending limits">
-                {#if owner}
-                  <AiUsageLimitsForm limits={detail.limits} />
-                {:else}
-                  <div class="flex flex-col gap-4">
-                    <LimitsSummary limits={detail.limits} />
-                    <p class="max-w-measure text-muted-foreground">An owner sets the budget and cap. They apply whichever key runs the checks.</p>
-                  </div>
-                {/if}
-              </Panel>
+              {#if owner}<CreditPurchases />{/if}
+              <CreditDeductions />
             </div>
           {/if}
         </div>
@@ -388,7 +390,8 @@
 
 {#snippet aiFooter()}
   <div class="flex flex-col gap-1 text-muted-foreground">
-    {#if includedKey}<p>Bring your own key and this charge goes away.</p>{/if}
+    {#if includedKey}<p>Bring your own key and the checks use no credits.</p>{/if}
+
     <div class="flex flex-wrap gap-x-4">
       {#if editsModel}
         <a href={aiModelAddress} class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11"

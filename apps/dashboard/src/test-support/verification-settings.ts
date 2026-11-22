@@ -16,27 +16,6 @@ export const presets: OrganizationVerificationSettings['presets'] = [
   { provider: 'OpenAiCompatible', baseUrl: null, baseUrlEditable: true, listsModels: true },
 ];
 
-/** The defaults where the AI model has no price: nothing to convert the token default at, so it stays in tokens and no limit can be set. */
-export const limits: NonNullable<OrganizationVerificationSettings['limits']> = {
-  unit: 'Money',
-  budget: null,
-  cap: null,
-  effectiveBudget: { amount: 2_000_000, unit: 'Tokens', isDefault: true, used: 420, percent: 0 },
-  effectiveCap: { amount: 2_000_000, unit: 'Tokens', isDefault: true, used: 420, percent: 0 },
-  priced: false,
-};
-
-/**
- * The same defaults where the deployment prices its model: billed dollars (2,000,000 tokens at 1.60 a million plus the 20% margin is
- * 3.84), and what was used is the billed amount.
- */
-export const dollarLimits: NonNullable<OrganizationVerificationSettings['limits']> = {
-  ...limits,
-  effectiveBudget: { amount: 3.84, unit: 'Money', isDefault: true, used: 0.0683, percent: 1 },
-  effectiveCap: { amount: 3.84, unit: 'Money', isDefault: true, used: 0.0683, percent: 1 },
-  priced: true,
-};
-
 export const defaults: OrganizationVerificationSettings = {
   llmConsistencyCheck: false,
   lastUpdated,
@@ -47,7 +26,6 @@ export const defaults: OrganizationVerificationSettings = {
   apiKeySaved: false,
   ownKeyInputPrice: null,
   ownKeyOutputPrice: null,
-  limits: null,
   presets,
   checks: { network: true, contact: true, documents: true, answers: true, duplicates: true, formUse: true },
   defaultAiUse: 'AllowedWithDisclosure',

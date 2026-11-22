@@ -56,10 +56,10 @@ Built for small hiring teams. Simple to use. Every feature on every plan. Plain 
 
 ScreenHire's answer, which is how it is billed (ADR-0029): unlimited users, every feature on every plan, a price set by
 how many jobs are open at once, and a closed job costs nothing. The AI consistency check is included on every plan. The one thing
-metered on top is the use of ScreenHire's own AI key, which is billed at the provider's price plus a margin (ADR-0029, decision 12),
-and an organization may bring its own key and model and pay us nothing for it. The site never says the AI costs nothing extra, and
-it never retypes the margin: it reads it from `packages/plans/ai.json` (`aiCost` in `features.ts`), as it reads prices from the
-catalogue. The numbers live only in `packages/plans/plans.json`
+bought on top is the use of ScreenHire's own AI key, which is billed at the provider's price plus a margin and paid for in advance as AI
+credits (ADR-0032), and an organization may bring its own key and model and pay us nothing for it. The site never says the AI costs nothing extra, and
+it never retypes the margin or a credit amount: it reads them from `packages/plans/ai.json` and `credits.json` (`aiCost` in
+`features.ts`), as it reads prices from the catalogue. The numbers live only in `packages/plans/plans.json`
 (Starter $79 and 3 open jobs, Growth $149 and 10, Unlimited $249, working values the owner confirms before launch). Copy
 never writes a price or a job limit itself: it reads them from the catalogue (`catalogPlans`), as `PlanRows` does. A plan
 the catalogue gives no price shows its name and limit and no amount, and no placeholder text ever reaches a page. The

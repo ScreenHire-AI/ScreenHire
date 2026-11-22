@@ -7,8 +7,7 @@ using ScreenHire.Infrastructure.Verification.Llm;
 namespace ScreenHire.UnitTests.Verification;
 
 /// <summary>
-/// The rules behind AI usage (docs/architecture/ai-usage.md): what a call cost, when a budget alerts and a cap pauses, which
-/// cap and budget are in force, and what a spike is. Pure functions, so every edge is a row here.
+/// The rules behind AI usage (docs/architecture/ai-usage.md): what a call cost, the one amount it is billed at, and what a spike is. Pure functions, so every edge is a row here.
 /// </summary>
 public sealed class AiUsageRulesTests
 {
@@ -50,74 +49,6 @@ public sealed class AiUsageRulesTests
 
         cost.Should().Be(3m);
         basis.Should().Be(AiCostBasis.Priced);
-    }
-
-    [Theory]
-    [InlineData(0, 100, new int[0])]
-    [InlineData(49, 100, new int[0])]
-    [InlineData(50, 100, new[] { 50 })]
-    [InlineData(79.9, 100, new[] { 50 })]
-    [InlineData(80, 100, new[] { 50, 80 })]
-    [InlineData(100, 100, new[] { 50, 80, 100 })]
-    [InlineData(250, 100, new[] { 50, 80, 100 })]
-    public void A_budget_alerts_at_fifty_eighty_and_a_hundred_percent_of_it(double used, double budget, int[] expected)
-    {
-        AiUsageLimits.ThresholdsReached((decimal)used, (decimal)budget).Should().Equal(expected);
-    }
-
-    [Fact]
-    public void No_budget_alerts_nothing()
-    {
-        AiUsageLimits.ThresholdsReached(1_000_000m, null).Should().BeEmpty();
-        AiUsageLimits.ThresholdsReached(1_000_000m, 0m).Should().BeEmpty();
-    }
-
-    [Theory]
-    [InlineData(99, 100, false)]
-    [InlineData(100, 100, true)] // the cap is a limit, not a last allowed amount
-    [InlineData(101, 100, true)]
-    public void A_cap_is_reached_at_the_cap(double used, double cap, bool reached)
-    {
-        AiUsageLimits.CapReached((decimal)used, (decimal)cap).Should().Be(reached);
-    }
-
-    [Fact]
-    public void No_cap_never_pauses_anything()
-    {
-        AiUsageLimits.CapReached(decimal.MaxValue, null).Should().BeFalse();
-    }
-
-    [Fact]
-    public void An_organizations_own_cap_wins_and_ScreenHires_key_falls_back_to_the_deployments_default_in_tokens()
-    {
-        var own = new VerificationSettings { BudgetUnit = UsageUnit.Money, MonthlyCap = 40m };
-        var none = new VerificationSettings();
-
-        AiUsageLimits.EffectiveCap(own, 2_000_000).Should().Be((40m, UsageUnit.Money));
-        AiUsageLimits.EffectiveCap(none, 2_000_000).Should().Be((2_000_000m, UsageUnit.Tokens));
-        AiUsageLimits.EffectiveCap(null, 2_000_000).Should().Be((2_000_000m, UsageUnit.Tokens), "an organization that never saved settings is on ScreenHire's key");
-        AiUsageLimits.EffectiveCap(none, 0).Cap.Should().BeNull("a deployment can turn its default cap off with 0");
-    }
-
-    [Fact]
-    public void An_own_key_has_no_default_budget_or_cap_but_its_own_still_apply()
-    {
-        var ownKey = new VerificationSettings { LlmSource = LlmSource.OwnKey };
-        var capped = new VerificationSettings { LlmSource = LlmSource.OwnKey, BudgetUnit = UsageUnit.Tokens, MonthlyCap = 500_000m, MonthlyBudget = 250_000m };
-
-        AiUsageLimits.EffectiveCap(ownKey, 2_000_000).Cap.Should().BeNull();
-        AiUsageLimits.EffectiveBudget(ownKey, 2_000_000).Budget.Should().BeNull();
-        AiUsageLimits.EffectiveCap(capped, 2_000_000).Should().Be((500_000m, UsageUnit.Tokens));
-        AiUsageLimits.EffectiveBudget(capped, 2_000_000).Should().Be((250_000m, UsageUnit.Tokens));
-    }
-
-    [Fact]
-    public void The_budget_and_the_cap_can_each_fall_back_on_their_own()
-    {
-        var onlyBudget = new VerificationSettings { MonthlyBudget = 1_000m };
-
-        AiUsageLimits.EffectiveBudget(onlyBudget, 2_000_000).Budget.Should().Be(1_000m);
-        AiUsageLimits.EffectiveCap(onlyBudget, 2_000_000).Cap.Should().Be(2_000_000m);
     }
 
     private static readonly long[] Quiet = [100_000, 120_000, 90_000, 110_000, 0, 0, 100_000];
@@ -163,8 +94,10 @@ public sealed class AiUsageRulesTests
     public void A_paused_AI_check_is_told_apart_from_a_group_turned_off_and_from_a_trusted_source()
     {
         RunNotes.KindOf("consistency", RunNotes.AiChecksPaused).Should().Be(CheckNotRunKind.Paused);
+        RunNotes.KindOf("consistency", RunNotes.AiCreditsPaused).Should().Be(CheckNotRunKind.Paused);
         RunNotes.KindOf("consistency", CheckGroups.TurnedOffNote(CheckGroup.Answers)).Should().Be(CheckNotRunKind.TurnedOff);
         RunNotes.AiChecksPaused.Should().Contain("says nothing about the candidate");
+        RunNotes.AiCreditsPaused.Should().Contain("says nothing about the candidate");
     }
 
     [Fact]
@@ -207,57 +140,12 @@ public sealed class AiUsageRulesTests
     }
 
     [Fact]
-    public void A_limit_in_tokens_is_priced_at_the_usual_mix_and_never_reads_as_nothing()
-    {
-        AiUsageMix.BlendedPerMillion(1m, 4m).Should().Be(1.6m, "80% input at 1.00 and 20% output at 4.00");
-        AiUsageMix.Dollars(2_000_000, 1.6m).Should().Be(3.2m);
-        AiUsageMix.Dollars(0, 1.6m).Should().Be(0m);
-        AiUsageMix.LimitInDollars(2_000_000, 1.92m).Should().Be(3.84m);
-        AiUsageMix.LimitInDollars(1, 1.6m).Should().Be(0.01m, "a limit that is not zero never reads as $0.00");
-    }
-
-    [Fact]
-    public void A_token_limit_converts_at_the_billed_price_of_the_key_in_use_and_stays_in_tokens_without_one()
-    {
-        var builtIn = new VerificationSettings { OrganizationId = Guid.NewGuid() };
-        AiUsageMix.BilledPerMillion(builtIn, (1m, 4m), 0.2m).Should().Be(1.92m, "ScreenHire's key at its price plus the margin");
-        AiUsageMix.BilledPerMillion(null, (1m, 4m), 0m).Should().Be(1.6m, "with billing off there is no margin");
-        AiUsageMix.BilledPerMillion(builtIn, null, 0.2m).Should().BeNull("a model with no price leaves a limit in tokens");
-        AiUsageMix.BilledPerMillion(builtIn, (0m, 0m), 0.2m).Should().BeNull("a free model gives no dollar figure");
-
-        var own = new VerificationSettings { OrganizationId = Guid.NewGuid(), LlmSource = LlmSource.OwnKey, OwnKeyInputPrice = 2m, OwnKeyOutputPrice = 10m };
-        AiUsageMix.BilledPerMillion(own, (1m, 4m), 0.2m).Should().Be(3.6m, "an own key at its own prices, with no margin: ScreenHire never bills it");
-        own.OwnKeyOutputPrice = null;
-        AiUsageMix.BilledPerMillion(own, (1m, 4m), 0.2m).Should().BeNull("an own key needs both its prices");
-    }
-
-    [Fact]
     public void The_one_amount_for_a_call_is_billed_on_ScreenHires_key_and_the_providers_price_on_an_own_key()
     {
-        AiCharge.Billed(0.0001234m, AiKeySource.BuiltIn, 0.2m).Should().Be(0.000148m, "the cost plus 20%, to the micro-dollar the meter is sent");
+        AiCharge.Billed(0.0001234m, AiKeySource.BuiltIn, 0.2m).Should().Be(0.000148m, "the cost plus 20%, to the micro-dollar the ledger records");
         AiCharge.Billed(0.0001234m, AiKeySource.OwnKey, 0.2m).Should().Be(0.0001234m, "an own key is never billed: its amount is the provider's price");
         AiCharge.Billed(null, AiKeySource.BuiltIn, 0.2m).Should().BeNull("an unknown cost stays unknown");
         AiCharge.Billed(1m, AiKeySource.BuiltIn, 0m).Should().Be(1m);
-    }
-
-    [Fact]
-    public void The_default_is_priced_at_the_model_that_answers_and_stays_in_tokens_where_it_has_no_price()
-    {
-        var prices = new Dictionary<string, ModelPrice>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["comparison-model"] = new() { Input = 5m, Output = 25m },
-            ["half-priced-model"] = new() { Input = 5m },
-            [FakeConsistencyChatClient.ModelId] = new() { Input = 1m, Output = 4m },
-        };
-
-        new LlmOptions { Provider = LlmProvider.Anthropic, ConsistencyModel = "comparison-model", ExtractionModel = "other", Prices = prices }
-            .ConfiguredPrice().Should().Be((5m, 25m), "the comparison model answers on ScreenHire's key");
-        new LlmOptions { Provider = LlmProvider.Fake, Prices = prices }.ConfiguredPrice().Should().Be((1m, 4m), "the fake model answers as itself");
-        new LlmOptions { Provider = LlmProvider.Anthropic, ConsistencyModel = "unpriced-model", Prices = prices }.ConfiguredPrice().Should().BeNull();
-        new LlmOptions { Provider = LlmProvider.Anthropic, ConsistencyModel = "half-priced-model", Prices = prices }.ConfiguredPrice().Should().BeNull("a side with no price is not guessed");
-        new LlmOptions { Provider = LlmProvider.Anthropic, Prices = prices }.ConfiguredPrice().Should().BeNull("no model is configured");
-        new LlmOptions { Provider = LlmProvider.None, Prices = prices }.ConfiguredPrice().Should().BeNull("no model answers");
-        new LlmOptions { Provider = LlmProvider.Fake }.ConfiguredPrice().Should().BeNull("nothing prices the fake model");
     }
 
     [Fact]

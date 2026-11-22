@@ -16,9 +16,9 @@ import type { BillingThisMonth } from './billingThisMonth.ts';
  * publishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and
  * `nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.
  * `openJobs` counts the jobs open now and `activeJobLimit` is the plan's limit, null when it has none.
- * `canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.
+ * `canManage`: there is a subscription, so the payment portal can open. `sandbox`: the local fake, not Stripe.
  * `taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".
- * `aiUsage`: this month's use of ScreenHire's AI key and what it costs (null while billing is off). `thisMonth`: what the
+ * `aiUsage`: this month's use of ScreenHire's AI key and what it drew from the credits (null while billing is off). `thisMonth`: what the
  * organization pays this month so far, each charge on its line and added up, and the next invoice (null while billing is off).
  */
 export interface BillingOverview {

@@ -583,7 +583,8 @@ public static partial class ExpireOrganizationAiCreditsHandler
         }));
         await db.SaveChangesAsync(cancellationToken);
         outgoing.Add(new BillingChanged(message.OrganizationId));
-        LogExpired(logger, message.OrganizationId, expiring.Count, AiCharge.Dollars(expiring.Sum(e => e.Micros)));
+        var written = AiCharge.Dollars(expiring.Sum(e => e.Micros));
+        LogExpired(logger, message.OrganizationId, expiring.Count, written);
         return outgoing;
     }
 

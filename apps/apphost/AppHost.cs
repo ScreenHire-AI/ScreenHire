@@ -28,11 +28,8 @@
 //                               "unavailable"; in Anthropic mode the key comes from the secret parameter
 //                               anthropic-api-key, never from these keys. Prices:<modelId>:Input and :Output are what the
 //                               model costs, in US dollars per million tokens (for the usage ledger's costs; a model with no
-//                               entry has an unknown cost). DefaultMonthlyTokenBudget (2,000,000) and DefaultMonthlyTokenCap
-//                               (2,000,000, 0 turns it off) are the budget and cap ScreenHire's key falls back to when an
-//                               organization sets none; an own key has neither. The API shows both in dollars, at the answering
-//                               model's Prices and the usual input/output mix, and in tokens where the model has no price
-//                               (docs/architecture/ai-usage.md).
+//                               entry has an unknown cost and draws no AI credits). What the checks may spend on ScreenHire's
+//                               key is the organization's prepaid AI credits (Billing:Credits:*, docs/architecture/ai-usage.md).
 //   AiUsage:*                   the daily AI usage sweeps (ScreenHire.Application AiUsageOptions, docs/architecture/ai-usage.md),
 //                               forwarded to the API and the worker: Spike:Factor (3), Spike:LookbackDays (14), Spike:MinimumTokens
 //                               (100,000) and Spike:MinimumActiveDays (3) are the spike rule; ResumeBatchSize (200) is how many
@@ -85,9 +82,9 @@
 //                               sandbox workspace instead (Development only; the test stacks turn it on). The secret
 //                               comes from that parameter, never from these keys.
 //   Billing:*                   plans, the trial and job limits (ScreenHire.Application BillingOptions,
-//                               docs/architecture/billing.md, ADR-0029), forwarded to the API; the Trial:*, Plans:*, Ai:*,
-//                               Sandbox:* and Stripe:* keys, ApiBaseUrl and Timeout go to the worker too, which sends the
-//                               trial's reminders and reports AI use to the payment provider's meter (and gets both Stripe
+//                               docs/architecture/billing.md, ADR-0029, ADR-0032), forwarded to the API; the Trial:*, Plans:*,
+//                               Ai:*, Credits:*, Sandbox:* and Stripe:* keys, ApiBaseUrl and Timeout go to the worker too, which sends the
+//                               trial's reminders and grants, auto-reloads and expires AI credits (and gets both Stripe
 //                               parameters, as the API does). Hidden and limiting nothing
 //                               unless configured: Stripe once Stripe:Enabled=true and the stripe-secret-key and
 //                               stripe-webhook-secret parameters have the account's keys; Sandbox:Enabled=true is the local
@@ -103,9 +100,11 @@
 //                               points the Stripe client at a stand-in. The keys come from those parameters, never from
 //                               these settings. Ai:* is what AI use on ScreenHire's key costs (an organization's own key costs
 //                               it nothing extra): Margin (default packages/plans/ai.json, 0.20) is the share added to the
-//                               provider's price, StripePriceId the metered Stripe price Checkout adds to a subscription (USD
-//                               plans only), MeterEventName the Stripe meter's event name, TrialAllowance (5.00 US dollars) what
-//                               the free trial includes and ReportBatchSize (200) the calls one run reports for one organization.
+//                               provider's price, and TrialAllowance (5.00 US dollars) the starting AI credit every organization
+//                               gets. Credits:* are the prepaid AI credits (ADR-0032) that AI use on ScreenHire's key draws from:
+//                               Amounts (a list, default [10, 25, 50, 100] US dollars from packages/plans/credits.json) the fixed
+//                               amounts an Owner can buy, ExpiryMonths (12; empty never) how long a credit lasts, LowBalanceAlert
+//                               (5.00) a new organization's low-balance alert. The worker grants, auto-reloads and expires them.
 //   Calendar:*                  member calendars for interview scheduling (ScreenHire.Application CalendarOptions,
 //                               docs/architecture/interview-scheduling.md), forwarded to the API and the worker. A
 //                               provider is on only when both its client id (Google:ClientId, Microsoft:ClientId) and
@@ -409,11 +408,12 @@ foreach (var (key, value) in settings.GetSection("Billing").AsEnumerable(makePat
         var name = $"ScreenHire__Billing__{key.Replace(":", "__", StringComparison.Ordinal)}";
         api.WithEnvironment(name, value);
 
-        // The worker sends the trial's reminders (the trial's plan and reminder days, and the plans' names) and reports AI use on
-        // ScreenHire's key to the payment provider's meter (the margin and meter settings, the sandbox switch, the Stripe settings and
-        // address), so it works out the same mode and prices as the API.
+        // The worker sends the trial's reminders (the trial's plan and reminder days, and the plans' names) and grants, auto-reloads
+        // and expires AI credits (the margin, the credit settings, the sandbox switch, the Stripe settings and address), so it works
+        // out the same mode and prices as the API.
         if (key.StartsWith("Trial:", StringComparison.OrdinalIgnoreCase) || key.StartsWith("Plans:", StringComparison.OrdinalIgnoreCase)
-            || key.StartsWith("Ai:", StringComparison.OrdinalIgnoreCase) || key.StartsWith("Sandbox:", StringComparison.OrdinalIgnoreCase)
+            || key.StartsWith("Ai:", StringComparison.OrdinalIgnoreCase) || key.StartsWith("Credits:", StringComparison.OrdinalIgnoreCase)
+            || key.StartsWith("Sandbox:", StringComparison.OrdinalIgnoreCase)
             || key.StartsWith("Stripe:", StringComparison.OrdinalIgnoreCase)
             || key.Equals("ApiBaseUrl", StringComparison.OrdinalIgnoreCase) || key.Equals("Timeout", StringComparison.OrdinalIgnoreCase))
         {
@@ -427,7 +427,8 @@ foreach (var (key, value) in settings.GetSection("Billing").AsEnumerable(makePat
 // the setting off nothing asks for them, and billing is hidden or the sandbox.
 if (string.Equals(settings["Billing:Stripe:Enabled"], "true", StringComparison.OrdinalIgnoreCase))
 {
-    // Both hosts get both, so both work out the same mode (BillingOptions.Mode): the worker reports AI use to Stripe's meter.
+    // Both hosts get both, so both work out the same mode (BillingOptions.Mode): the worker charges auto-reloads and reads the
+    // card a credit purchase saved.
     var stripeSecretKey = builder.AddParameter("stripe-secret-key", secret: true);
     var stripeWebhookSecret = builder.AddParameter("stripe-webhook-secret", secret: true);
     api.WithEnvironment("ScreenHire__Billing__SecretKey", stripeSecretKey);
@@ -476,7 +477,7 @@ foreach (var (key, value) in settings.GetSection("Verification:Llm").AsEnumerabl
     // The API key is a secret: it goes through the parameter below, never as plain configuration.
     if (value is not null && !key.StartsWith("Anthropic", StringComparison.OrdinalIgnoreCase))
     {
-        // Both hosts read the prices and the default budget and cap: the API shows the default in dollars.
+        // Both hosts read the prices: the worker prices each call and its credit debit, the API shows AI use in dollars.
         var name = $"ScreenHire__Verification__Llm__{key.Replace(":", "__", StringComparison.Ordinal)}";
         worker.WithEnvironment(name, value);
         api.WithEnvironment(name, value);

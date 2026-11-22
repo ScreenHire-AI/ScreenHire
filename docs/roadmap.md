@@ -72,7 +72,7 @@ who accepts an invitation (S), and the small readability fixes in Reports and Jo
 
 1. **Budgets in dollars by default.** Built: an organization with no limit of its own sees the deployment's default budget
    and cap as dollars, priced at the answering model and the usual input/output mix, and in tokens where there is no price
-   ([AI usage](architecture/ai-usage.md#budget-alerts-and-the-cap)). Kept here so the numbers hold. (#147)
+   ([AI usage](architecture/ai-usage.md#credits-and-the-pause)). Kept here so the numbers hold. (#147)
 2. **Say "Information only" once on the Verification tab.** Built: the tile says "1 note" and the finding row carries its
    mark alone; the words are in the AI row's tooltip. Kept here so the numbers hold. (#148)
 3. **Make the audit line the page's last line.** Built: the decision line and the audit line sit under every panel and in

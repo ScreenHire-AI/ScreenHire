@@ -8755,26 +8755,6 @@ export const GetOrganizationVerificationSettingsResponse = zod.object({
   "apiKeySaved": zod.boolean(),
   "ownKeyInputPrice": zod.number().nullable(),
   "ownKeyOutputPrice": zod.number().nullable(),
-  "limits": zod.union([zod.null(),zod.object({
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "budget": zod.number().nullable(),
-  "cap": zod.number().nullable(),
-  "effectiveBudget": zod.union([zod.null(),zod.object({
-  "amount": zod.number(),
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "isDefault": zod.boolean(),
-  "used": zod.number(),
-  "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
-  "effectiveCap": zod.union([zod.null(),zod.object({
-  "amount": zod.number(),
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "isDefault": zod.boolean(),
-  "used": zod.number(),
-  "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
-  "priced": zod.boolean()
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).')]),
   "presets": zod.array(zod.object({
   "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
   "baseUrl": zod.string().nullable(),
@@ -8801,7 +8781,7 @@ export const GetOrganizationVerificationSettingsResponse = zod.object({
 }).describe('The two notifications and the channels each goes to. Slack messages are direct messages to the people who can act.'),
   "emailAvailable": zod.boolean(),
   "slackConnected": zod.boolean()
-}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `limits` is the monthly AI budget and cap with what has been used so far this month; it is null for a\nmember who cannot see AI usage (`ViewAiUsage`), and an Owner changes it with `/v1/organization/ai-usage/limits`.\n`presets` are the providers an organization can bring a key for, with the address each fills in.\n`ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization\'s own key costs it, in US dollars per million\ntokens (null when unknown, or for a member who cannot edit settings).')
+}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. What the check may spend on ScreenHire\'s key is the prepaid AI credits (`/v1/organization/billing/credits`).\n`presets` are the providers an organization can bring a key for, with the address each fills in.\n`ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization\'s own key costs it, in US dollars per million\ntokens (null when unknown, or for a member who cannot edit settings).')
 
 
 export const updateOrganizationVerificationSettingsBodyChecksTwoNetworkDefault = true;
@@ -8842,7 +8822,7 @@ export const UpdateOrganizationVerificationSettingsBody = zod.object({
   "budgetEmail": zod.boolean().default(updateOrganizationVerificationSettingsBodyAlertsTwoBudgetEmailDefault),
   "budgetSlack": zod.boolean().default(updateOrganizationVerificationSettingsBodyAlertsTwoBudgetSlackDefault)
 }).describe('The two notifications and the channels each goes to. Slack messages are direct messages to the people who can act.')]).optional()
-}).describe('Replaces the organization\'s verification settings. `apiKey` is the one place a key travels: null keeps the saved key,\ntext replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or\nmodel is tested before it is saved. `modelSource` `Included` erases the saved key, provider and price fields.\nA preset with a fixed address takes no `baseUrl`. The monthly budget and cap are not here: an Owner sets them with\n`/v1/organization/ai-usage/limits`.')
+}).describe('Replaces the organization\'s verification settings. `apiKey` is the one place a key travels: null keeps the saved key,\ntext replaces it. Changing the provider or the address needs a new key, and a change to the key, provider, address or\nmodel is tested before it is saved. `modelSource` `Included` erases the saved key, provider and price fields.\nA preset with a fixed address takes no `baseUrl`. AI credits and auto-reload are not here: an Owner sets them in Billing\n(`/v1/organization/billing/credits/settings`).')
 
 export const updateOrganizationVerificationSettingsResponseLastUpdatedCreatedDefault = false;
 export const updateOrganizationVerificationSettingsResponseChecksNetworkDefault = true;
@@ -8872,26 +8852,6 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
   "apiKeySaved": zod.boolean(),
   "ownKeyInputPrice": zod.number().nullable(),
   "ownKeyOutputPrice": zod.number().nullable(),
-  "limits": zod.union([zod.null(),zod.object({
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "budget": zod.number().nullable(),
-  "cap": zod.number().nullable(),
-  "effectiveBudget": zod.union([zod.null(),zod.object({
-  "amount": zod.number(),
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "isDefault": zod.boolean(),
-  "used": zod.number(),
-  "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
-  "effectiveCap": zod.union([zod.null(),zod.object({
-  "amount": zod.number(),
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "isDefault": zod.boolean(),
-  "used": zod.number(),
-  "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
-  "priced": zod.boolean()
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).')]),
   "presets": zod.array(zod.object({
   "provider": zod.union([zod.literal('Anthropic'),zod.literal('OpenAiCompatible'),zod.literal('OpenAi'),zod.literal('OpenRouter'),zod.literal('AzureOpenAi'),zod.literal('Gemini'),zod.literal(null)]),
   "baseUrl": zod.string().nullable(),
@@ -8918,7 +8878,7 @@ export const UpdateOrganizationVerificationSettingsResponse = zod.object({
 }).describe('The two notifications and the channels each goes to. Slack messages are direct messages to the people who can act.'),
   "emailAvailable": zod.boolean(),
   "slackConnected": zod.boolean()
-}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. `limits` is the monthly AI budget and cap with what has been used so far this month; it is null for a\nmember who cannot see AI usage (`ViewAiUsage`), and an Owner changes it with `/v1/organization/ai-usage/limits`.\n`presets` are the providers an organization can bring a key for, with the address each fills in.\n`ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization\'s own key costs it, in US dollars per million\ntokens (null when unknown, or for a member who cannot edit settings).')
+}).describe('The organization\'s verification settings (verification-engine.md §10). `llmConsistencyCheck` turns on the LLM\nconsistency check, which sends the resume, answers and any LinkedIn export to the model provider; it is off until an admin\nturns it on. What the check may spend on ScreenHire\'s key is the prepaid AI credits (`/v1/organization/billing/credits`).\n`presets` are the providers an organization can bring a key for, with the address each fills in.\n`ownKeyInputPrice` and `ownKeyOutputPrice` are what the organization\'s own key costs it, in US dollars per million\ntokens (null when unknown, or for a member who cannot edit settings).')
 
 
 export const ListVerificationModelsBody = zod.object({
@@ -12129,24 +12089,19 @@ export const GetBillingResponse = zod.object({
   "builtInCalls": zod.int(),
   "charge": zod.number(),
   "callsWithUnknownCost": zod.int(),
-  "ownKeyCalls": zod.int(),
-  "trialAllowance": zod.number(),
-  "trialAllowanceUsed": zod.number(),
-  "metered": zod.boolean()
-}).describe('This UTC month\'s use of ScreenHire\'s AI key (docs/architecture/billing.md, "AI usage"). `charge` is what the organization\npays for it in US dollars, the one amount for AI use that its AI use section shows too, and it never names the provider\'s price or a\nmargin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and charges nothing. `ownKeyCalls` are calls on\nthe organization\'s own key, never charged. `trialAllowance` is what the free trial includes and `trialAllowanceUsed` what\nit has already covered. `metered`: the payment provider can bill the use (the sandbox always can; Stripe once the metered\nprice is set).')]),
+  "ownKeyCalls": zod.int()
+}).describe('This UTC month\'s use of ScreenHire\'s AI key (docs/architecture/billing.md, "AI credits"). `charge` is what it drew from the\nprepaid AI credits in US dollars, the one amount for AI use that its AI use section shows too, and it never names the provider\'s\nprice or a margin. A call whose cost is unknown (`callsWithUnknownCost`) is counted and draws nothing. `ownKeyCalls` are\ncalls on the organization\'s own key, which never draw on the credits.')]),
   "thisMonth": zod.union([zod.null(),zod.object({
   "month": zod.string(),
   "currency": zod.string(),
   "planName": zod.string().nullable(),
   "planAmount": zod.number().nullable(),
-  "aiCalls": zod.int(),
-  "aiAmount": zod.number().nullable(),
-  "trialCredit": zod.number(),
+  "creditsBought": zod.number(),
   "total": zod.number(),
   "nextInvoiceAmount": zod.number().nullable(),
   "nextInvoiceAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('This UTC month so far, added up (docs/architecture/billing.md, "The Billing page"), in `currency`. `planName` and\n`planAmount` are the plan\'s line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).\n`aiCalls` and `aiAmount` are AI use on ScreenHire\'s key, null where it is not billed here. `trialCredit` is what the\ntrial\'s allowance covers of that use, 0 or more. `total` is the plan, plus AI use, less the credit, each to the cent first, so\nthe lines shown add up to it. `nextInvoiceAmount`\nand `nextInvoiceAt` estimate the next invoice while a subscription runs: the next plan payment (none when it is set to end)\nplus this month\'s AI use, so the page says "about"; null when no invoice is coming.')])
-}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: the provider has a customer, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".\n`aiUsage`: this month\'s use of ScreenHire\'s AI key and what it costs (null while billing is off). `thisMonth`: what the\norganization pays this month so far, each charge on its line and added up, and the next invoice (null while billing is off).')
+}).describe('This UTC month so far, added up (docs/architecture/billing.md, "The Billing page"), in `currency`. `planName` and\n`planAmount` are the plan\'s line: its monthly price while subscribed, 0 on the free trial, and null with no plan (ended).\n`creditsBought` is the AI credits bought this month in US dollars, each purchase a charge of its own. `total` is the plan\nplus the credits (when the plan is in US dollars), each to the cent first, so the lines shown add up to it. `nextInvoiceAmount`\nand `nextInvoiceAt` estimate the plan\'s next invoice while a subscription runs, so the page says "about"; null when no invoice\nis coming. AI use is prepaid and on no invoice.')])
+}).describe('An organization\'s billing for its Owner (docs/architecture/billing.md). `available` is false when this ScreenHire\nhas no payment provider, and then nothing else is set and nothing is limited. `state` is where the organization\nstands: on its free trial, paying, paying late, or ended (everything stays readable and open jobs stay open; only\npublishing a new job stops). `trialEndsAt` is set during the trial. `nextPaymentAt` and\n`nextPaymentAmount` are set while a subscription renews, and `cancelsAtPeriodEnd` says it will not.\n`openJobs` counts the jobs open now and `activeJobLimit` is the plan\'s limit, null when it has none.\n`canManage`: there is a subscription, so the payment portal can open. `sandbox`: the local fake, not Stripe.\n`taxAtCheckout`: Checkout calculates tax on top of the prices, so the page says "plus tax where it applies".\n`aiUsage`: this month\'s use of ScreenHire\'s AI key and what it drew from the credits (null while billing is off). `thisMonth`: what the\norganization pays this month so far, each charge on its line and added up, and the next invoice (null while billing is off).')
 
 
 export const StartBillingCheckoutBody = zod.object({
@@ -12210,6 +12165,77 @@ export const GetBillingPaymentMethodResponse = zod.object({
 }).describe('The payment method the plan is charged to, or `method` null when there is none on file yet. A card has its network\n(`brand`, such as `visa`) and its last four digits; another method has only its `type`.')
 
 
+export const GetAiCreditsResponse = zod.object({
+  "available": zod.boolean(),
+  "balance": zod.number(),
+  "paused": zod.boolean(),
+  "ownKey": zod.boolean(),
+  "amounts": zod.array(zod.number()),
+  "expiryMonths": zod.int().nullable(),
+  "lowBalanceAlert": zod.number(),
+  "autoReload": zod.object({
+  "enabled": zod.boolean(),
+  "below": zod.number().nullable(),
+  "amount": zod.number().nullable(),
+  "monthlyMax": zod.number().nullable(),
+  "reloadedThisMonth": zod.number()
+}).describe('Auto-reload: when the balance falls below `below`, add `amount`, never more than `monthlyMax` in a UTC month.\n`reloadedThisMonth` is what it has charged this month. Off by default; a refused charge turns it off.'),
+  "hasSavedCard": zod.boolean()
+}).describe('The organization\'s prepaid AI credits (ADR-0032, docs/architecture/billing.md "AI credits"). `available` is false where no\npayment provider is set up, and then nothing else is set. `balance` is in US dollars, below zero when checks that ran at the\nsame moment overshot it. `paused`: the balance is at or below zero and ScreenHire\'s key runs the AI check, so it is paused.\n`ownKey`: the organization\'s own key runs it and credits are not drawn. `amounts` are the fixed amounts on offer and\n`expiryMonths` how long a credit lasts (null: never). `hasSavedCard`: a purchase saved a card, which auto-reload needs.')
+
+
+export const ListAiCreditDeductionsQueryParams = zod.object({
+  "before": zod.iso.datetime({"offset":true}).optional()
+})
+
+export const ListAiCreditDeductionsResponse = zod.object({
+  "deductions": zod.array(zod.object({
+  "id": zod.string(),
+  "date": zod.iso.datetime({"offset":true}),
+  "kind": zod.enum(['Check', 'Expiry']).describe('What took credits.'),
+  "amount": zod.number(),
+  "calls": zod.int(),
+  "applicationId": zod.uuid().nullable(),
+  "candidateName": zod.string().nullable()
+}).describe('One deduction from the balance, in US dollars: an AI check\'s calls (`calls` of them) for the application `applicationId`,\nwhose candidate is `candidateName` while the application still exists, or a credit\'s unused rest when it expired.')),
+  "next": zod.iso.datetime({"offset":true}).nullable()
+}).describe('Deductions newest first. `next` is the cursor of the page after this one (`before`), null on the last page.')
+
+
+export const ListAiCreditPurchasesResponse = zod.object({
+  "purchases": zod.array(zod.object({
+  "id": zod.uuid(),
+  "date": zod.iso.datetime({"offset":true}),
+  "amount": zod.number(),
+  "source": zod.enum(['StartingCredit', 'Checkout', 'AutoReload']).describe('Where a credit came from.'),
+  "status": zod.enum(['Paid', 'Included', 'Failed']).describe('How a credit purchase went.'),
+  "expiresAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One credit added, or an attempt that failed: when, how much in US dollars, where from, and when it expires.'))
+}).describe('The credits added and the purchases that failed, newest first.')
+
+
+export const StartAiCreditCheckoutBody = zod.object({
+  "amount": zod.number()
+}).describe('Buy one of the fixed amounts on offer, in US dollars.')
+
+export const StartAiCreditCheckoutResponse = zod.object({
+  "url": zod.string()
+}).describe('Where to send the browser next: the payment provider\'s page, or the sandbox\'s.')
+
+
+export const UpdateAiCreditSettingsBody = zod.object({
+  "lowBalanceAlert": zod.number(),
+  "autoReload": zod.object({
+  "enabled": zod.boolean(),
+  "below": zod.number().nullish(),
+  "amount": zod.number().nullish(),
+  "monthlyMax": zod.number().nullish()
+}).describe('Auto-reload\'s settings. Turning it on needs all three amounts and a saved card.')
+}).describe('The low-balance alert and auto-reload, in US dollars to the cent.')
+
+export const UpdateAiCreditSettingsResponse = zod.void()
+
+
 export const getAiUsageSummaryQueryTimeZoneDefault = `UTC`;
 
 export const GetAiUsageSummaryQueryParams = zod.object({
@@ -12260,28 +12286,8 @@ export const GetAiUsageSummaryResponse = zod.object({
   "cost": zod.number(),
   "callsWithUnknownCost": zod.int()
 }).describe('Use by one provider, model and key source.')),
-  "limits": zod.object({
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "budget": zod.number().nullable(),
-  "cap": zod.number().nullable(),
-  "effectiveBudget": zod.union([zod.null(),zod.object({
-  "amount": zod.number(),
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "isDefault": zod.boolean(),
-  "used": zod.number(),
-  "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
-  "effectiveCap": zod.union([zod.null(),zod.object({
-  "amount": zod.number(),
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "isDefault": zod.boolean(),
-  "used": zod.number(),
-  "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
-  "priced": zod.boolean()
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).'),
   "lastCallAt": zod.iso.datetime({"offset":true}).nullable()
-}).describe('This organization\'s AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester\'s days (`timeZone`). `limits` is\nthe month\'s position against the budget and cap, whatever range was asked for. `lastCallAt` is when the newest model call\nhappened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first.')
+}).describe('This organization\'s AI use between `from` and `to` (default: this month, UTC). Totals count calls; `callsWithUnknownCost`\nare calls nothing could price, which count as no cost. Days are the requester\'s days (`timeZone`). `lastCallAt` is when the newest model call\nhappened, whatever the range, so the page can say how recent its numbers are (design system T7); null before the first.')
 
 
 export const ListAiUsageCallsQueryParams = zod.object({
@@ -12331,33 +12337,6 @@ export const ExportAiUsageCallsQueryParams = zod.object({
 })
 
 export const ExportAiUsageCallsResponse = zod.unknown()
-
-
-export const UpdateAiUsageLimitsBody = zod.object({
-  "budget": zod.number().nullish(),
-  "cap": zod.number().nullish()
-}).describe('Sets the monthly budget and cap, in US dollars to the cent, counted against the amount billed for AI use; null removes one.\nSetting one needs a price for the key in use (an own key\'s two prices), since a call with no known cost counts as nothing.')
-
-export const UpdateAiUsageLimitsResponse = zod.object({
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "budget": zod.number().nullable(),
-  "cap": zod.number().nullable(),
-  "effectiveBudget": zod.union([zod.null(),zod.object({
-  "amount": zod.number(),
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "isDefault": zod.boolean(),
-  "used": zod.number(),
-  "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
-  "effectiveCap": zod.union([zod.null(),zod.object({
-  "amount": zod.number(),
-  "unit": zod.enum(['Tokens', 'Money']).describe('What a monthly budget or cap is counted in.'),
-  "isDefault": zod.boolean(),
-  "used": zod.number(),
-  "percent": zod.int()
-}).describe('One monthly limit in force. `amount` is in `unit`: billed dollars (`Money`, the amount a customer sees for AI use),\nor `Tokens` only for a limit stored in tokens whose key has no price to convert it at. `isDefault` says it is the\ndeployment\'s default for ScreenHire\'s key, not one the organization set; `used` is this month\'s use in the same unit;\n`percent` is how far that is, whole percent, and can pass 100 (the cap is checked before each check, so a check in flight can pass it).')]),
-  "priced": zod.boolean()
-}).describe('The organization\'s monthly AI budget (alerts at 50%, 80% and 100%, stops nothing) and cap (pauses the AI-based checks), counted\nin billed dollars. `unit`, `budget` and `cap` are what the organization stored (a limit set before limits were in\ndollars is in tokens); `effectiveBudget` and `effectiveCap` are what applies, converted to dollars at the key\'s price,\nwhich for ScreenHire\'s key falls back to the deployment\'s defaults. An own key has no default. `priced`: the key in use has a\nprice, so a limit can be set in dollars (an own key needs its two prices).')
 
 
 export const GetVerificationOverviewResponse = zod.object({

@@ -204,8 +204,9 @@ Both messages implement `ITenantMessage`, so the handler runs under the organiza
 | `sending-domain-failing` | the sending domain's id | `domain` | `/settings/sending-domain` | Owners (`ManageOwners`) |
 | `trial-ending` | `trial` | `endsAt`, `plan` | `/settings/billing` | Owners (`ManageBilling`) |
 | `trial-ended` | `trial` | `endsAt`, `plan` | `/settings/billing` | Owners (`ManageBilling`) |
-| `ai-usage-budget` | `yyyy-MM:budget-N` (N is 50, 80 or 100) | `percent` | `/settings/billing#ai-use` | who sees AI usage (`ViewAiUsage`) |
-| `ai-usage-cap` | `yyyy-MM:cap` | none | `/settings/billing#ai-use` | who sees AI usage (`ViewAiUsage`) |
+| `ai-credits-low` | `credits` | `balance` (US dollars, two decimals) | `/settings/billing#ai-credits` | Owners (`ManageBilling`) |
+| `ai-credits-empty` | `credits` | none | `/settings/billing#ai-credits` | Owners (`ManageBilling`) |
+| `ai-credits-reload-failed` | `credits` | `amount` (US dollars) | `/settings/billing#ai-credits` | Owners (`ManageBilling`) |
 | `ai-usage-spike` | `yyyy-MM-dd:spike` | `day` | `/settings/billing#ai-use` | who sees AI usage (`ViewAiUsage`) |
 | `mention` | the note's id | `actor`, when known | the note on the candidate's Activity | the person mentioned |
 | `candidate-reply` | the reply's id | none: the line never names the candidate | the candidate's Messages | the person who sent the email it answers |
@@ -219,8 +220,11 @@ The two trial kinds are one story: `trial-ending` appears 7 days before the tria
 ends, and a plan starting clears both ([billing](billing.md#trial-reminders)). Their line says the days left, which the dashboard
 works out from `endsAt` when it draws the line, so one row stays right as the days pass.
 
-The AI usage kinds are raised by `NotifyAiUsageHandler`, which also sends the email or Slack copy each person chose, starting
-from the organization's choice ([ai-usage](ai-usage.md) and below). Raising the cap clears `ai-usage-cap`.
+The spike is raised by `NotifyAiUsageHandler`, which also sends the email or Slack copy each person chose, starting from the
+organization's choice ([ai-usage](ai-usage.md) and below). The three credit kinds are raised by `NotifyAiCreditsHandler`, which emails
+each Owner by their own choice for AI use and billing, never the organization's budget alert default, so a refused auto-reload always
+reaches an Owner who has not turned it off; a grant of credits clears all three, and the empty and reload-failed kinds are kept by the
+retention purge until then ([billing](billing.md#ai-credits)). `AddAiCredits` deleted the old budget and cap notifications.
 
 ## Each person's choices
 
