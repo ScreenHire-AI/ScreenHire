@@ -222,13 +222,16 @@ internal static class OrganizationEndpoints
         new(organization.SetupHidden, organization.SkippedSetupSteps, await HasInterviewStageAsync(db, cancellationToken));
 
     // A job whose workflow has a stage of the interview kind, or a stage with a scheduling default. The workflow is one jsonb
-    // column, so Postgres answers inside it; row-level security keeps it to this organization's jobs.
+    // column, so Postgres answers inside it; row-level security keeps it to this organization's jobs. The JSON to look for is
+    // a parameter: EF formats a raw query's text, so a literal brace in it would be read as a placeholder.
+    private const string InterviewStage = """{"stages": [{"kind": "Interview"}]}""";
+
     private static async Task<bool> HasInterviewStageAsync(ScreenHireDbContext db, CancellationToken cancellationToken) =>
-        (await db.Database.SqlQueryRaw<bool>(
-            """
+        (await db.Database.SqlQuery<bool>(
+            $"""
             SELECT EXISTS (
                 SELECT 1 FROM jobs
-                WHERE workflow @> '{"stages": [{"kind": "Interview"}]}'::jsonb
+                WHERE workflow @> {InterviewStage}::jsonb
                    OR jsonb_path_exists(workflow, '$.stages[*].scheduling')
             ) AS "Value"
             """).ToListAsync(cancellationToken)).Single();
