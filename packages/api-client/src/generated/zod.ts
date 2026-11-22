@@ -3800,8 +3800,11 @@ export const SwitchJobTemplateBody = zod.object({
 }).describe('Switches a job to a published version of another template (or of its own): the job\'s pipeline becomes that version\'s,\nits own edits included, and the template becomes its source. `stageMappings` says where the candidates in each\ncurrent stage go; every stage that holds candidates and is not in the new pipeline needs one, and a stage that is in\nit may have one. `GET /v1/jobs/{jobId}/workflow/switch-template` suggests them. Each application of the job gets a\ntimeline entry saying the pipeline changed; the moves send no email and run no automation. `expectedWorkflowVersion`\nworks as in UpdateJobWorkflowRequest, and a closed job is refused (409).')
 
 export const switchJobTemplateResponseWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
+export const switchJobTemplateResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
+export const switchJobTemplateResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
 export const switchJobTemplateResponseWorkflowQuestionnaireQuestionsItemRequiredDefault = false;
 export const switchJobTemplateResponseWorkflowAutomationsItemConditionsTwoRulesItemNegateDefault = false;
+export const switchJobTemplateResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault = `OurTimes`;
 export const switchJobTemplateResponseWorkflowAutomationsItemEnabledDefault = true;
 export const switchJobTemplateResponseWorkflowAutomationsItemAllowAutoRejectDefault = false;
 export const switchJobTemplateResponseWorkflowFollowUpQuestionnairesItemQuestionsItemRequiredDefault = false;
@@ -3854,7 +3857,22 @@ export const SwitchJobTemplateResponse = zod.object({
 }).describe('One scorecard question. IReadOnlyList&lt;QuestionOption&gt;? ScorecardQuestion.Options apply to the choice types only.'))
 }).describe('A job\'s copy of a library scorecard: the questions a reviewer answers for a stage, then an overall\nRecommendation and a note, which every scorecard has. Submitting one raises the\nTriggerType.ReviewerDecision trigger with the recommendation as the `reviewer.recommendation` fact.\nRating questions average into the candidate\'s rating (ADR-0013, `RatingRule`); nothing else on a scorecard\ndoes, and no automation reads the rating. Questions are about the job (skills, experience, the work itself), never\npersonality, emotion or honesty (CLAUDE.md non-negotiable 3); DefinitionValidator refuses questions that\nname those.')]).optional(),
   "scorecardTemplateId": zod.string().nullish(),
-  "meetingName": zod.string().nullish()
+  "meetingName": zod.string().nullish(),
+  "scheduling": zod.union([zod.null(),zod.object({
+  "option": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(switchJobTemplateResponseWorkflowStagesItemSchedulingTwoOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewerTeamId": zod.uuid().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "windowDays": zod.int().nullish(),
+  "hours": zod.union([zod.null(),zod.object({
+  "days": zod.array(zod.object({
+  "day": zod.enum(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
+  "from": zod.string(),
+  "to": zod.string()
+}).describe('One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are "HH:mm" (24 hour),\nand `to` may be "24:00" for the end of the day.'))
+}).describe('Hours in a week, in some time zone\'s wall-clock time (docs/architecture/interview-scheduling.md, "Hours"): the hours an\ninterview may be offered in (a request\'s hours, or the interview blocks a business sets, "Tue and Thu, 2 to 5"), and a\nmember\'s own interview hours. A day may have more than one stretch; a day with none has no hours.')]).optional(),
+  "useBlocks": zod.boolean().default(switchJobTemplateResponseWorkflowStagesItemSchedulingTwoUseBlocksDefault)
+}).describe('How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional.')]).optional()
 }).describe('One step of the pipeline. `hired`, `rejected` and `withdrawn` are terminal.')),
   "questionnaire": zod.object({
   "questions": zod.array(zod.object({
@@ -3915,7 +3933,9 @@ export const SwitchJobTemplateResponse = zod.object({
   "interviewerUserIds": zod.array(zod.uuid()).nullish(),
   "interviewMinutes": zod.int().nullish(),
   "interviewWindowDays": zod.int().nullish(),
-  "interviewTimeZone": zod.string().nullish()
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(switchJobTemplateResponseWorkflowAutomationsItemActionsItemInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
 }).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.')),
   "enabled": zod.boolean().default(switchJobTemplateResponseWorkflowAutomationsItemEnabledDefault),
   "allowAutoReject": zod.boolean().default(switchJobTemplateResponseWorkflowAutomationsItemAllowAutoRejectDefault)
