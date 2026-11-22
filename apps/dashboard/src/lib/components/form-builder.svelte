@@ -10,7 +10,7 @@
 
 <script lang="ts" generics="T, K extends string">
   import ChevronDownIcon from '~icons/lucide/chevron-down';
-    import CopyIcon from '~icons/lucide/copy';
+  import CopyIcon from '~icons/lucide/copy';
   import PlusIcon from '~icons/lucide/plus';
   import Rows3Icon from '~icons/lucide/rows-3';
   import Trash2Icon from '~icons/lucide/trash-2';

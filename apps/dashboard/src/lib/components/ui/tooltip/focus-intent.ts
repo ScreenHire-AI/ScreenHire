@@ -28,9 +28,10 @@ export function listenForFocusIntent(doc: Document | undefined = globalThis.docu
   doc.addEventListener(
     'focus',
     () => {
-      if (keyMoving) return;
-      codeFocus = true;
-      queueMicrotask(() => (codeFocus = false));
+      codeFocus = !keyMoving;
+      // Held to the end of the task, not a microtask: a focus the browser dispatches itself (the window coming back to
+      // the front) runs microtasks between this listener and the trigger's, which would let it through.
+      if (codeFocus) setTimeout(() => (codeFocus = false));
     },
     true,
   );

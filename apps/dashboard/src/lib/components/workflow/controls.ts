@@ -8,8 +8,6 @@ export const checkboxClass = 'size-4 pointer-coarse:size-6 flex-none accent-prim
 
 export const labelClass = 'flex min-w-0 flex-col gap-1 text-body font-semibold text-secondary-foreground';
 
-export const kickerClass = 'text-caption text-muted-foreground';
-
 /** One item in a panel's list (S4). */
 export const rowClass = 'border-b border-border-subtle py-4 first:pt-0 last:border-0 last:pb-0';
 

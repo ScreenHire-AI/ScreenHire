@@ -220,7 +220,7 @@
           {@const rulePath = `${path}.conditions.rules[${ruleIndex}]`}
           {@const ruleErrors = errorsUnder(errors, rulePath).map((error) => error.message)}
           <li data-rule-row class="flex flex-col gap-1.5 border-t border-border-subtle pt-3 first:border-0 first:pt-0">
-            <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto_auto]">
+            <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto]">
               <label class={labelClass}>
                 Fact <span class="sr-only">for condition {ruleIndex + 1}</span>
                 <select class={selectClass} value={rule.fact} data-focus={ruleIndex === 0 ? `${path}.conditions` : undefined} onchange={(event) => setFact(ruleIndex, event.currentTarget.value)}>
@@ -237,7 +237,8 @@
               {#if rule.operator === 'Exists'}
                 <span></span>
               {:else if rule.operator === 'In'}
-                <!-- The hint sits under the row, so the field keeps the row's one height. -->
+                <!-- The hint is the grid's next cell: under Values where the row stacks, and on a line of its own under the
+                     row where it does not, so the field keeps the row's one height. -->
                 <label class={labelClass}>
                   Values <span class="sr-only">for condition {ruleIndex + 1}</span>
                   <Input
@@ -250,6 +251,7 @@
                         .filter(Boolean))}
                   />
                 </label>
+                <p id={`${uid}-values-${ruleIndex}-hint`} class="text-caption text-muted-foreground @xl:order-last @xl:col-span-full">Separate the values with commas.</p>
               {:else if fact?.values}
                 <label class={labelClass}>
                   Value <span class="sr-only">for condition {ruleIndex + 1}</span>
@@ -263,13 +265,15 @@
                   <Input bind:value={rule.value} maxlength={200} />
                 </label>
               {/if}
-              <label class="flex h-9 items-center gap-1.5 text-body font-semibold pointer-coarse:h-11">
-                <input type="checkbox" class={checkboxClass} bind:checked={() => rule.negate ?? false, (on) => (rule.negate = on)} />
-                Not
-              </label>
-              <IconButton size="icon-lg" label={`Remove condition ${ruleIndex + 1}`} onclick={() => removeRule(ruleIndex)}><Trash2Icon /></IconButton>
+              <!-- Not and Remove share a line, also where the row stacks. -->
+              <div class="flex items-center justify-between gap-2">
+                <label class="flex h-9 items-center gap-1.5 text-body font-semibold pointer-coarse:h-11">
+                  <input type="checkbox" class={checkboxClass} bind:checked={() => rule.negate ?? false, (on) => (rule.negate = on)} />
+                  Not
+                </label>
+                <IconButton size="icon-lg" label={`Remove condition ${ruleIndex + 1}`} onclick={() => removeRule(ruleIndex)}><Trash2Icon /></IconButton>
+              </div>
             </div>
-            {#if rule.operator === 'In'}<p id={`${uid}-values-${ruleIndex}-hint`} class="text-caption text-muted-foreground">Separate the values with commas.</p>{/if}
             {#if fact?.signal}
               <p class="text-caption text-muted-foreground">
                 A verification signal can route a candidate for review, never reject them.
