@@ -139,10 +139,14 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
 
-        // The Pipeline tab says it on the first stage, in a few words.
+        // The Pipeline tab counts it on the first stage, and its list names it by its own name.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Group, new() { Name = "Stage 1: Applied" }))
-            .ToContainTextAsync("Verification: Verify, tag needs-review");
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Group, new() { Name = "Stage 1: Applied" })
+            .GetByRole(AriaRole.Button, new() { NameRegex = new Regex("automations? at Applied$") }).ClickAsync();
+        var applied = Page.GetByRole(AriaRole.Dialog, new() { NameRegex = new Regex("automations? at Applied$") });
+        await Expect(applied.GetByRole(AriaRole.Link, new() { Name = "Route for review" })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(applied).ToBeHiddenAsync();
 
         // The graph is the same workflow.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
@@ -479,7 +483,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var pipeline = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" });
         await Expect(pipeline.GetByRole(AriaRole.List, new() { Name = "Stages in order" })).ToBeVisibleAsync();
         await Expect(pipeline.Locator("input, select, textarea")).ToHaveCountAsync(0);
-        await Expect(pipeline.GetByRole(AriaRole.Button)).ToHaveCountAsync(0);
+        // Nothing edits: the only buttons are the counts that open their lists.
+        await Expect(pipeline.Locator("button:not([data-chip])")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-screenhire-light");
 
@@ -621,7 +626,9 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" })).ToContainTextAsync(new Regex("tag fast-track", RegexOptions.IgnoreCase));
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Button, new() { Name = "1 automation at Applied" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Dialog, new() { Name = "1 automation at Applied" }).GetByRole(AriaRole.Link, new() { Name = "Fast-track referrals" })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
 
         // The map at a laptop's and a tablet's width, and on a phone, which has the list in its place. The map opens at full size.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();

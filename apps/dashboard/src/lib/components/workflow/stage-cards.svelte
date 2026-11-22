@@ -271,7 +271,7 @@
   .stage-row > :global(ol) {
     --gap: 2.5rem;
     --min: 11rem;
-    --max: 28rem;
+    --max: 32rem;
     --share: min(var(--max), calc((100cqw - (var(--n) - 1) * var(--gap)) / var(--n) - 1px));
     display: grid;
     gap: 1.5rem var(--gap);
