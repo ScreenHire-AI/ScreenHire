@@ -252,7 +252,7 @@ server's address is the API's origin, which `GET /v1/meta` reports as `apiOrigin
 followed by `/v1/mcp`. The example uses `https://api.example.com`.
 
 The page lists the tools by the access that shows them (Read, Write, Verification read), from the tools catalogue
-(`apps/dashboard/src/lib/mcp-tools.ts` reads `packages/api-client/mcp-tools.json`), and each chip links to its entry in
+(`apps/dashboard/src/lib/mcp-tools.ts` reads `packages/api-client/mcp-tools.json`), and each tool name is a link to its entry in
 the tools reference the API serves at `/mcp-tools`, beside `/scalar`. The reference gives each tool's description, its
 inputs with types and which are required, the access it needs, whether the person confirms it, and an example call with
 a shortened result. It, the committed file and the developer docs' MCP page all come from `McpToolCatalog.Describe`,

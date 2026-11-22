@@ -86,7 +86,7 @@ call with a shortened result from `McpToolExamples`. It goes three places:
 - `/mcp-tools` on the API, beside `/scalar`: a page rendered on the server (`McpToolsPage`), one section per tool
   anchored by its name, every value HTML-encoded, nothing loaded from anywhere. Public like `/scalar`: it documents the
   server and holds no data.
-- The dashboard's Integrations > MCP server page, whose tool chips link to `/mcp-tools#<name>`.
+- The dashboard's Integrations > MCP server page, whose tool names link to `/mcp-tools#<name>`.
 
 ## Developer docs on the marketing site
 
