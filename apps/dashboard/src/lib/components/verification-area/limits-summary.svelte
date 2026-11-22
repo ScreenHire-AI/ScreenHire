@@ -7,11 +7,11 @@
 
   // This month against the AI budget and cap (docs/architecture/ai-usage.md): how much is used of each, and where it stands,
   // in words and an icon as well as a colour (design system 3.2). Nothing shows for a limit that is not set.
-  // `cap` false leaves the cap out, for the Overview, which names the budget and leaves the cap to Usage and Notifications (W6).
+  // `cap` false leaves the cap out, for the Overview, which names the budget and leaves the cap to Billing (W6).
   let { limits, cap = true }: { limits: AiUsageLimitsView; cap?: boolean } = $props();
 
   const line = (limit: AiUsageLimitView) => `${formatAmount(limit.used, limit.unit)} of ${formatAmount(limit.amount, limit.unit)}`;
-  // Limits count billed dollars, the amount the AI use tab shows. One stored in tokens stays in tokens only where the AI model has
+  // Limits count billed dollars, the amount Billing's AI use section shows. One stored in tokens stays in tokens only where the AI model has
   // no price to convert it at, and says so once, under the limits (ai-usage.md, "Budget, alerts and the cap").
   const inTokens = $derived([limits.effectiveBudget, cap ? limits.effectiveCap : null].some((limit) => limit?.unit === 'Tokens'));
 </script>

@@ -22,7 +22,7 @@
   import { describeError, invalidatePath } from '#lib/query.js';
 
   // The Owner's monthly budget and cap (docs/architecture/ai-usage.md). The budget only warns, at 50%, 80% and 100%; the cap
-  // pauses the AI-based checks, never the rule-based ones. Both count the dollars billed for AI use, the one amount the AI use tab
+  // pauses the AI-based checks, never the rule-based ones. Both count the dollars billed for AI use, the one amount Billing
   // shows, and are entered in dollars. An Owner's own limit applies whichever key runs the checks (AiUsageLimits.EffectiveBudget);
   // ScreenHire's default stands in only on ScreenHire's key, which the info button says once.
   let { limits }: { limits: AiUsageLimitsView } = $props();

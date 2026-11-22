@@ -12,6 +12,7 @@ import { summary } from '../../test-support/verification-fixtures.js';
 import { stubViewport } from '../../test-support/viewport.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import ApplicationTable from './application-table.svelte';
+import { pressTab } from '../../test-support/keyboard.js';
 
 const headerTexts = () => screen.getAllByRole('columnheader').map((header) => header.textContent?.trim());
 const dataRows = () => screen.getAllByRole('row').filter((row) => within(row).queryAllByRole('cell').length > 1);
@@ -57,6 +58,7 @@ describe('candidate table', () => {
     expect(within(overdueCell).getByText('Overdue by 5 hours')).toHaveAttribute('data-status', 'review');
     expect(within(rowOf('Casey Morgan')).getAllByRole('cell')[3]!.textContent?.trim()).toBe('');
     const trigger = within(overdueCell).getByText('Overdue by 5 hours').parentElement!;
+    await pressTab();
     trigger.focus();
     await waitFor(() => expect(trigger).toHaveAttribute('data-state', expect.stringMatching(/open/)));
     expect(document.getElementById(trigger.getAttribute('aria-describedby')!)).toHaveTextContent(/^Time limit passed /);

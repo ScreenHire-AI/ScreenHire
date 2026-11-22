@@ -24,6 +24,15 @@ export interface Integration {
  * organization and live on Your account > Calendar and accounts.
  */
 export const integrations: readonly Integration[] = [
+  // Whose key runs the AI check: ScreenHire's included model, or the organization's own provider. The verification settings
+  // it saves need Edit settings, as they always have.
+  {
+    label: 'AI model',
+    href: '/settings/ai-model',
+    description: 'Whose key runs the AI check',
+    keywords: ['ai', 'ai key', 'key', 'own key', 'model', 'provider', 'openai', 'anthropic', 'claude', 'gemini', 'azure', 'openrouter', 'llm'],
+    permission: 'EditSettings',
+  },
   {
     label: 'Slack',
     href: '/settings/slack',

@@ -15,6 +15,7 @@ import {
 } from '../../test-support/verification-fixtures.js';
 import WithQueryClient from '../../test-support/with-query-client.svelte';
 import VerificationPanel from './verification-panel.svelte';
+import { pressTab } from '../../test-support/keyboard.js';
 
 // Who is signed in; a test can switch to a role without the review permission.
 const signedIn = vi.hoisted(() => ({ user: null as CurrentUser | null }));
@@ -325,6 +326,7 @@ describe('verification tab', () => {
     expect(checked).toHaveTextContent(/^Checked .+/);
     // The ruleset is one hover or focus away, never a line of its own on the page.
     expect(screen.queryByText(/^Ruleset /)).not.toBeInTheDocument();
+    await pressTab();
     await fireEvent.focus(within(checked).getByText('Checked'));
     expect(await screen.findByText(`Ruleset ${botVerification().authenticity!.rulesetVersion}`)).toBeInTheDocument();
     // The decision line is the panel's last, inside it, and in no group's panel.

@@ -2,6 +2,7 @@ import type { VerificationActivityCheck, VerificationActivityPage, VerificationA
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
+import { aiUsageSummary } from '../../../../test-support/ai-usage.js';
 import { apiStub, user, userAs } from '../../../../test-support/fixtures.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
@@ -74,6 +75,8 @@ function renderPage(pages: Record<string, VerificationActivityPage>, signedIn = 
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       requests.push(url);
+      // This month's calls, for the line above the log.
+      if (url.startsWith('/v1/organization/ai-usage/summary')) return Response.json(aiUsageSummary);
       const key = url.split('?')[1] ?? '';
       const page = pages[key] ?? pages[''];
       return apiStub({ [`GET ${url}`]: () => Response.json(page) })(input, init);
@@ -106,6 +109,15 @@ describe('the Activity log tab', () => {
     expect(within(rows[0]!).getByText('Found').closest('[data-slot="badge"]')).toHaveClass('bg-status-review-soft');
     expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute('href', '/v1/verification/activity/export');
     await expectNoAxeViolations();
+  });
+
+  it("says this month's AI calls in one line above the log, linking to Billing's AI use section, for who can see usage", async () => {
+    const requests = renderPage({ 'limit=50': { runs: [run], nextBefore: null, usageVisible: true } });
+
+    const line = await screen.findByText(/^This month:/);
+    expect(line).toHaveTextContent('This month: 12 AI calls');
+    expect(within(line).getByRole('link', { name: '12 AI calls' })).toHaveAttribute('href', '/settings/billing#ai-use');
+    expect(requests).toContain(`/v1/organization/ai-usage/summary?timeZone=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`);
   });
 
   it("opens a run to its checks: why one did not run, what one found, the AI check's call and the ruleset, never a threshold or a rule", async () => {
@@ -160,6 +172,7 @@ describe('the Activity log tab', () => {
       expect(screen.queryByText('req_01ABC')).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: /Export CSV/ })).not.toBeInTheDocument();
       expect(screen.queryByRole('combobox', { name: 'Filter by key' })).not.toBeInTheDocument();
+      expect(screen.queryByText(/^This month:/)).not.toBeInTheDocument();
       expect(document.querySelectorAll('[disabled]')).toHaveLength(0);
       await expectNoAxeViolations();
     });

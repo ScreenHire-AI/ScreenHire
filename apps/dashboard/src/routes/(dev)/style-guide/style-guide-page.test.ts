@@ -46,6 +46,7 @@ const panels: Record<string, string[]> = {
   Count: ['Count'],
   'Step marker': ['Step marker'],
   'Workflow graph': ['Workflow graph'],
+  'Automation sheet': ['Automation sheet'],
   'Automation sentence': ['Automation sentence'],
   'Recipe list': ['Recipe list'],
   'Automation list': ['Automation list'],

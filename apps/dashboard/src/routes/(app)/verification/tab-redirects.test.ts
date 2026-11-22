@@ -8,7 +8,8 @@ import { load as loadNotifications } from './notifications/+page.js';
 import { load as loadPolicy } from './policy/+page.js';
 import { load as loadUsage } from './usage/+page.js';
 
-// A tab a role cannot use is left out of the strip, so its address sends them to the Overview instead of a refusal (A3).
+// Bell notifications, alert emails, Slack messages and bookmarks still link to tabs that moved. Each address sends the person
+// to the page that now holds what it held, for their role, with the query string, and the target's hash after it.
 async function locationOf(load: unknown, event: Record<string, unknown>): Promise<string | null> {
   try {
     await (load as (event: unknown) => Promise<unknown>)(event);
@@ -19,32 +20,36 @@ async function locationOf(load: unknown, event: Record<string, unknown>): Promis
   return null;
 }
 
-const signedInAs = (signedIn: CurrentUser) => ({ parent: async () => ({ user: signedIn }) });
-const at = (path: string) => ({ url: new URL(`http://dashboard.test${path}`) });
+const at = (path: string, signedIn: CurrentUser) => ({ url: new URL(`http://dashboard.test${path}`), parent: async () => ({ user: signedIn }) });
+const ownJobsAdmin = { ...userAs('Admin'), organization: { ...userAs('Admin').organization!, seesAllJobs: false } };
 
-describe('the addresses of the tabs that merged', () => {
+describe('the addresses of the tabs that moved', () => {
   it.each([
-    ['/verification/policy', loadPolicy, '/verification/checks'],
-    ['/verification/notifications', loadNotifications, '/verification/checks'],
-    ['/verification/usage', loadUsage, '/verification/ai-use'],
-    ['/verification/ai-model', loadAiModel, '/verification/ai-use'],
-  ] as const)('sends %s to the tab that holds its settings now, with the query string', async (path, load, target) => {
-    expect(await locationOf(load, at(path))).toBe(target);
-    expect(await locationOf(load, at(`${path}?from=email`))).toBe(`${target}?from=email`);
-  });
-});
-
-describe('the AI use tab', () => {
-  it('opens for an Owner, an Admin, and an Admin who sees only their jobs, for the key and the alert', async () => {
-    expect(await locationOf(loadAiUse, signedInAs(user))).toBeNull();
-    expect(await locationOf(loadAiUse, signedInAs(userAs('Admin')))).toBeNull();
-    const admin = userAs('Admin');
-    expect(await locationOf(loadAiUse, signedInAs({ ...admin, organization: { ...admin.organization!, seesAllJobs: false } }))).toBeNull();
+    ['/verification/ai-use', loadAiUse, '/settings/billing', '#ai-use'],
+    ['/verification/usage', loadUsage, '/settings/billing', '#ai-use'],
+    ['/verification/ai-model', loadAiModel, '/settings/ai-model', ''],
+    ['/verification/notifications', loadNotifications, '/settings/notification-defaults', ''],
+    ['/verification/policy', loadPolicy, '/verification/checks', ''],
+  ] as const)('sends an Owner from %s to its new home, keeping the query string before the hash', async (path, load, target, hash) => {
+    expect(await locationOf(load, at(path, user))).toBe(`${target}${hash}`);
+    expect(await locationOf(load, at(`${path}?from=email`, user))).toBe(`${target}?from=email${hash}`);
   });
 
-  it('sends a Recruiter, a Viewer and a custom role without the permission to the Overview', async () => {
+  it('sends an Admin who sees only their jobs, who cannot see usage, to the AI model from the AI use addresses', async () => {
+    for (const [path, load] of [
+      ['/verification/ai-use', loadAiUse],
+      ['/verification/usage', loadUsage],
+      ['/verification/ai-model', loadAiModel],
+    ] as const) {
+      expect(await locationOf(load, at(path, ownJobsAdmin))).toBe('/settings/ai-model');
+    }
+  });
+
+  it('sends a role with neither usage nor settings to the Overview, and to their own notifications', async () => {
     for (const signedIn of [userAs('Recruiter'), userAs('Viewer'), interviewer]) {
-      expect(await locationOf(loadAiUse, signedInAs(signedIn))).toBe('/verification');
+      expect(await locationOf(loadAiUse, at('/verification/ai-use', signedIn))).toBe('/verification');
+      expect(await locationOf(loadAiModel, at('/verification/ai-model', signedIn))).toBe('/verification');
+      expect(await locationOf(loadNotifications, at('/verification/notifications', signedIn))).toBe('/account/notifications');
     }
   });
 });

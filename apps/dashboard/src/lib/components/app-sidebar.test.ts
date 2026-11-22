@@ -6,6 +6,7 @@ import { apiStub, savedView, user } from '../../test-support/fixtures.js';
 import ShellHarness from '../../test-support/shell-harness.svelte';
 import { stubViewport } from '../../test-support/viewport.js';
 import type { ViewActions } from '../views.svelte.js';
+import { pressTab } from '../../test-support/keyboard.js';
 
 const view = savedView();
 
@@ -361,6 +362,7 @@ describe('the icon rail at tablet width', () => {
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
     expect(iconsOf()).toEqual(expected);
     // An icon alone does not name a view, so the rail names each one in its tooltip.
+    await pressTab();
     await fireEvent.focus(within(main()).getByRole('link', { name: 'Overdue' }));
     await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent('Overdue'));
     unmount();
@@ -388,6 +390,7 @@ describe('the icon rail at tablet width', () => {
       expect(square).toHaveAttribute('aria-hidden', 'true');
       expect(link.querySelector('svg')).toBeNull();
     }
+    await pressTab();
     await fireEvent.focus(within(main()).getByRole('link', { name: /^team queue/ }));
     await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent('team queue'));
     unmount();
@@ -403,6 +406,7 @@ describe('the icon rail at tablet width', () => {
     stubViewport(800);
     render(ShellHarness, { props: { user } });
 
+    await pressTab();
     await fireEvent.focus(screen.getByRole('link', { name: 'ScreenHire' }));
 
     await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent('ScreenHire'));

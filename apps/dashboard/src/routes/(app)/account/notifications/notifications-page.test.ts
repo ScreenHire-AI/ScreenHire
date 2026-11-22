@@ -64,6 +64,23 @@ describe('Your account > Notifications', () => {
     expect(within(grid_).getAllByText('No toast for this').length).toBeGreaterThan(0);
   });
 
+  it("holds the AI usage alert, the one place a person chooses it, as the AI use and billing row the server sends to who sees usage", async () => {
+    const withAiUse = grid({ slackLinked: true, rows: [...grid().rows, row('AiUseAndBilling', { email: 'Off', emailDefault: 'Off', slack: true })] });
+    renderPage({ 'GET /v1/account/notifications': () => Response.json(withAiUse) });
+
+    const grid_ = await table();
+    expect(within(grid_).getByText('AI use and billing')).toBeInTheDocument();
+    expect(within(grid_).getByRole('combobox', { name: 'AI use and billing: email' })).toHaveValue('Off');
+    expect(within(grid_).getByRole('switch', { name: 'AI use and billing: Slack' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(grid_).queryByRole('switch', { name: 'AI use and billing: in the app' })).toBeNull();
+  });
+
+  it('has no AI use and billing row for someone the server sends none, such as a Recruiter', async () => {
+    renderPage({ 'GET /v1/account/notifications': () => Response.json(grid()) });
+
+    expect(within(await table()).queryByText('AI use and billing')).toBeNull();
+  });
+
   it('turns a row of toasts on only when every kind in it is on', async () => {
     renderPage({ 'GET /v1/account/notifications': () => Response.json(grid()) });
 

@@ -36,9 +36,9 @@ describe('settings menu', () => {
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: true, billing: true } } });
 
     expect(groupNames()).toEqual(['Organization', 'Careers site', 'Integrations']);
-    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Tags', 'Email domain', 'Data requests', 'Billing']);
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Tags', 'Notification defaults', 'Email domain', 'Data requests', 'Billing']);
     expect(linksOf('Careers site')).toEqual(['Careers page', 'Branding']);
-    expect(linksOf('Integrations')).toEqual(['Slack', 'MCP server', 'Webhooks', 'API keys']);
+    expect(linksOf('Integrations')).toEqual(['AI model', 'Slack', 'MCP server', 'Webhooks', 'API keys']);
     expect(within(menu()).getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page');
     expect(within(menu()).getByRole('link', { name: 'Roles' })).toHaveAttribute('href', '/settings/roles');
     expect(screen.getByText('Page content')).toBeInTheDocument();
@@ -55,21 +55,21 @@ describe('settings menu', () => {
     }
   });
 
-  it('leaves out Billing for an Admin, Email domain without an email provider, and Slack where none is set up (A3)', () => {
+  it('keeps Billing for an Admin, who sees AI usage, and leaves out Email domain without an email provider and Slack where none is set up (A3)', () => {
     state.user = userAs('Admin');
     render(WithShell, { props: { component: SettingsMenu, props: { children: content }, features: { slack: false, billing: true, sendingDomain: false } } });
 
-    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Tags', 'Data requests']);
-    expect(linksOf('Integrations')).toEqual(['MCP server', 'Webhooks', 'API keys']);
+    expect(linksOf('Organization')).toEqual(['General', 'Team', 'Roles', 'Tags', 'Notification defaults', 'Data requests', 'Billing']);
+    expect(linksOf('Integrations')).toEqual(['AI model', 'MCP server', 'Webhooks', 'API keys']);
   });
 
   it('lists only the pages the role may use, and leaves out a group with none left', () => {
     state.user = { ...userAs('Admin'), organization: { ...userAs('Admin').organization!, permissions: ['EditSettings'] } };
     render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/organization' }, features: { slack: true } } });
 
-    // Edit settings opens General, Tags, the email domain and the careers site; the rest needs more.
-    expect(linksOf('Organization')).toEqual(['General', 'Tags', 'Email domain']);
-    expect(groupNames()).not.toContain('Integrations');
+    // Edit settings opens General, Tags, the notification defaults, the email domain, the careers site and the AI model; the rest needs more.
+    expect(linksOf('Organization')).toEqual(['General', 'Tags', 'Notification defaults', 'Email domain']);
+    expect(linksOf('Integrations')).toEqual(['AI model']);
   });
 
   it('has no menu on a page that is not a setting, and still shows the content', () => {
@@ -149,8 +149,8 @@ describe('settings menu', () => {
     try {
       render(WithShell, { props: { component: SettingsMenu, props: { children: content, current: '/settings/data-requests' }, features: { slack: true } } });
 
-      // Data requests is the sixth entry, at 500px: the row scrolls to 450 so it sits in the middle.
-      expect(scrolledTo).toEqual([450]);
+      // Data requests is the seventh entry, at 600px: the row scrolls to 550 so it sits in the middle.
+      expect(scrolledTo).toEqual([550]);
     } finally {
       Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft);
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth);

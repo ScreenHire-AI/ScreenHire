@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { formatDate, formatDateTime } from '#lib/dates.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import DateText from './date-text.svelte';
+import { pressTab } from '../../test-support/keyboard.js';
 
 describe('date text', () => {
   it('shows the date, and the exact time in a tooltip that opens on focus (T5)', async () => {
@@ -12,6 +13,7 @@ describe('date text', () => {
     const time = screen.getByText(formatDate(at));
     expect(time.tagName).toBe('TIME');
     expect(time).toHaveAttribute('datetime', at);
+    await pressTab();
     time.focus();
     await waitFor(() => expect(time).toHaveAttribute('data-state', expect.stringMatching(/open/)));
     expect(document.getElementById(time.getAttribute('aria-describedby')!)).toHaveTextContent(formatDateTime(at));

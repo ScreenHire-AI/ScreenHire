@@ -5,6 +5,7 @@ import { user, userAs } from '../../test-support/fixtures.js';
 import ShellHarness from '../../test-support/shell-harness.svelte';
 import { stubViewport } from '../../test-support/viewport.js';
 import { preferences } from '../preferences.svelte.js';
+import { pressTab } from '../../test-support/keyboard.js';
 
 vi.mock('$app/state', () => ({ page: { url: new URL('http://dashboard.test/candidates?view=needs-review') } }));
 
@@ -63,6 +64,7 @@ describe('app shell', () => {
     expect(within(candidates).getByText('Candidates')).toHaveClass('group-data-[collapsible=icon]:sr-only');
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
 
+    await pressTab();
     await fireEvent.focus(candidates);
 
     await waitFor(() => expect(tooltip()).toHaveTextContent('Candidates'));
@@ -133,6 +135,7 @@ describe('app shell', () => {
     expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument();
 
     const keyboard = screen.getByRole('button', { name: 'Keyboard shortcuts' });
+    await pressTab();
     await fireEvent.focus(keyboard);
     await waitFor(() => expect(tooltip()).toHaveTextContent('Keyboard shortcuts'));
     expect(tooltip()!.querySelector('kbd')).toHaveTextContent('?');
@@ -148,6 +151,7 @@ describe('app shell', () => {
     stubViewport(768);
     render(ShellHarness, { props: { user } });
 
+    await pressTab();
     await fireEvent.focus(screen.getByRole('button', { name: 'Keyboard shortcuts' }));
     await waitFor(() => expect(tooltip()).toHaveTextContent('Keyboard shortcuts'));
     expect(tooltip()!.querySelector('kbd')).toBeNull();
@@ -209,6 +213,7 @@ describe('app shell', () => {
     render(ShellHarness, { props: { user } });
 
     const settings = within(main()).getByRole('link', { name: 'Settings' });
+    await pressTab();
     await fireEvent.focus(settings);
 
     await waitFor(() => expect(tooltip()).toHaveTextContent('Settings'));
@@ -240,10 +245,12 @@ describe('app shell', () => {
       stubViewport(1280);
       render(ShellHarness, { props: { user } });
 
+      await pressTab();
       await fireEvent.focus(within(main()).getByRole('link', { name: 'To verify' }));
       await waitFor(() => expect(tooltip()).toHaveTextContent('To verify'));
       expect(tooltip()).not.toHaveAttribute('hidden');
 
+      await pressTab();
       await fireEvent.focus(within(main()).getByRole('link', { name: 'New today' }));
       await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]:not([hidden])')).toBeNull());
     } finally {

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import TruncatedText from './truncated-text.svelte';
+import { pressTab } from '../../test-support/keyboard.js';
 
 const tooltip = () => document.querySelector('[data-slot="tooltip-content"]');
 const text = 'Senior product designer, design systems and accessibility';
@@ -19,6 +20,7 @@ describe('truncated text', () => {
     const span = screen.getByText(text);
     expect(span).toHaveClass('truncate');
     expect(span).not.toHaveAttribute('tabindex');
+    await pressTab();
     await fireEvent.focus(span);
     expect(tooltip()).toBeNull();
     await expectNoAxeViolations(container);
@@ -31,6 +33,7 @@ describe('truncated text', () => {
 
     const span = screen.getByText(text);
     expect(span).toHaveAttribute('tabindex', '0');
+    await pressTab();
     await fireEvent.focus(span);
     expect(tooltip()).toHaveTextContent(text);
     expect(span).toHaveAttribute('aria-describedby', tooltip()!.id);
@@ -45,6 +48,7 @@ describe('truncated text', () => {
     expect(link).toHaveAttribute('href', '/jobs/1');
     expect(link).toHaveAttribute('data-row-link');
     expect(link).toHaveClass('truncate');
+    await pressTab();
     await fireEvent.focus(link);
     expect(tooltip()).toHaveTextContent(text);
   });
@@ -58,6 +62,7 @@ describe('truncated text', () => {
     expect(button).toHaveAttribute('type', 'button');
     expect(button).toHaveAttribute('data-row-link');
     expect(button).toHaveClass('truncate');
+    await pressTab();
     await fireEvent.focus(button);
     expect(tooltip()).toHaveTextContent(text);
     await fireEvent.click(button);
@@ -95,6 +100,7 @@ describe('truncated text', () => {
     expect(link.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     // A link outside a list of names underlines at rest (A5), and only its text does.
     expect(screen.getByText(email)).toHaveClass('underline');
+    await pressTab();
     await fireEvent.focus(link);
     expect(tooltip()).toHaveTextContent(email);
     await expectNoAxeViolations(document.body);

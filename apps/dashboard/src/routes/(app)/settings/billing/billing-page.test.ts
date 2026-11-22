@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import { apiStub, user } from '../../../../test-support/fixtures.js';
+import { aiUsageSummary } from '../../../../test-support/ai-usage.js';
+import { settingsWith } from '../../../../test-support/verification-settings.js';
 import WithQueryClient from '../../../../test-support/with-query-client.svelte';
 import Page from './+page.svelte';
 
@@ -139,6 +141,9 @@ function renderPage(overview: BillingOverview | (() => Response) = trial, routes
         ),
         'GET /v1/organization/billing/invoices': () => Response.json({ invoices }),
         'GET /v1/organization/billing/payment-method': () => Response.json({ method: { type: 'card', brand: 'visa', last4: '4242' } }),
+        // An Owner sees AI usage, so the AI use section below the plans loads its own two queries.
+        'GET /v1/organization/verification-settings': () => Response.json(settingsWith()),
+        'GET /v1/organization/ai-usage/summary?timeZone=UTC': () => Response.json(aiUsageSummary),
         ...routes,
       }),
     ),
@@ -193,26 +198,28 @@ describe('billing page', () => {
     expect(screen.queryByText(trialEndWords)).not.toBeInTheDocument();
   });
 
-  describe('AI usage', () => {
-    const panel = () => screen.getByRole('region', { name: 'AI usage' });
+  describe('AI use', () => {
+    const panel = () => screen.getByRole('region', { name: 'AI use' });
 
     it('shows this month as the calls and the one amount for them, and never the provider\'s price or a margin', async () => {
       renderPage(active);
 
       await screen.findByText('Active');
+      await within(panel()).findByText('Key', { selector: 'dt' });
       expect(within(panel()).getByText('This month', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^41 AI calls, \$3\.74$/);
       expect(within(panel()).queryByText(/provider's price|plus 20%|margin/i)).toBeNull();
       expect(screen.queryByText(/Provider's price|Cost so far/)).toBeNull();
       await expectNoAxeViolations();
     });
 
-    it('links to the call-by-call detail on Verification and says that bringing your own key removes the charge', async () => {
+    it('links to the call-by-call detail on Verification and to the AI model, and says that bringing your own key removes the charge', async () => {
       renderPage(active);
 
       await screen.findByText('Active');
-      expect(within(panel()).getByText(/Bring your own key and this charge goes away\./)).toBeInTheDocument();
+      expect(await within(panel()).findByText(/Bring your own key and this charge goes away\./)).toBeInTheDocument();
+      expect(within(panel()).getByText('Key', { selector: 'dt' }).nextElementSibling).toHaveTextContent("ScreenHire's key. You're billed for what the checks use.");
       expect(within(panel()).getByRole('link', { name: 'See every call' })).toHaveAttribute('href', '/verification/activity');
-      expect(within(panel()).getByRole('link', { name: 'Use your own key' })).toHaveAttribute('href', '/verification/ai-use');
+      expect(within(panel()).getByRole('link', { name: 'Use your own key' })).toHaveAttribute('href', '/settings/ai-model');
     });
 
     it('tells a trial what it includes and that the rest comes on its first invoice', async () => {
@@ -294,11 +301,12 @@ describe('billing page', () => {
       expect(within(panel()).getByText('1 call has no known price, so it is not charged.')).toBeInTheDocument();
     });
 
-    it('is absent when the API sends no usage', async () => {
+    it('leaves out the month and its notes when the API sends no usage, keeping whose key runs the check', async () => {
       renderPage({ ...active, aiUsage: null });
 
       await screen.findByText('Active');
-      expect(screen.queryByRole('region', { name: 'AI usage' })).toBeNull();
+      expect(await within(panel()).findByText('Key', { selector: 'dt' })).toBeInTheDocument();
+      expect(within(panel()).queryByText('This month', { selector: 'dt' })).toBeNull();
     });
 
     it('adds no primary button to the page (A1)', async () => {
@@ -318,7 +326,7 @@ describe('billing page', () => {
 
       await screen.findByText('Active');
       expect(charges()).toEqual(['Starter $49.00', 'AI use, 41 AI calls $3.74', 'Total so far $52.74']);
-      expect(within(panel()).getByRole('link', { name: '41 AI calls' })).toHaveAttribute('href', '/verification/ai-use');
+      expect(within(panel()).getByRole('link', { name: '41 AI calls' })).toHaveAttribute('href', '#ai-use');
       expect(within(panel()).getByText(/Next invoice about/)).toHaveTextContent('Next invoice about $52.74 on Dec 5, 2026.');
       // The next payment is said once, here, not again under the plan (W7).
       expect(screen.queryByText('Next payment', { selector: 'dt' })).toBeNull();
@@ -577,12 +585,15 @@ describe('billing page', () => {
     await expectNoAxeViolations();
   });
 
-  it('says billing is not set up where there is no payment provider', async () => {
+  it('shows an owner only the AI use section where there is no payment provider, never a page of what is not set up (A3)', async () => {
     renderPage({ ...trial, available: false, state: null, currentPlan: null, plans: [] });
 
-    expect(await screen.findByText('Billing is not set up here')).toBeInTheDocument();
-    expect(within(screen.getByRole('main')).queryByRole('button')).toBeNull();
+    expect(await screen.findByText('Model calls')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'AI use' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Plan' })).toBeNull());
+    expect(screen.queryByText('Billing is not set up here')).toBeNull();
     expect(screen.queryByText('Free trial')).toBeNull();
+    expect(screen.queryByText('This month', { selector: 'dt' })).toBeNull();
     await expectNoAxeViolations();
   });
 
@@ -610,7 +621,7 @@ describe('billing page', () => {
   it('shows a skeleton while loading, then says why billing could not load, with a retry', async () => {
     renderPage(() => Response.json({ detail: 'Try again later.' }, { status: 500 }));
 
-    expect(screen.getByRole('status')).toHaveTextContent('Loading billing');
+    expect(screen.getByText('Loading billing…')).toHaveAttribute('role', 'status');
     expect(await screen.findByText('Try again later.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     await expectNoAxeViolations();

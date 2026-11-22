@@ -106,7 +106,7 @@ describe('command palette', () => {
     // Slack is there only where the installation has a Slack app (A3), which this shell does not report.
     await fireEvent.input(input, { target: { value: 'integrations' } });
     await within(palette).findByRole('option', { name: /^Webhooks/ });
-    expect(optionNames(palette).filter((name) => /Integrations$/.test(name))).toEqual(['MCP server Integrations', 'Webhooks Integrations', 'API keys Integrations']);
+    expect(optionNames(palette).filter((name) => /Integrations$/.test(name))).toEqual(['AI model Integrations', 'MCP server Integrations', 'Webhooks Integrations', 'API keys Integrations']);
     await fireEvent.click(within(palette).getByRole('option', { name: /^Webhooks/ }));
     await waitFor(() => expect(goto).toHaveBeenCalledWith('/settings/webhooks'));
   });

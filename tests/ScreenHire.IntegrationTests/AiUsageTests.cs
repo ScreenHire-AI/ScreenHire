@@ -398,7 +398,7 @@ public sealed class AiUsageTests(AppHostFixture fixture)
 
         var bell = await tenant.WaitForItemsAsync(1);
         bell.Text("items.0.kind").Should().Be("ai-usage-cap");
-        bell.Text("items.0.link").Should().Be("/verification/ai-use");
+        bell.Text("items.0.link").Should().Be("/settings/billing#ai-use");
 
         (await tenant.PutAsync($"{Usage}/limits", new JsonObject { ["cap"] = 100_000 })).Expect(HttpStatusCode.OK);
         await WolverineStore.WaitUntilAsync(

@@ -1,7 +1,8 @@
-import { guardTab } from '../tab-guard.js';
+import { moveTab } from '../tab-guard.js';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ parent }) => {
+// This tab moved (movedTabs in #lib/verification-area.ts); old links land on the page that holds what it held, for the person's role.
+export const load: PageLoad = async ({ url, parent }) => {
   const { user } = await parent();
-  guardTab('ai-use', user);
+  moveTab('/verification/ai-use', url, user);
 };
