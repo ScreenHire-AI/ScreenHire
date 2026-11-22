@@ -38,10 +38,12 @@ const sourceLabels: Record<ApplicationSource, string> = { CareersSite: 'Careers 
 export const siteName = (site: string) => site.replace(/^https?:\/\//, '');
 
 /**
- * Where an application came from, as a table's Source column shows it: the organization's own site when the careers page
- * was embedded in it (docs/architecture/careers-widget.md).
+ * Where an application came from, as a table's Source column shows it, in the order Reports counts it: the organization's
+ * own site when the careers page was embedded in it (docs/architecture/careers-widget.md), else the job board whose link
+ * the candidate followed, a board the team posted on themselves included (job-distribution.md, "Posted by you").
  */
-export const sourceLabel = (source: ApplicationSource, sourceSite?: string | null) => (sourceSite ? siteName(sourceSite) : sourceLabels[source]);
+export const sourceLabel = (source: ApplicationSource, sourceSite?: string | null, sourceBoardName?: string | null) =>
+  source === 'CareersSite' && sourceSite ? siteName(sourceSite) : source === 'CareersSite' && sourceBoardName ? sourceBoardName : sourceLabels[source];
 
 const sourceNames: Record<ApplicationSource, string> = { CareersSite: 'Careers page', Recruiter: 'Added by a recruiter' };
 

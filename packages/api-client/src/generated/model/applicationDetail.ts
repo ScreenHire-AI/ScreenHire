@@ -46,4 +46,8 @@ export interface ApplicationDetail {
   inTalentPool?: boolean;
   /** @nullable */
   sourceSite?: string | null;
+  /** @nullable */
+  sourceBoard?: string | null;
+  /** @nullable */
+  sourceBoardName?: string | null;
 }

@@ -62,6 +62,7 @@ import type {
   CreateHiringTemplateRequest,
   CreateHiringTemplateVersionRequest,
   CreateJobRequest,
+  CreateManualPostingRequest,
   CreateRoleRequest,
   CreateScorecardTemplateRequest,
   CreateViewRequest,
@@ -153,6 +154,8 @@ import type {
   MagicLinkRequest,
   MagicLinkVerification,
   ManualAutomationQueued,
+  ManualPostingList,
+  ManualPostingStatus,
   MemberJob,
   MembershipLogEntry,
   MergeTagRequest,
@@ -237,6 +240,7 @@ import type {
   SlackChannelOption,
   SlackStatus,
   SlackTestResult,
+  SourceApplications,
   StageKind,
   StartBillingCheckoutRequest,
   StartCalendarConnectRequest,
@@ -266,6 +270,7 @@ import type {
   UpdateHiringTemplateVersionRequest,
   UpdateJobRequest,
   UpdateJobWorkflowRequest,
+  UpdateManualPostingRequest,
   UpdateOrganizationRequest,
   UpdateProfileRequest,
   UpdateRetentionRequest,
@@ -7232,6 +7237,347 @@ return apiFetch<previewPostingCustomizationResponse>(getPreviewPostingCustomizat
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(customizePostingRequest)
+  }
+);}
+
+
+
+export type listManualPostingsResponse200 = {
+  data: ManualPostingList
+  status: 200
+}
+
+export type listManualPostingsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listManualPostingsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listManualPostingsResponseSuccess = (listManualPostingsResponse200) & {
+  headers: Headers;
+};
+export type listManualPostingsResponseError = (listManualPostingsResponse401 | listManualPostingsResponse404) & {
+  headers: Headers;
+};
+
+export type listManualPostingsResponse = (listManualPostingsResponseSuccess | listManualPostingsResponseError)
+
+export const getListManualPostingsUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings`
+}
+
+export const listManualPostings = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listManualPostingsResponse> => {
+
+  return apiFetch<listManualPostingsResponse>(getListManualPostingsUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type createManualPostingResponse201 = {
+  data: ManualPostingStatus
+  status: 201
+}
+
+export type createManualPostingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type createManualPostingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type createManualPostingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type createManualPostingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type createManualPostingResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type createManualPostingResponseSuccess = (createManualPostingResponse201) & {
+  headers: Headers;
+};
+export type createManualPostingResponseError = (createManualPostingResponse400 | createManualPostingResponse401 | createManualPostingResponse403 | createManualPostingResponse404 | createManualPostingResponse409) & {
+  headers: Headers;
+};
+
+export type createManualPostingResponse = (createManualPostingResponseSuccess | createManualPostingResponseError)
+
+export const getCreateManualPostingUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings`
+}
+
+export const createManualPosting = async (jobId: string,
+    createManualPostingRequest: CreateManualPostingRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createManualPostingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<createManualPostingResponse>(getCreateManualPostingUrl(jobId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createManualPostingRequest)
+  }
+);}
+
+
+
+export type listSourceApplicationsResponse200 = {
+  data: SourceApplications[]
+  status: 200
+}
+
+export type listSourceApplicationsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listSourceApplicationsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type listSourceApplicationsResponseSuccess = (listSourceApplicationsResponse200) & {
+  headers: Headers;
+};
+export type listSourceApplicationsResponseError = (listSourceApplicationsResponse401 | listSourceApplicationsResponse404) & {
+  headers: Headers;
+};
+
+export type listSourceApplicationsResponse = (listSourceApplicationsResponseSuccess | listSourceApplicationsResponseError)
+
+export const getListSourceApplicationsUrl = (jobId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/source-applications`
+}
+
+export const listSourceApplications = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listSourceApplicationsResponse> => {
+
+  return apiFetch<listSourceApplicationsResponse>(getListSourceApplicationsUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type updateManualPostingResponse200 = {
+  data: ManualPostingStatus
+  status: 200
+}
+
+export type updateManualPostingResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type updateManualPostingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type updateManualPostingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type updateManualPostingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type updateManualPostingResponseSuccess = (updateManualPostingResponse200) & {
+  headers: Headers;
+};
+export type updateManualPostingResponseError = (updateManualPostingResponse400 | updateManualPostingResponse401 | updateManualPostingResponse403 | updateManualPostingResponse404) & {
+  headers: Headers;
+};
+
+export type updateManualPostingResponse = (updateManualPostingResponseSuccess | updateManualPostingResponseError)
+
+export const getUpdateManualPostingUrl = (jobId: string,
+    postingId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings/${postingId}`
+}
+
+export const updateManualPosting = async (jobId: string,
+    postingId: string,
+    updateManualPostingRequest: UpdateManualPostingRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateManualPostingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<updateManualPostingResponse>(getUpdateManualPostingUrl(jobId,postingId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateManualPostingRequest)
+  }
+);}
+
+
+
+export type markManualPostingUpdatedResponse200 = {
+  data: ManualPostingStatus
+  status: 200
+}
+
+export type markManualPostingUpdatedResponse401 = {
+  data: void
+  status: 401
+}
+
+export type markManualPostingUpdatedResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type markManualPostingUpdatedResponse404 = {
+  data: void
+  status: 404
+}
+
+export type markManualPostingUpdatedResponseSuccess = (markManualPostingUpdatedResponse200) & {
+  headers: Headers;
+};
+export type markManualPostingUpdatedResponseError = (markManualPostingUpdatedResponse401 | markManualPostingUpdatedResponse403 | markManualPostingUpdatedResponse404) & {
+  headers: Headers;
+};
+
+export type markManualPostingUpdatedResponse = (markManualPostingUpdatedResponseSuccess | markManualPostingUpdatedResponseError)
+
+export const getMarkManualPostingUpdatedUrl = (jobId: string,
+    postingId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings/${postingId}/updated`
+}
+
+export const markManualPostingUpdated = async (jobId: string,
+    postingId: string, options?: Parameters<typeof apiFetch>[1]): Promise<markManualPostingUpdatedResponse> => {
+
+  return apiFetch<markManualPostingUpdatedResponse>(getMarkManualPostingUpdatedUrl(jobId,postingId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+export type takeDownManualPostingResponse200 = {
+  data: ManualPostingStatus
+  status: 200
+}
+
+export type takeDownManualPostingResponse401 = {
+  data: void
+  status: 401
+}
+
+export type takeDownManualPostingResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type takeDownManualPostingResponse404 = {
+  data: void
+  status: 404
+}
+
+export type takeDownManualPostingResponseSuccess = (takeDownManualPostingResponse200) & {
+  headers: Headers;
+};
+export type takeDownManualPostingResponseError = (takeDownManualPostingResponse401 | takeDownManualPostingResponse403 | takeDownManualPostingResponse404) & {
+  headers: Headers;
+};
+
+export type takeDownManualPostingResponse = (takeDownManualPostingResponseSuccess | takeDownManualPostingResponseError)
+
+export const getTakeDownManualPostingUrl = (jobId: string,
+    postingId: string,) => {
+
+
+
+
+  return `/v1/jobs/${jobId}/manual-postings/${postingId}/taken-down`
+}
+
+export const takeDownManualPosting = async (jobId: string,
+    postingId: string, options?: Parameters<typeof apiFetch>[1]): Promise<takeDownManualPostingResponse> => {
+
+  return apiFetch<takeDownManualPostingResponse>(getTakeDownManualPostingUrl(jobId,postingId),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 

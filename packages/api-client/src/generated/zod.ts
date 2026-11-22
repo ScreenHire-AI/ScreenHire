@@ -4561,7 +4561,9 @@ export const ListJobApplicationsResponseItem = zod.object({
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "allowsFutureRoles": zod.boolean().default(listJobApplicationsResponseAllowsFutureRolesDefault),
   "sourceSite": zod.string().nullish(),
-  "nextInterviewAt": zod.iso.datetime({"offset":true}).nullish()
+  "nextInterviewAt": zod.iso.datetime({"offset":true}).nullish(),
+  "sourceBoard": zod.string().nullish(),
+  "sourceBoardName": zod.string().nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
 
@@ -4683,7 +4685,9 @@ export const CreateApplicationResponse = zod.object({
   "allowsFutureRoles": zod.boolean().default(createApplicationResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(createApplicationResponseInTalentPoolDefault),
-  "sourceSite": zod.string().nullish()
+  "sourceSite": zod.string().nullish(),
+  "sourceBoard": zod.string().nullish(),
+  "sourceBoardName": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
@@ -4742,7 +4746,9 @@ export const ListApplicationsResponseItem = zod.object({
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "allowsFutureRoles": zod.boolean().default(listApplicationsResponseAllowsFutureRolesDefault),
   "sourceSite": zod.string().nullish(),
-  "nextInterviewAt": zod.iso.datetime({"offset":true}).nullish()
+  "nextInterviewAt": zod.iso.datetime({"offset":true}).nullish(),
+  "sourceBoard": zod.string().nullish(),
+  "sourceBoardName": zod.string().nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
@@ -4847,7 +4853,9 @@ export const GetApplicationResponse = zod.object({
   "allowsFutureRoles": zod.boolean().default(getApplicationResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(getApplicationResponseInTalentPoolDefault),
-  "sourceSite": zod.string().nullish()
+  "sourceSite": zod.string().nullish(),
+  "sourceBoard": zod.string().nullish(),
+  "sourceBoardName": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
@@ -4956,7 +4964,9 @@ export const MoveApplicationResponse = zod.object({
   "allowsFutureRoles": zod.boolean().default(moveApplicationResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(moveApplicationResponseInTalentPoolDefault),
-  "sourceSite": zod.string().nullish()
+  "sourceSite": zod.string().nullish(),
+  "sourceBoard": zod.string().nullish(),
+  "sourceBoardName": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
@@ -5169,7 +5179,9 @@ export const AddApplicationTagResponse = zod.object({
   "allowsFutureRoles": zod.boolean().default(addApplicationTagResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(addApplicationTagResponseInTalentPoolDefault),
-  "sourceSite": zod.string().nullish()
+  "sourceSite": zod.string().nullish(),
+  "sourceBoard": zod.string().nullish(),
+  "sourceBoardName": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
@@ -5277,7 +5289,9 @@ export const RemoveApplicationTagResponse = zod.object({
   "allowsFutureRoles": zod.boolean().default(removeApplicationTagResponseAllowsFutureRolesDefault),
   "futureRolesGivenAt": zod.iso.datetime({"offset":true}).nullish(),
   "inTalentPool": zod.boolean().default(removeApplicationTagResponseInTalentPoolDefault),
-  "sourceSite": zod.string().nullish()
+  "sourceSite": zod.string().nullish(),
+  "sourceBoard": zod.string().nullish(),
+  "sourceBoardName": zod.string().nullish()
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
@@ -5396,7 +5410,9 @@ export const GetCandidateResponse = zod.object({
   "keptInMindAt": zod.iso.datetime({"offset":true}).nullish(),
   "allowsFutureRoles": zod.boolean().default(getCandidateResponseApplicationsItemAllowsFutureRolesDefault),
   "sourceSite": zod.string().nullish(),
-  "nextInterviewAt": zod.iso.datetime({"offset":true}).nullish()
+  "nextInterviewAt": zod.iso.datetime({"offset":true}).nullish(),
+  "sourceBoard": zod.string().nullish(),
+  "sourceBoardName": zod.string().nullish()
 }).describe('An application in a list. No accommodation flag here: lists reach every reviewer, so it shows only on the\napplication itself.')),
   "firstName": zod.string(),
   "lastName": zod.string().nullable()
@@ -6998,6 +7014,138 @@ export const PreviewPostingCustomizationResponse = zod.object({
   "description": zod.string(),
   "issues": zod.array(zod.string())
 }).describe('What a board would receive for a draft customization, and what its checks say about it. Nothing is saved.')
+
+
+export const ListManualPostingsParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const ListManualPostingsResponse = zod.object({
+  "jobUrl": zod.string(),
+  "postings": zod.array(zod.object({
+  "id": zod.uuid(),
+  "boardName": zod.string(),
+  "sourceKey": zod.string(),
+  "trackedUrl": zod.string(),
+  "listingUrl": zod.string().nullable(),
+  "postedOn": zod.iso.date(),
+  "endsOn": zod.iso.date().nullable(),
+  "contentAt": zod.iso.datetime({"offset":true}),
+  "takenDownAt": zod.iso.datetime({"offset":true}).nullable(),
+  "changedFields": zod.array(zod.enum(['Title', 'Location', 'Type', 'Salary', 'Description', 'Link']).describe('A field of the job a person copies to a board by hand. `Link` is the apply link, which holds the job\'s slug.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A job the team posted themselves on a board we do not integrate with (docs/architecture/job-distribution.md, "Posted by\nyou"). `trackedUrl` is the job\'s careers page with `src=``sourceKey`: applications through it name the\nboard in Source and in Reports. `listingUrl` is where the listing is, as the person gave it; nothing fetches it.\n`changedFields` are the fields of the job that differ from what was posted (empty when it is up to date), until\nthe person marks the posting updated. `contentAt` is when the posted text was taken. `takenDownAt` is when\nthe person said the listing is down; while it is null and the job is closed or `endsOn` has passed, the row says\nit is still posted.'))
+}).describe('The job\'s postings by the team, and the address their tracked links extend: the job\'s careers page. A tracked link is\n`jobUrl` with `src=` and a source key, which the dashboard shows before a posting is saved.')
+
+
+export const CreateManualPostingParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const CreateManualPostingBody = zod.object({
+  "boardName": zod.string(),
+  "sourceKey": zod.string().nullish(),
+  "listingUrl": zod.string().nullish(),
+  "postedOn": zod.iso.date().nullish(),
+  "endsOn": zod.iso.date().nullish()
+}).describe('Saving a posting the team made. `sourceKey` is the `src` of the link the person copied, lower-case letters,\ndigits and hyphens; left out, it is made from `boardName`. It cannot be an automatic board\'s id. `postedOn`\nleft out is today (UTC); the dashboard sends the person\'s own today. A board the job already has a posting on that was\ntaken down is posted again: the row takes these details and the job as it is now.')
+
+export const CreateManualPostingResponse = zod.object({
+  "id": zod.uuid(),
+  "boardName": zod.string(),
+  "sourceKey": zod.string(),
+  "trackedUrl": zod.string(),
+  "listingUrl": zod.string().nullable(),
+  "postedOn": zod.iso.date(),
+  "endsOn": zod.iso.date().nullable(),
+  "contentAt": zod.iso.datetime({"offset":true}),
+  "takenDownAt": zod.iso.datetime({"offset":true}).nullable(),
+  "changedFields": zod.array(zod.enum(['Title', 'Location', 'Type', 'Salary', 'Description', 'Link']).describe('A field of the job a person copies to a board by hand. `Link` is the apply link, which holds the job\'s slug.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A job the team posted themselves on a board we do not integrate with (docs/architecture/job-distribution.md, "Posted by\nyou"). `trackedUrl` is the job\'s careers page with `src=``sourceKey`: applications through it name the\nboard in Source and in Reports. `listingUrl` is where the listing is, as the person gave it; nothing fetches it.\n`changedFields` are the fields of the job that differ from what was posted (empty when it is up to date), until\nthe person marks the posting updated. `contentAt` is when the posted text was taken. `takenDownAt` is when\nthe person said the listing is down; while it is null and the job is closed or `endsOn` has passed, the row says\nit is still posted.')
+
+
+export const ListSourceApplicationsParams = zod.object({
+  "jobId": zod.uuid()
+})
+
+export const ListSourceApplicationsResponseItem = zod.object({
+  "source": zod.string(),
+  "applications": zod.int()
+}).describe('Applications to one job through one link: `source` is `careers` (the careers page with no board tag), an\nautomatic board\'s id, or a posting by the team\'s source key. A source with no application is left out. An application\nthrough the organization\'s own site, or added by a recruiter, has no row here.')
+export const ListSourceApplicationsResponse = zod.array(ListSourceApplicationsResponseItem)
+
+
+export const UpdateManualPostingParams = zod.object({
+  "jobId": zod.uuid(),
+  "postingId": zod.uuid()
+})
+
+export const UpdateManualPostingBody = zod.object({
+  "boardName": zod.string(),
+  "listingUrl": zod.string().nullable(),
+  "postedOn": zod.iso.date(),
+  "endsOn": zod.iso.date().nullish()
+}).describe('Changing what the team said about a posting. The source key stays, so links already shared keep counting.')
+
+export const UpdateManualPostingResponse = zod.object({
+  "id": zod.uuid(),
+  "boardName": zod.string(),
+  "sourceKey": zod.string(),
+  "trackedUrl": zod.string(),
+  "listingUrl": zod.string().nullable(),
+  "postedOn": zod.iso.date(),
+  "endsOn": zod.iso.date().nullable(),
+  "contentAt": zod.iso.datetime({"offset":true}),
+  "takenDownAt": zod.iso.datetime({"offset":true}).nullable(),
+  "changedFields": zod.array(zod.enum(['Title', 'Location', 'Type', 'Salary', 'Description', 'Link']).describe('A field of the job a person copies to a board by hand. `Link` is the apply link, which holds the job\'s slug.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A job the team posted themselves on a board we do not integrate with (docs/architecture/job-distribution.md, "Posted by\nyou"). `trackedUrl` is the job\'s careers page with `src=``sourceKey`: applications through it name the\nboard in Source and in Reports. `listingUrl` is where the listing is, as the person gave it; nothing fetches it.\n`changedFields` are the fields of the job that differ from what was posted (empty when it is up to date), until\nthe person marks the posting updated. `contentAt` is when the posted text was taken. `takenDownAt` is when\nthe person said the listing is down; while it is null and the job is closed or `endsOn` has passed, the row says\nit is still posted.')
+
+
+export const MarkManualPostingUpdatedParams = zod.object({
+  "jobId": zod.uuid(),
+  "postingId": zod.uuid()
+})
+
+export const MarkManualPostingUpdatedResponse = zod.object({
+  "id": zod.uuid(),
+  "boardName": zod.string(),
+  "sourceKey": zod.string(),
+  "trackedUrl": zod.string(),
+  "listingUrl": zod.string().nullable(),
+  "postedOn": zod.iso.date(),
+  "endsOn": zod.iso.date().nullable(),
+  "contentAt": zod.iso.datetime({"offset":true}),
+  "takenDownAt": zod.iso.datetime({"offset":true}).nullable(),
+  "changedFields": zod.array(zod.enum(['Title', 'Location', 'Type', 'Salary', 'Description', 'Link']).describe('A field of the job a person copies to a board by hand. `Link` is the apply link, which holds the job\'s slug.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A job the team posted themselves on a board we do not integrate with (docs/architecture/job-distribution.md, "Posted by\nyou"). `trackedUrl` is the job\'s careers page with `src=``sourceKey`: applications through it name the\nboard in Source and in Reports. `listingUrl` is where the listing is, as the person gave it; nothing fetches it.\n`changedFields` are the fields of the job that differ from what was posted (empty when it is up to date), until\nthe person marks the posting updated. `contentAt` is when the posted text was taken. `takenDownAt` is when\nthe person said the listing is down; while it is null and the job is closed or `endsOn` has passed, the row says\nit is still posted.')
+
+
+export const TakeDownManualPostingParams = zod.object({
+  "jobId": zod.uuid(),
+  "postingId": zod.uuid()
+})
+
+export const TakeDownManualPostingResponse = zod.object({
+  "id": zod.uuid(),
+  "boardName": zod.string(),
+  "sourceKey": zod.string(),
+  "trackedUrl": zod.string(),
+  "listingUrl": zod.string().nullable(),
+  "postedOn": zod.iso.date(),
+  "endsOn": zod.iso.date().nullable(),
+  "contentAt": zod.iso.datetime({"offset":true}),
+  "takenDownAt": zod.iso.datetime({"offset":true}).nullable(),
+  "changedFields": zod.array(zod.enum(['Title', 'Location', 'Type', 'Salary', 'Description', 'Link']).describe('A field of the job a person copies to a board by hand. `Link` is the apply link, which holds the job\'s slug.')),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+}).describe('A job the team posted themselves on a board we do not integrate with (docs/architecture/job-distribution.md, "Posted by\nyou"). `trackedUrl` is the job\'s careers page with `src=``sourceKey`: applications through it name the\nboard in Source and in Reports. `listingUrl` is where the listing is, as the person gave it; nothing fetches it.\n`changedFields` are the fields of the job that differ from what was posted (empty when it is up to date), until\nthe person marks the posting updated. `contentAt` is when the posted text was taken. `takenDownAt` is when\nthe person said the listing is down; while it is null and the job is closed or `endsOn` has passed, the row says\nit is still posted.')
 
 
 export const GetJobBoardParams = zod.object({

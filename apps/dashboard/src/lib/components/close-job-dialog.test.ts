@@ -17,7 +17,7 @@ afterEach(() => {
 const [casey, jordan, sam] = applications as [ApplicationSummary, ApplicationSummary, ApplicationSummary];
 const closePath = `/v1/jobs/${jobId}/close`;
 
-function renderDialog(rows: ApplicationSummary[], as: CurrentUser = user) {
+function renderDialog(rows: ApplicationSummary[], as: CurrentUser = user, manualPostings: unknown[] = []) {
   appPage.data = { user: as };
   const calls: string[] = [];
   const bodies: Record<string, unknown> = {};
@@ -28,6 +28,7 @@ function renderDialog(rows: ApplicationSummary[], as: CurrentUser = user) {
   const fetchMock = vi.fn(
     apiStub({
       [`GET /v1/jobs/${jobId}/applications`]: () => Response.json(rows),
+      [`GET /v1/jobs/${jobId}/manual-postings`]: () => Response.json({ jobUrl: 'https://acme.careers.example.com/jobs/x', postings: manualPostings }),
       'POST /v1/talent-pool': (init) => {
         record('keep', JSON.parse(String(init?.body)));
         return Response.json({ kept: rows.length, notAllowed: 0, alreadyEnded: 0 });
@@ -129,5 +130,22 @@ describe('close job dialog', () => {
 
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(fetchMock).not.toHaveBeenCalledWith(`/v1/jobs/${jobId}/applications`, expect.anything());
+  });
+
+  it('names each listing the team posted themselves that is still up, since closing cannot take it down', async () => {
+    const mine = (id: string, boardName: string, listingUrl: string | null, takenDownAt: string | null) => ({
+      id, boardName, sourceKey: boardName.toLowerCase(), trackedUrl: '', listingUrl, postedOn: '2026-10-01', endsOn: null,
+      contentAt: '2026-10-01T09:00:00Z', takenDownAt, changedFields: [], createdAt: '2026-10-01T09:00:00Z', updatedAt: '2026-10-01T09:00:00Z',
+    });
+    renderDialog([], user, [
+      mine('p1', 'LinkedIn', 'https://www.linkedin.com/jobs/view/1', null),
+      mine('p2', 'Riverside', null, null),
+      mine('p3', 'Indeed', null, '2026-10-10T09:00:00Z'),
+    ]);
+
+    const section = await within(await dialog()).findByRole('region', { name: 'Still posted by you' });
+    expect(within(section).getByRole('link', { name: /LinkedIn/ })).toHaveAttribute('href', 'https://www.linkedin.com/jobs/view/1');
+    expect(section).toHaveTextContent('Riverside');
+    expect(section).not.toHaveTextContent('Indeed');
   });
 });

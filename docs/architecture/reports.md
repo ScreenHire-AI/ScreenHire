@@ -90,7 +90,8 @@ funnel row shows. The candidates page uses it for a funnel link (section 5). A k
   it but is not counted (section 4).
 - **Source** is one key per application: `recruiter`, else `website` when the careers page was embedded in the
   organization's own site (`SourceSite`, careers-widget.md), else `board:{id}` when the candidate followed a job
-  board's apply link (`SourceBoard`, the `src` tag in apply-flow.md and job-distribution.md), else `careers`. The board
+  board's apply link (`SourceBoard`, the `src` tag in apply-flow.md and job-distribution.md), else `careers`. A board the
+  team posted on by hand is named as they named it, by its newest posting with that key. The board
   tag is self-reported: anyone can open a link with `src=talent`, so it can move an organization's own Sources numbers,
   never another's.
 - **Open jobs** are the jobs with status Open that the person sees, narrowed by the job filter. Opened is the day it was first published; the page shows it as the tooltip on Days open and the export keeps it as a column. Days open is whole days
@@ -156,8 +157,9 @@ the report arrives and while it is empty.
 - **Kinds come from each job's current workflow.** Only the current workflow is kept, so a timeline entry pointing at
   a stage removed since adds nothing (the time in that stage counts for no row), and a stage whose kind changed is read
   as it is now.
-- **Job board sources cover feed boards.** The `src` tag goes on the apply link of the XML feed, Careerjet, Talent.com,
-  Adzuna, Jooble and the sandbox board. Google for Jobs and the public job-board API must keep their canonical URLs, so
+- **Job board sources cover feed boards and the team's own postings.** The `src` tag goes on the apply link of the XML feed,
+  Careerjet, Talent.com, Adzuna, Jooble and the sandbox board, and on the tracked link of a board the team posted on by hand
+  ([job distribution](job-distribution.md#posted-by-you)). Google for Jobs and the public job-board API must keep their canonical URLs, so
   their applicants count as Careers page, as do applications finished from a saved draft link, which drops the tag.
 - **Weeks follow Monday.** The first day of the week is not taken from the person's locale.
 
