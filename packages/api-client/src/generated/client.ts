@@ -4354,6 +4354,9 @@ export const getGetJobTemplateSwitchUrl = (jobId: string,
   return stringifiedParams.length > 0 ? `/v1/jobs/${jobId}/workflow/switch-template?${stringifiedParams}` : `/v1/jobs/${jobId}/workflow/switch-template`
 }
 
+/**
+ * @summary Preview switching a job to another template
+ */
 export const getJobTemplateSwitch = async (jobId: string,
     params: GetJobTemplateSwitchParams, options?: Parameters<typeof apiFetch>[1]): Promise<getJobTemplateSwitchResponse> => {
 
@@ -4420,6 +4423,9 @@ export const getSwitchJobTemplateUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/workflow/switch-template`
 }
 
+/**
+ * @summary Switch a job to another template
+ */
 export const switchJobTemplate = async (jobId: string,
     switchJobTemplateRequest: SwitchJobTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<switchJobTemplateResponse> => {
 

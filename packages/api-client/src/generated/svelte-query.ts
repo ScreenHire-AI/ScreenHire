@@ -7736,6 +7736,9 @@ export const getGetJobTemplateSwitchUrl = (jobId: string,
   return stringifiedParams.length > 0 ? `/v1/jobs/${jobId}/workflow/switch-template?${stringifiedParams}` : `/v1/jobs/${jobId}/workflow/switch-template`
 }
 
+/**
+ * @summary Preview switching a job to another template
+ */
 export const getJobTemplateSwitch = async (jobId: string,
     params: GetJobTemplateSwitchParams, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getJobTemplateSwitchResponseSuccess> => {
 
@@ -7783,6 +7786,9 @@ export type GetJobTemplateSwitchQueryResult = NonNullable<Awaited<ReturnType<typ
 export type GetJobTemplateSwitchQueryError = ErrorType<HttpValidationProblemDetails | void>
 
 
+/**
+ * @summary Preview switching a job to another template
+ */
 
 export function createGetJobTemplateSwitch<TData = Awaited<ReturnType<typeof getJobTemplateSwitch>>, TError = ErrorType<HttpValidationProblemDetails | void>>(
  jobId: () =>  string,
@@ -7854,6 +7860,9 @@ export const getSwitchJobTemplateUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/workflow/switch-template`
 }
 
+/**
+ * @summary Switch a job to another template
+ */
 export const switchJobTemplate = async (jobId: string,
     switchJobTemplateRequest: SwitchJobTemplateRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<switchJobTemplateResponseSuccess> => {
 
@@ -7918,7 +7927,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type SwitchJobTemplateMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
     export type SwitchJobTemplateMutationVariables = {jobId: string;data: SwitchJobTemplateRequest}
 
-    export const createSwitchJobTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    /**
+ * @summary Switch a job to another template
+ */
+export const createSwitchJobTemplate = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
     TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof switchJobTemplate>>, TError,SwitchJobTemplateMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
  , queryClient?: () => QueryClient): CreateMutationResult<
         Awaited<ReturnType<typeof switchJobTemplate>>,

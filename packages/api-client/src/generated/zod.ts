@@ -3802,6 +3802,9 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary Preview switching a job to another template
+ */
 export const GetJobTemplateSwitchParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -3831,6 +3834,9 @@ export const GetJobTemplateSwitchResponse = zod.object({
 }).describe('What switching a job to a template version would do, before it happens: the version, its stages in order, and each of\nthe job\'s current stages that holds candidates, with how many (saved and finished candidates included) and the stage\nthey are preselected to, by kind first and then by name. `expectedWorkflowVersion` is the job\'s workflow version\nthe preview read, to send back with the switch.')
 
 
+/**
+ * @summary Switch a job to another template
+ */
 export const SwitchJobTemplateParams = zod.object({
   "jobId": zod.uuid()
 })

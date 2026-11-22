@@ -3712,6 +3712,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Preview switching a job to another template",
         "operationId": "GetJobTemplateSwitch",
         "parameters": [
           {
@@ -3777,6 +3778,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Switch a job to another template",
         "operationId": "SwitchJobTemplate",
         "parameters": [
           {

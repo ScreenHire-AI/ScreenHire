@@ -79,9 +79,9 @@ internal static class JobEndpoints
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/workflow/switch-template", GetJobTemplateSwitch).WithName("GetJobTemplateSwitch")
+        group.MapGet("/{jobId:guid}/workflow/switch-template", GetJobTemplateSwitch).WithName("GetJobTemplateSwitch").WithSummary("Preview switching a job to another template")
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{jobId:guid}/workflow/switch-template", SwitchJobTemplate).WithName("SwitchJobTemplate")
+        group.MapPost("/{jobId:guid}/workflow/switch-template", SwitchJobTemplate).WithName("SwitchJobTemplate").WithSummary("Switch a job to another template")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)

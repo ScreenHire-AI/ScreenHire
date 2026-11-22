@@ -2212,7 +2212,7 @@
     {
       "name": "get_scorecards",
       "title": "Read an application\u0027s scorecards",
-      "description": "Read the scorecards reviewers gave an application, oldest first: each one\u0027s stage, reviewer, recommendation, rating, answers and note. They are the hiring team\u0027s judgements; verification results are not among them.",
+      "description": "Read the scorecards reviewers gave an application, oldest first: each one\u0027s stage, reviewer, recommendation, rating, answers and note. They are the hiring team\u0027s judgements; verification results are not among them. A scorecard with withheld: true shows only who gave it and when, because the signed-in person still owes their own for this application.",
       "access": "Read",
       "confirms": false,
       "readOnly": true,
@@ -2246,7 +2246,8 @@
               "rating": 4,
               "answers": [],
               "note": "Clear on trade-offs.",
-              "submittedAt": "2026-11-21T16:00:00\u002B00:00"
+              "submittedAt": "2026-11-21T16:00:00\u002B00:00",
+              "withheld": false
             }
           ]
         }
