@@ -409,7 +409,8 @@ a card only (`payment_method_types[0]=card`), because an off-session reload need
 It runs in two steps:
 
 1. After a check draws on the balance, `AiCreditChecks.DueAsync` decides (`AutoReload.Decide`, pure) and sends `ReloadAiCredits`, keyed on
-   the newest grant, so the checks that finish together send one reload. Its handler (`[Deduplicated]`, in its transaction) records a
+   the newest grant, the settings' last change and the UTC month, so the checks that finish together send one reload, and turning
+   auto-reload back on after a refusal, raising the monthly maximum or a new month asks again with no new grant in between. Its handler (`[Deduplicated]`, in its transaction) records a
    `Pending` purchase and queues `ChargeAiCreditReload` through the outbox in the same commit. A partial unique index allows one auto-reload
    in flight per organization.
 2. `ChargeAiCreditReload` charges only a purchase still `Pending` with no payment recorded, so a redelivery does nothing. It runs outside a
@@ -456,7 +457,7 @@ adds them to the total only when the plan is in US dollars.
 | `GET .../credits/deductions?before=` | View AI usage | What took credits, newest first, 50 a page: one row per AI check (its calls and amount, linked to the application, with the candidate's name while the application exists) and one per expiry |
 | `GET .../credits/purchases` | Manage billing | The starting credit, each purchase and auto-reload, and the reloads whose charge was refused, newest first. A Checkout left unpaid is not listed |
 | `POST .../credits/checkout` | Manage billing | Body `{ amount }`, one of the amounts on offer (400 on `amount` otherwise). Returns `{ url }`; 502 when the provider does not answer |
-| `PUT .../credits/settings` | Manage billing | Body `{ lowBalanceAlert, autoReload: { enabled, below, amount, monthlyMax } }` in US dollars to the cent. Turning auto-reload on needs all three amounts, an amount of at least the smallest on offer, a monthly maximum that allows one reload, and a saved card (400 on `autoReload.enabled`: "Buy credits once to save a card") |
+| `PUT .../credits/settings` | Manage billing | Body `{ lowBalanceAlert, autoReload: { enabled, below, amount, monthlyMax } }` in US dollars to the cent. Turning auto-reload on needs all three amounts, an amount of at least the smallest on offer, a monthly maximum that allows one reload, and a saved card (400 on `autoReload.enabled`: "Buy credits once to save a card"). Off, the amounts need only be 0 to 10,000 to the cent |
 
 With billing off each is a 404 but the first. A cookie session only: an API key gets nothing here.
 
@@ -551,8 +552,11 @@ Five tenant-owned tables, each with the `tenant_isolation` row-level security po
   `billing_accounts`, whose concurrency token races with Stripe's webhooks.
 
 `AddAiCredits` dropped `ai_usage_charges` (the metered charge's record) and the budget and cap columns of `verification_settings`, after
-carrying a dollar cap on ScreenHire's key over as auto-reload's monthly maximum (left off). A budget, a limit stored in tokens and a limit
-on an own key had no equivalent and were dropped.
+carrying a dollar cap on ScreenHire's key over as auto-reload's monthly maximum (left off, so it limits nothing until an Owner turns
+auto-reload on). A budget, a limit stored in tokens and a limit on an own key had no equivalent and were dropped; an organization that
+had a budget gets the default low-balance alert. While auto-reload is off its amounts are kept unchecked against the smallest amount on
+offer, so a carried maximum below it never stops an Owner saving the low-balance alert. Every existing organization gets its starting
+credit the first time its balance is read (an AI check, the Billing page), and the AI check pauses at zero from then on.
 
 ## The Billing page
 
@@ -639,7 +643,7 @@ owner.
 | `TrialReminderTests` (integration) | on the running worker: signing up schedules the five steps, the worker leaves the account alone and an immediate checkout is applied, each email reaches every Owner once and a redelivery adds none, an Admin gets nothing, one `trial-ending` notification becomes one `trial-ended` one, the retention purge keeps it, and choosing a plan clears it and makes the reminders still waiting do nothing |
 | `AiChargeTests` (unit) | a call's charge in micro-dollars (cost plus the margin, half away from zero, nothing for a cost that is unknown or zero) and the sum of rounded charges |
 | `AiCreditsTests` (unit) | expiry by the credit that expires first, a credit that never expires used last, a shortfall repaid by the next grant, an expiry recorded once; auto-reload's decision for each outcome and the monthly maximum; the low-balance and empty alerts, quiet only while a reload starts |
-| `BillingCreditsTests` (integration) | the running worker deciding, charging and granting a sandbox reload; a reload never confirmed in a day closed as failed; a credit granted only by the confirmed payment (never by the return URL or an unconfirmed purchase) and once for a redelivery; one debit per built-in call at cost plus the margin and none for an own key; the check paused at zero with the credits note and no candidate marked, and resumed by a grant; auto-reload's refusal (a declined card, authentication required) failing the purchase, turning it off, voiding the invoice and telling the Owners in the bell and by email, never retried; a sandbox reload granted; the monthly maximum; the low-balance alert once per refill; expiry once; who may read, buy and change settings |
+| `BillingCreditsTests` (integration) | the running worker deciding, charging and granting a sandbox reload; a reload never confirmed in a day closed as failed; a credit granted only by the confirmed payment (never by the return URL or an unconfirmed purchase) and once for a redelivery; one debit per built-in call at cost plus the margin and none for an own key; the check paused at zero with the credits note and no candidate marked, and resumed by a grant; auto-reload's refusal (a declined card, authentication required) failing the purchase, turning it off, voiding the invoice and telling the Owners in the bell and by email, never retried; turning it back on after a refusal reloading again with no new grant; a sandbox reload granted; the monthly maximum; a carried monthly maximum below the smallest amount not stopping the low-balance alert's save while auto-reload is off; the low-balance alert once per refill; expiry once; who may read, buy and change settings |
 | `RolePermissionsTests` (unit) | Manage billing is an Owner-only permission and its routes join the route table |
 
 The test stacks pin nothing: they sell the plans in `plans.json`, and a test that needs a price or a limit reads it through
