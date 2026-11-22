@@ -34,6 +34,14 @@
     'aria-label'?: string;
   } & Record<`data-${string}`, unknown> = $props();
 
+  // A button's click is its action, such as opening a sheet (or a row's click pressing it, L5): it must not also pin the
+  // tooltip open, which Hint's click does for plain text. Hover and focus still show it.
+  function buttonProps(props: Record<string, unknown>) {
+    const { onclick, ...rest } = props;
+    void onclick;
+    return rest;
+  }
+
   let element = $state<HTMLElement | null>(null);
   let truncated = $state(false);
 
@@ -61,7 +69,7 @@
       <a {...props} {...restProps} {href} bind:this={element} class={cn('block min-w-0 truncate', underlined && 'underline underline-offset-2', className)}>{text}</a>
     {:else if restProps.onclick}
       <!-- With `onclick` and no `href` the text is a button, such as a row's name that opens its sheet (L5). -->
-      <button {...mergeProps(props, restProps)} type="button" bind:this={element} class={cn('block min-w-0 truncate text-left', className)}>{text}</button>
+      <button {...mergeProps(buttonProps(props), restProps)} type="button" bind:this={element} class={cn('block min-w-0 truncate text-left', className)}>{text}</button>
     {:else}
       <span {...props} {...restProps} bind:this={element} class={cn('block min-w-0', lines === 2 ? 'line-clamp-2 break-words' : 'truncate', className)}>{text}</span>
     {/if}

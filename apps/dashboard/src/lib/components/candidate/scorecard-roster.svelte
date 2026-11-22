@@ -172,7 +172,7 @@
                     {#if row.entry.withheld}
                       <span class="min-w-0 truncate font-semibold">{row.reviewer}</span>
                     {:else}
-                      <button type="button" data-row-link class={rowButton} onclick={() => (openId = row.id)}>{row.reviewer}</button>
+                      <TruncatedText text={row.reviewer} data-row-link class={rowButton} onclick={() => (openId = row.id)} />
                     {/if}
                   </span>
                 </Table.Cell>

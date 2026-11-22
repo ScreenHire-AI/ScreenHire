@@ -65,6 +65,16 @@ describe('truncated text', () => {
     await expectNoAxeViolations(document.body);
   });
 
+  it("as a button, a click is its action and does not pin the tooltip open, as when a row's click presses it", async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(2000);
+    const onclick = vi.fn();
+    render(WithTooltips, { props: { component: TruncatedText, props: { text, onclick } } });
+
+    await fireEvent.click(screen.getByRole('button', { name: text }));
+    expect(onclick).toHaveBeenCalledTimes(1);
+    expect(tooltip()).toBeNull();
+  });
+
   it('underlines a link at rest only when asked, and a name in a table keeps its hover underline', () => {
     const { unmount } = render(WithTooltips, { props: { component: TruncatedText, props: { text: 'Platform Engineer', href: '/jobs/1', underlined: true } } });
     expect(screen.getByRole('link', { name: 'Platform Engineer' })).toHaveClass('truncate', 'underline');

@@ -175,7 +175,9 @@
             <!-- A click anywhere on the row opens the team (L5): its name is the button. -->
             <Table.Row {@attach rowLink} class="h-12 hover:bg-muted">
               <Table.Cell class="max-w-64 px-4.5">
-                <button type="button" data-row-link class="max-w-full truncate text-left font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11" onclick={() => onedit(team)}>{team.name}</button>
+                <span class="flex min-w-0"
+                  ><TruncatedText text={team.name} data-row-link class="font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11" onclick={() => onedit(team)} /></span
+                >
               </Table.Cell>
               <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground">
                 {#if team.members.length === 0}<span class="sr-only">Nobody yet</span>{:else}<TruncatedText text={names(team)} />{/if}
