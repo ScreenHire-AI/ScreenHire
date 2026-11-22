@@ -97,8 +97,6 @@
   let adding = $state(false);
   let addChosen = false;
   let added = $state<AddedCandidate | null>(null);
-  // Switch template (workflow-engine.md section 7): in More, for anyone who can edit a job that is not closed.
-  const canSwitch = $derived(mayEdit && detail !== undefined && detail.status !== 'Closed');
   let switchOpen = $state(false);
   let switchChosen = false;
   let switched = $state('');
@@ -113,6 +111,8 @@
   const boardCount = $derived(rows.length);
   // Edit details, Publish and Close all need Edit jobs, so someone without it is not offered them (A3).
   const mayEdit = $derived(can(page.data.user, 'EditJobs'));
+  // Switch template (workflow-engine.md section 7): in More, for anyone who can edit a job that is not closed.
+  const canSwitch = $derived(mayEdit && detail !== undefined && detail.status !== 'Closed');
   const publishable = $derived(mayEdit && detail?.status === 'Draft' && boardCount > 0);
   // What the check before publishing found, for the quiet line in the header band while the job is a draft. It reads the
   // same list the API serves a key and the MCP server; Publish asks again, because the job may have changed since.
