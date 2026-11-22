@@ -172,7 +172,9 @@ The dashboard shows the HTML part in a sandboxed frame (no scripts, forms or pop
 can take the email's height), never in the page, in the preview beside the wording where both
 fit, or behind the Edit / Preview switch; the window icon opens it in a second window (`/preview/email`) that the editor
 feeds each rendering. The test send (`POST /v1/email-templates/test`) sends the same rendering to the signed-in person's
-own address, from the API, with `[Test]` before the subject.
+own address, from the API, with `[Test]` before the subject. Try it's Send me these emails
+(`POST /v1/workflows/test-emails`, [workflow engine](workflow-engine.md#4-builder-ux-dashboard)) does the same for up to
+five saved templates, in their current wording, rate limited per person; any template may go, the rejection email included.
 
 ## The composer
 
