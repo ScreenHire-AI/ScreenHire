@@ -35,7 +35,7 @@
 </script>
 
 {#if part === 'sentence'}
-  <AutomationSentence bind:automation={workflow.automations[0]!} index={0} {workflow} errors={[]} onrules={nothing} />
+  <AutomationSentence bind:automation={workflow.automations[0]!} index={0} {workflow} errors={[]} />
 {:else if part === 'recipes'}
   <AutomationRecipes bind:workflow onwrite={nothing} onedit={nothing} />
 {:else}

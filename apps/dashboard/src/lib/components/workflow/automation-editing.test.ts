@@ -1,6 +1,6 @@
 // Editing an automation as a sentence, adding one from the recipes, and the list the Automations tab is on a phone. The model
 // behind the blanks is tested in #lib/automation-sentence.test.ts; this is the screen: the sheet, the blanks and their lists,
-// Done, and Edit as rules.
+// Done, and the Sentence and Rules tabs.
 import type { Automation, HiringWorkflow } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +9,7 @@ import { apiStub, roleCatalogue } from '../../../test-support/fixtures.js';
 import { stubViewport } from '../../../test-support/viewport.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import WorkflowHarness from '../../../test-support/workflow-harness.svelte';
+import { preferences } from '#lib/preferences.svelte.js';
 
 const base: HiringWorkflow = {
   stages: [
@@ -45,6 +46,9 @@ beforeEach(() => {
   // bits-ui scrolls the highlighted option into view, which jsdom does not implement.
   Element.prototype.scrollIntoView ??= () => {};
   workflow = structuredClone(base);
+  // The tab an automation opens on is remembered in this browser: each test starts from the default, Sentence.
+  localStorage.removeItem('screenhire:automation-view');
+  preferences.automationView = 'sentence';
 });
 
 afterEach(() => vi.unstubAllGlobals());
@@ -344,60 +348,107 @@ describe('after a check', () => {
   });
 });
 
-describe('Edit as rules', () => {
-  it('swaps the sentence for the full form with the same choices, and back', async () => {
+describe('the Sentence and Rules tabs', () => {
+  const knockout: Automation = {
+    id: 'knockout',
+    name: 'Knockout',
+    trigger: { type: 'ApplicationSubmitted' },
+    conditions: { match: 'All', rules: [{ fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' }] },
+    actions: [{ type: 'Reject', reason: 'Not eligible' }],
+    allowAutoReject: true,
+  };
+  const open = async (name: string) => {
+    await fireEvent.click(within(panel()).getByRole('button', { name: (label) => label.includes(`When ${name}`) }));
+    return sheet(name);
+  };
+  const tab = (scope: HTMLElement, name: 'Sentence' | 'Rules') => within(scope).getByRole('tab', { name });
+
+  it('edit the same automation under one Name and one On, so switching loses nothing', async () => {
     renderEditor([
       { ...tagOnApply, conditions: { match: 'All', rules: [{ fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' }] }, actions: [{ type: 'AssignReviewer', assigneeUserId: 'u-dana' }, { type: 'AddTag', tag: 'Not eligible' }] },
     ]);
-    await fireEvent.click(within(panel()).getByRole('button', { name: (name) => name.includes('When Tag new people') }));
-    const edit = await sheet('Tag new people');
+    const edit = await open('Tag new people');
+    expect(tab(edit, 'Sentence')).toHaveAttribute('aria-selected', 'true');
+    expect(within(edit).queryByRole('button', { name: /^Edit as/ })).toBeNull();
     const before = JSON.stringify(draft().automations[0]);
+    const name = within(edit).getByRole('textbox', { name: 'Name' });
+    const on = within(edit).getByRole('switch');
 
-    await fireEvent.click(within(edit).getByRole('button', { name: 'Edit as rules' }));
+    await fireEvent.click(tab(edit, 'Rules'));
 
+    expect(tab(edit, 'Rules')).toHaveAttribute('aria-selected', 'true');
+    expect(within(edit).getByRole('textbox', { name: 'Name' })).toBe(name);
+    expect(within(edit).getAllByRole('switch')).toEqual([on]);
+    expect(within(edit).queryByRole('checkbox', { name: 'On' })).toBeNull();
     expect(within(edit).getByRole('combobox', { name: 'Trigger' })).toHaveValue('ApplicationSubmitted');
     expect(within(edit).getByRole('combobox', { name: /^Fact/ })).toHaveValue('answers.right_to_work');
     expect(within(edit).getByRole('combobox', { name: /^Value/ })).toHaveValue('no');
     expect(within(edit).getByRole('textbox', { name: 'Tag name' })).toHaveValue('Not eligible');
     expect(JSON.stringify(draft().automations[0])).toBe(before);
+    // The name shows once, as the sheet's title, with no heading repeating it under the tabs.
+    expect(within(edit).getAllByText('Tag new people')).toHaveLength(1);
 
     await fireEvent.change(within(edit).getByRole('combobox', { name: /^Value/ }), { target: { value: 'yes' } });
-    await fireEvent.click(within(edit).getByRole('button', { name: 'Edit as a sentence' }));
+    await fireEvent.click(tab(edit, 'Sentence'));
 
     expect(edit.querySelector('[data-sentence]')).toHaveTextContent('and their answer to Right to work is Yes');
     expect(draft().automations[0]!.conditions!.rules[0]).toMatchObject({ value: 'yes' });
   });
 
-  it('keeps Remove on the full form, which the sentence leaves out', async () => {
+  it('open every automation on the tab the person chose last', async () => {
+    renderEditor([tagOnApply, { ...tagOnApply, id: 'trial', name: 'Mail at trial', trigger: { type: 'StageEntered', stageId: 'trial' }, actions: [{ type: 'SendEmail', emailTemplate: 'stage-change' }] }]);
+    const first = await open('Tag new people');
+    await fireEvent.click(tab(first, 'Rules'));
+    await fireEvent.click(within(first).getByRole('button', { name: 'Done' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    const second = await open('Mail at trial');
+
+    expect(tab(second, 'Rules')).toHaveAttribute('aria-selected', 'true');
+    expect(within(second).getByRole('combobox', { name: 'Trigger' })).toHaveValue('StageEntered');
+    expect(localStorage.getItem('screenhire:automation-view')).toBe('rules');
+  });
+
+  it('open one too complex for a sentence on Rules, and the Sentence tab says why without changing the choice', async () => {
+    renderEditor([knockout]);
+
+    const edit = await open('Knockout');
+
+    expect(tab(edit, 'Rules')).toHaveAttribute('aria-selected', 'true');
+    expect(within(edit).getByRole('checkbox', { name: 'Reject without a person reviewing first' })).toBeChecked();
+    expect(preferences.automationView).toBe('sentence');
+
+    await fireEvent.click(tab(edit, 'Sentence'));
+
+    expect(edit.querySelector('[data-sentence]')).toBeNull();
+    expect(within(edit).getByRole('tabpanel', { name: 'Sentence' })).toHaveTextContent(
+      'Too complex for a sentence: it turns someone down, and whether a person reviews first is set on Rules.',
+    );
+  });
+
+  it('keep Remove automation on Rules, which the sentence leaves out', async () => {
     renderEditor([tagOnApply]);
-    await fireEvent.click(within(panel()).getByRole('button', { name: (name) => name.includes('When Tag new people') }));
-    const edit = await sheet('Tag new people');
+    const edit = await open('Tag new people');
     expect(within(edit).queryByRole('button', { name: /^Remove/ })).toBeNull();
 
-    await fireEvent.click(within(edit).getByRole('button', { name: 'Edit as rules' }));
-    await fireEvent.click(within(edit).getByRole('button', { name: 'Remove Tag new people' }));
+    await fireEvent.click(tab(edit, 'Rules'));
+    await fireEvent.click(within(edit).getByRole('button', { name: 'Remove automation' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(draft().automations).toEqual([]);
   });
 
-  it('keeps an automation the sentence cannot say in the sentence\'s own words, such as a saved rejection', async () => {
-    renderEditor([
-      {
-        id: 'knockout',
-        name: 'Knockout',
-        trigger: { type: 'ApplicationSubmitted' },
-        conditions: { match: 'All', rules: [{ fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' }] },
-        actions: [{ type: 'Reject', reason: 'Not eligible' }],
-        allowAutoReject: true,
-      },
-    ]);
-    await fireEvent.click(within(panel()).getByRole('button', { name: (name) => name.includes('When Knockout') }));
-    const edit = await sheet('Knockout');
+  it('give Rules a remove button on every condition and action, and add more from chips', async () => {
+    renderEditor([{ ...tagOnApply, conditions: { match: 'All', rules: [{ fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' }] } }]);
+    const edit = await open('Tag new people');
+    await fireEvent.click(tab(edit, 'Rules'));
 
-    expect(edit.querySelector('[data-sentence]')).toHaveTextContent('turn them down, because Not eligible');
-    await fireEvent.click(within(edit).getByRole('button', { name: 'Add another step: then also' }));
-    expect((await screen.findAllByRole('option')).map((option) => option.textContent?.trim())).not.toContain('Turn them down');
+    await fireEvent.click(within(edit).getByRole('button', { name: 'Add condition' }));
+    await fireEvent.click(within(edit).getByRole('button', { name: 'Add action' }));
+
+    expect(within(edit).getAllByRole('button', { name: /^Remove condition \d$/ })).toHaveLength(2);
+    expect(within(edit).getAllByRole('button', { name: /^Remove action \d$/ })).toHaveLength(2);
+    await expectNoAxeViolations(edit);
   });
 });
 

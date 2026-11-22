@@ -10,8 +10,7 @@
 
 <script lang="ts" generics="T, K extends string">
   import ChevronDownIcon from '~icons/lucide/chevron-down';
-  import ChevronUpIcon from '~icons/lucide/chevron-up';
-  import CopyIcon from '~icons/lucide/copy';
+    import CopyIcon from '~icons/lucide/copy';
   import PlusIcon from '~icons/lucide/plus';
   import Rows3Icon from '~icons/lucide/rows-3';
   import Trash2Icon from '~icons/lucide/trash-2';
@@ -40,9 +39,9 @@
   // as text until it is opened. Only one question is open at a time, marked by an accent bar; it edits its text, its
   // answer kind (the answer menu, top right), its help line (beside the Required switch where the pane is wide) and its options. A row's
   // Duplicate and Delete are in its row menu (L3), open or closed. Open and closed rows share one header row, so the answer
-  // kind and the row menu stand in the same place either way; the open row closes from Close question (the chevron beside
-  // the row menu), Done at its foot, a click on its header outside a control, or Escape, and slides open and shut (none
-  // under reduced motion). A closed choice question reads its options on one line, "4 choices: ...". A required question wears a Required badge and an
+  // kind and the row menu stand in the same place either way; the open row closes from Done (a small filled button where
+  // the closed row's chevron stands, the same width so nothing moves), a click on its header outside a control, or Escape,
+  // and slides open and shut (none under reduced motion). Every control on the header line is the standard 36px high. A closed choice question reads its options on one line, "4 choices: ...". A required question wears a Required badge and an
   // optional one nothing (W6). Questions and options reorder with a grip (A7). Removing a question changes nothing until the editor saves,
   // so it is not destructive (section 10).
   //
@@ -219,7 +218,7 @@
 
   // The question's text and help line are one line each, drawn as a textarea that grows so long text shows in full at
   // phone width (F5). Enter adds no line break, and a pasted one becomes a space.
-  const lineClass = 'min-h-9 resize-none py-1.5 pointer-coarse:min-h-11';
+  const lineClass = 'min-h-9 resize-none py-1.5 max-md:py-1 pointer-coarse:min-h-11';
   const flatten = (value: string) => value.replace(/\s*[\r\n]+\s*/g, ' ');
   function oneLine(event: KeyboardEvent) {
     if (event.key === 'Enter' && !event.isComposing) event.preventDefault();
@@ -326,7 +325,7 @@
           <div data-question-header class="relative flex min-w-0 items-start gap-2 rounded-lg has-[[data-question-edit]:hover]:bg-muted/40" onpointerdown={isOpen ? (event) => (pressedOn = event.target as Element | null) : undefined} onclick={isOpen ? (event) => onheaderclick(event, id) : undefined}>
             <span class="relative z-10 pt-1">{@render grip()}</span>
             {#if isOpen}
-              <div class="flex min-w-0 flex-1 py-0.5">
+              <div class="flex min-w-0 flex-1">
                 <Textarea
                   data-question-text={id}
                   aria-label={`Question ${index + 1}`}
@@ -367,7 +366,7 @@
                   <AnswerMenu {groups} value={kind.value} onselect={(next) => changeKind(index, next)}>
                     {#snippet trigger(props)}
                       {@const Icon = kind.icon}
-                      <Button {...props} variant="outline" aria-label={`Answer: ${kind.label}`} class="shrink-0">
+                      <Button {...props} variant="outline" size="lg" aria-label={`Answer: ${kind.label}`} class="shrink-0">
                         {#if Icon}<Icon aria-hidden="true" />{/if}{kind.label}<ChevronDownIcon aria-hidden="true" />
                       </Button>
                     {/snippet}
@@ -381,13 +380,14 @@
                 </span>
               {/if}
               <span class="relative z-10">{@render rowMenu(nameOf(question), index)}</span>
+              <!-- Done and the closed row's chevron share one slot as wide as Done, so opening a row moves nothing. -->
               {#if isOpen}
-                <span class="relative z-10">
-                  <IconButton label="Close question" onclick={() => close(id)}><ChevronUpIcon /></IconButton>
+                <span class="relative z-10 flex w-16 justify-end">
+                  <Button size="lg" data-question-done onclick={() => close(id)}>Done</Button>
                 </span>
               {:else}
-                <!-- The row opens in place and says so (A9), where the open row's Close question stands. -->
-                <span aria-hidden="true" data-question-chevron class="grid size-9 place-items-center text-muted-foreground"><ChevronDownIcon /></span>
+                <!-- The row opens in place and says so (A9), where the open row's Done stands. -->
+                <span aria-hidden="true" data-question-chevron class="flex h-9 w-16 items-center justify-end pr-2.5 text-muted-foreground pointer-coarse:h-11"><ChevronDownIcon /></span>
               {/if}
             </span>
           </div>
@@ -461,9 +461,6 @@
               {/if}
               {@render settings?.(question, index)}
               <FieldErrors id={errorsId} messages={errors} />
-              <div class="flex justify-end">
-                <Button variant="outline" onclick={() => close(id)}>Done</Button>
-              </div>
             </div>
           {:else if errors.length > 0}
             <div class="pl-10"><FieldErrors id={errorsId} messages={errors} /></div>
@@ -491,7 +488,7 @@
 </div>
 
 {#snippet rowMenu(name: string, index: number)}
-  <MoreMenu label={`Actions for ${name}`} size="icon" quiet>
+  <MoreMenu label={`Actions for ${name}`} quiet>
     <DropdownMenu.Item onSelect={() => copy(index)}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>
     <DropdownMenu.Item onSelect={() => remove(index)}><Trash2Icon aria-hidden="true" />Delete</DropdownMenu.Item>
   </MoreMenu>

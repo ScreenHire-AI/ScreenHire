@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ActionType, Automation, ConditionOperator, DefinitionError, HiringWorkflow, TriggerType } from '@screenhire/api-client';
   import { createListEmailTemplates, createListRoles, createListTeamMembers } from '@screenhire/api-client/svelte-query';
+  import PlusIcon from '~icons/lucide/plus';
   import Trash2Icon from '~icons/lucide/trash-2';
   import { tick } from 'svelte';
   import IconButton from '#lib/components/icon-button.svelte';
@@ -35,14 +36,16 @@
   import { sendableTemplates } from '#lib/email.js';
   import { membersWith } from '#lib/team.js';
   import { getUndo } from '#lib/undo-context.js';
-  import { checkboxClass, insetClass, kickerClass, labelClass, selectClass } from './controls.js';
+  import { addChipClass, checkboxClass, insetClass, labelClass, ruleSectionClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
   import InterviewFields from './interview-fields.svelte';
 
-  // One automation: trigger, conditions, actions (workflow-engine.md §2). Every part shows the API validator's messages
-  // for its own path, so a guardrail refusal appears on the action it is about. Automations follow each other in the
-  // sheet, divided by rules; conditions and actions are wells inside one. The graph's Edit on a node opens this form at
-  // that node's part: its first control carries the part's path in `data-focus`.
+  // One automation as rules, the sheet's Rules tab under the automation's Name and On (`AutomationName`, shared with the
+  // Sentence tab): When, If and Then (workflow-engine.md §2), each a well like the sentence's with its controls in rows of
+  // one height, a remove button on every condition and action, and Add condition and Add action as the sentence's dashed
+  // chips. Every part shows the API validator's messages for its own path, so a guardrail refusal appears on the action it
+  // is about. The map's Edit on a node opens this form at that node's part: its first control carries the part's path in
+  // `data-focus`. Remove automation is at the foot.
   let {
     automation = $bindable(),
     index,
@@ -57,6 +60,8 @@
   const emailChoices = $derived(emailTemplates.data ? sendableTemplates(emailTemplates.data.data.templates) : builtInEmailTemplates);
 
   const uid = $props.id();
+  // A legend floats so it sits inside its well, like a heading, rather than on the well's edge.
+  const legendClass = 'float-left w-full text-body font-semibold';
   // AssignReviewer names one of these, or nobody for the whole team. Roles without Complete tasks are left out: they could
   // not complete the review task. A reviewer who has left keeps their option until someone picks another, so the form
   // shows what is saved.
@@ -132,28 +137,12 @@
   }
 </script>
 
-<article aria-labelledby={`${uid}-heading`} class="flex flex-col gap-3 border-b border-border-subtle pb-6 last-of-type:border-0">
-  <div class="flex items-center justify-between gap-2">
-    <h3 id={`${uid}-heading`} class="min-w-0 text-heading break-words">{automation.name || 'Untitled automation'}</h3>
-    <IconButton label={`Remove ${automation.name || 'this automation'}`} onclick={onremove}><Trash2Icon /></IconButton>
-  </div>
+<article aria-label={automation.name || 'Untitled automation'} class="flex flex-col gap-4">
   <FieldErrors id={`${uid}-errors`} messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.id`), ...errorsAt(errors, `${path}.actions`)]} />
 
-  <div class="grid gap-2.5 @md:grid-cols-[1fr_auto]">
-    <label class={labelClass}>
-      Name
-      <Input bind:value={automation.name} maxlength={120} data-focus={path} aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined} />
-    </label>
-    <label class="flex items-center gap-2 pointer-coarse:min-h-11 self-end pb-1.5 text-body font-semibold">
-      <input type="checkbox" class={checkboxClass} bind:checked={() => automation.enabled !== false, (on) => (automation.enabled = on)} />
-      On
-    </label>
-  </div>
-  <FieldErrors id={`${uid}-name-errors`} messages={errorsAt(errors, `${path}.name`)} />
-
-  <fieldset class="flex flex-col gap-2" aria-describedby={describedBy(errorsUnder(errors, `${path}.trigger`).length > 0 && `${uid}-trigger-errors`)}>
-    <legend class={kickerClass}>When</legend>
-    <div class="grid gap-2 @xl:grid-cols-3">
+  <fieldset class={ruleSectionClass} aria-describedby={describedBy(errorsUnder(errors, `${path}.trigger`).length > 0 && `${uid}-trigger-errors`)}>
+    <legend class={legendClass}>When</legend>
+    <div class="clear-left grid items-end gap-2 @md:grid-cols-2">
       <label class={labelClass}>
         Trigger
         <select class={selectClass} value={automation.trigger.type} data-focus={`${path}.trigger`} onchange={(event) => setTrigger(event.currentTarget.value as TriggerType)}>
@@ -215,22 +204,22 @@
     <FieldErrors id={`${uid}-trigger-errors`} messages={errorsUnder(errors, `${path}.trigger`).map((error) => error.message)} />
   </fieldset>
 
-  <fieldset class="flex flex-col gap-2">
-    <legend class={kickerClass}>If</legend>
+  <fieldset class={ruleSectionClass}>
+    <legend class={legendClass}>If</legend>
     {#if automation.conditions}
-      <label class={[labelClass, 'max-w-60']}>
+      <label class={[labelClass, 'clear-left max-w-60']}>
         Match
         <select class={selectClass} bind:value={automation.conditions.match}>
           <option value="All">All of these hold</option>
           <option value="Any">Any of these holds</option>
         </select>
       </label>
-      <ol class="flex flex-col gap-2">
+      <ol class="flex flex-col gap-3">
         {#each automation.conditions.rules as rule, ruleIndex (ruleIndex)}
           {@const fact = factOf(rule.fact)}
           {@const rulePath = `${path}.conditions.rules[${ruleIndex}]`}
           {@const ruleErrors = errorsUnder(errors, rulePath).map((error) => error.message)}
-          <li class={insetClass}>
+          <li data-rule-row class="flex flex-col gap-1.5 border-t border-border-subtle pt-3 first:border-0 first:pt-0">
             <div class="grid items-end gap-2 @2xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto_auto]">
               <label class={labelClass}>
                 Fact <span class="sr-only">for condition {ruleIndex + 1}</span>
@@ -248,21 +237,19 @@
               {#if rule.operator === 'Exists'}
                 <span></span>
               {:else if rule.operator === 'In'}
-                <div class="flex min-w-0 flex-col gap-1">
-                  <label class={labelClass}>
-                    Values <span class="sr-only">for condition {ruleIndex + 1}</span>
-                    <Input
-                      aria-describedby={`${uid}-values-${ruleIndex}-hint`}
-                      value={(rule.values ?? []).join(', ')}
-                      onchange={(event) =>
-                        (rule.values = event.currentTarget.value
-                          .split(',')
-                          .map((value) => value.trim())
-                          .filter(Boolean))}
-                    />
-                  </label>
-                  <p id={`${uid}-values-${ruleIndex}-hint`} class="text-muted-foreground">Separated by commas.</p>
-                </div>
+                <!-- The hint sits under the row, so the field keeps the row's one height. -->
+                <label class={labelClass}>
+                  Values <span class="sr-only">for condition {ruleIndex + 1}</span>
+                  <Input
+                    aria-describedby={`${uid}-values-${ruleIndex}-hint`}
+                    value={(rule.values ?? []).join(', ')}
+                    onchange={(event) =>
+                      (rule.values = event.currentTarget.value
+                        .split(',')
+                        .map((value) => value.trim())
+                        .filter(Boolean))}
+                  />
+                </label>
               {:else if fact?.values}
                 <label class={labelClass}>
                   Value <span class="sr-only">for condition {ruleIndex + 1}</span>
@@ -276,12 +263,13 @@
                   <Input bind:value={rule.value} maxlength={200} />
                 </label>
               {/if}
-              <label class="flex items-center gap-1.5 pointer-coarse:min-h-11 pb-1.5 text-body font-semibold">
+              <label class="flex h-9 items-center gap-1.5 text-body font-semibold pointer-coarse:h-11">
                 <input type="checkbox" class={checkboxClass} bind:checked={() => rule.negate ?? false, (on) => (rule.negate = on)} />
                 Not
               </label>
-              <IconButton label={`Remove condition ${ruleIndex + 1}`} onclick={() => removeRule(ruleIndex)}><Trash2Icon /></IconButton>
+              <IconButton size="icon-lg" label={`Remove condition ${ruleIndex + 1}`} onclick={() => removeRule(ruleIndex)}><Trash2Icon /></IconButton>
             </div>
+            {#if rule.operator === 'In'}<p id={`${uid}-values-${ruleIndex}-hint`} class="text-caption text-muted-foreground">Separate the values with commas.</p>{/if}
             {#if fact?.signal}
               <p class="text-caption text-muted-foreground">
                 A verification signal can route a candidate for review, never reject them.
@@ -292,17 +280,17 @@
         {/each}
       </ol>
     {:else}
-      <p class="text-body text-muted-foreground">No conditions: it runs every time the trigger fires.</p>
+      <p class="clear-left text-body text-muted-foreground">No conditions: it runs every time the trigger fires.</p>
     {/if}
     <FieldErrors
       id={`${uid}-conditions-errors`}
       messages={[...errorsAt(errors, `${path}.conditions`), ...errorsAt(errors, `${path}.conditions.match`), ...errorsAt(errors, `${path}.conditions.rules`)]}
     />
-    <div><Button variant="outline" size="lg" onclick={addRule}>Add condition</Button></div>
+    <div><button type="button" class={addChipClass} onclick={addRule}><PlusIcon aria-hidden="true" class="size-3.5 shrink-0" />Add condition</button></div>
   </fieldset>
 
-  <fieldset bind:this={steps} class="flex flex-col gap-2">
-    <legend class={kickerClass}>Then</legend>
+  <fieldset bind:this={steps} class={ruleSectionClass}>
+    <legend class={legendClass}>Then</legend>
     <!-- Actions run in order and reorder with a grip (A7). They have no ids of their own, so a position names each. -->
     <ReorderList
       items={automation.actions}
@@ -310,7 +298,7 @@
       label="Actions"
       itemLabel={(action) => `action ${automation.actions.indexOf(action) + 1}`}
       onreorder={(next) => (automation.actions = next)}
-      class="flex flex-col gap-2"
+      class="clear-left flex flex-col gap-3"
     >
       {#snippet item(action, grip)}
         {@const actionIndex = automation.actions.indexOf(action)}
@@ -319,7 +307,7 @@
         {@const interviewPaths = Object.keys(interviewFieldLabels).map((name) => `${actionPath}.${name}`)}
         <!-- The four interview fields show their messages under themselves (F6), so the action's own list holds the rest. -->
         {@const actionErrors = errorsUnder(errors, actionPath).filter((error) => !interviewPaths.includes(error.path)).map((error) => error.message)}
-        <div class={insetClass} onfocusout={(event) => leaveStep(event, actionIndex)}>
+        <div data-action-row class="flex flex-col gap-2 bg-secondary" onfocusout={(event) => leaveStep(event, actionIndex)}>
           <div class="grid items-end gap-2 @xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]">
             <label class={labelClass}>
               Action {actionIndex + 1}
@@ -390,9 +378,9 @@
               <!-- ScheduleInterview draws its four fields below. -->
               <span class="hidden @xl:block"></span>
             {/if}
-            <div class="flex shrink-0 items-center gap-0.5">
+            <div class="flex h-9 shrink-0 items-center gap-0.5 pointer-coarse:h-11">
               {#if automation.actions.length > 1}{@render grip()}{/if}
-              <IconButton label={`Remove action ${actionIndex + 1}`} onclick={() => (automation.actions = removeAt(automation.actions, actionIndex))}><Trash2Icon /></IconButton>
+              <IconButton size="icon-lg" label={`Remove action ${actionIndex + 1}`} onclick={() => (automation.actions = removeAt(automation.actions, actionIndex))}><Trash2Icon /></IconButton>
             </div>
           </div>
           {#if action.type === 'ScheduleInterview'}
@@ -403,7 +391,7 @@
         </div>
       {/snippet}
     </ReorderList>
-    <div><Button variant="outline" size="lg" onclick={addAction}>Add action</Button></div>
+    <div><button type="button" class={addChipClass} onclick={addAction}><PlusIcon aria-hidden="true" class="size-3.5 shrink-0" />Add action</button></div>
   </fieldset>
 
   {#if rejects}
@@ -418,4 +406,6 @@
       <FieldErrors id={`${uid}-auto-reject-errors`} messages={errorsAt(errors, `${path}.allowAutoReject`)} />
     </div>
   {/if}
+
+  <div><Button variant="outline" size="lg" onclick={onremove}><Trash2Icon aria-hidden="true" />Remove automation</Button></div>
 </article>

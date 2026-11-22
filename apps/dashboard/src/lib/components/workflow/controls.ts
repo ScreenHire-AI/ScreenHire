@@ -15,3 +15,13 @@ export const rowClass = 'border-b border-border-subtle py-4 first:pt-0 last:bord
 
 /** A well inside a row (design system section 6). Its controls stay white so they read as fields. */
 export const insetClass = 'flex flex-col gap-2 rounded-lg bg-secondary p-3 [&_input:not([type=checkbox])]:bg-card [&_select]:bg-card';
+
+/**
+ * A chip that adds a part to an automation: the sentence's "and if" and "then also", and Rules' Add condition and Add
+ * action. Dashed, so it reads as a place for something new beside the parts already there.
+ */
+export const addChipClass =
+  'inline-flex max-w-full min-w-0 items-center gap-1 rounded-lg border border-dashed border-input bg-card px-2 py-0.5 align-middle text-left leading-6 font-semibold text-muted-foreground shadow-surface min-h-8 pointer-coarse:min-h-11 hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
+
+/** One of Rules' three parts, When, If and Then: a well like the sentence's, its controls white (section 6). */
+export const ruleSectionClass = 'flex min-w-0 flex-col gap-3 rounded-lg bg-secondary p-3 [&_input:not([type=checkbox])]:bg-card [&_select]:bg-card';

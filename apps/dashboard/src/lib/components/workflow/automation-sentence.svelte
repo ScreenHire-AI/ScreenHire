@@ -1,9 +1,6 @@
 <script lang="ts">
   import type { Automation, DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates, createListRoles, createListTeamMembers } from '@screenhire/api-client/svelte-query';
-  import { Button } from '#lib/components/ui/button/index.js';
-  import { Input } from '#lib/components/ui/input/index.js';
-  import { Switch } from '#lib/components/ui/switch/index.js';
   import { sentenceOf, textFieldFor, type Blank, type SentenceContext } from '#lib/automation-sentence.js';
   import { sendableTemplates } from '#lib/email.js';
   import { membersWith } from '#lib/team.js';
@@ -12,25 +9,22 @@
   import AutomationBlank from './automation-blank.svelte';
   import FieldErrors from './field-errors.svelte';
   import InterviewFields from './interview-fields.svelte';
-  import { labelClass } from './controls.js';
 
-  // One automation as a sentence with blanks (design system section 11, Automation sentence): a Name, On, and the sentence
-  // "When [someone applies] and [their answer to Right to work is No], [ask the team to review] and [add the tag ...]".
-  // Every blank is a short list of plain choices from `#lib/automation-sentence.ts`; "and if" and "then also" add parts. The
-  // validator's messages for each part sit under the sentence, and the part's blank is marked. Edit as rules swaps this
-  // for the full form. The definition is the same either way: nothing here is stored but the automation.
+  // One automation as a sentence with blanks (design system section 11, Automation sentence), the sheet's Sentence tab under
+  // the automation's Name and On (`AutomationName`): "When [someone applies] and [their answer to Right to work is No], [ask
+  // the team to review] and [add the tag ...]". Every blank is a short list of plain choices from `#lib/automation-sentence.ts`;
+  // "and if" and "then also" add parts. The validator's messages for each part sit under the sentence, and the part's blank is
+  // marked. The Rules tab is the full form over the same automation: nothing here is stored but the automation.
   let {
     automation = $bindable(),
     index,
     workflow,
     errors,
-    onrules,
   }: {
     automation: Automation;
     index: number;
     workflow: HiringWorkflow;
     errors: readonly DefinitionError[];
-    onrules: () => void;
   } = $props();
 
   const uid = $props.id();
@@ -87,18 +81,6 @@
 </script>
 
 <article aria-label={automation.name || 'Untitled automation'} class="flex flex-col gap-4">
-  <div class="grid gap-2.5 @md:grid-cols-[1fr_auto]">
-    <label class={labelClass}>
-      Name
-      <Input bind:value={automation.name} maxlength={120} data-focus={path} aria-invalid={errorsAt(errors, `${path}.name`).length > 0 || undefined} />
-    </label>
-    <label class="flex items-center gap-2 self-end pb-1.5 text-body font-semibold pointer-coarse:min-h-11">
-      <Switch checked={automation.enabled !== false} onCheckedChange={(on) => (automation.enabled = on)} />
-      On
-    </label>
-  </div>
-  <FieldErrors id={`${uid}-name-errors`} messages={errorsAt(errors, `${path}.name`)} />
-
   <p class="rounded-lg bg-secondary p-3 text-reading leading-10 pointer-coarse:leading-14 break-words" data-sentence>
     {#each parts as part, at (partKey(part, at))}{#if at > 0 && !(part.type === 'text' && part.tight)}{' '}{/if}{#if part.type === 'text'}<span>{part.text}</span>{:else}<AutomationBlank
           blank={part.blank}
@@ -115,6 +97,4 @@
   {/each}
 
   <FieldErrors id={`${uid}-errors`} {messages} />
-
-  <div><Button variant="outline" size="lg" onclick={onrules}>Edit as rules</Button></div>
 </article>
