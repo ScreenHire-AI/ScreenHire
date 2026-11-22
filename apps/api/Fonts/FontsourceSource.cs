@@ -7,9 +7,10 @@ namespace ScreenHire.Api.Fonts;
 
 /// <summary>
 /// The Google Fonts catalogue through Fontsource's read-only API, which needs no key (fontsource.org/docs/api: "can be
-/// accessed by any HTTP client"; fair use up to 2,500 requests in 10 seconds). The catalogue is one request a day
+/// accessed by any HTTP client"; a hard limit of 2,500 requests in 10 seconds), and its files on jsDelivr, whose terms
+/// allow commercial use and forbid crawling many packages' files (ADR-0031). The catalogue is one request a day
 /// (<see cref="HeadingFontCatalogue"/>); a family is downloaded once, when an organization first saves it, and a
-/// preview once, when someone first opens it. Retries and timeouts are the service defaults' standard resilience
+/// preview once, when someone first opens it, at most <see cref="FontsOptions.PreviewsPerMinute"/> a person. Retries and timeouts are the service defaults' standard resilience
 /// handler, which every <see cref="HttpClient"/> gets.
 /// </summary>
 internal sealed class FontsourceSource(HttpClient http, IOptions<FontsOptions> options) : IFontSource

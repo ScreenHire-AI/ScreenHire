@@ -19,9 +19,16 @@ candidate's browser to Google before they apply, which non-negotiable 4 rules ou
 server and security logs. Bundling 1,900 packages would make every install and build slower for fonts nobody uses.
 
 Fontsource (fontsource.org) lists every Google Fonts family through a read-only API with no key. Its documentation
-says the API "can be accessed by any HTTP client", allows 2,500 requests in 10 seconds as fair use, and asks for nothing
-else. Each family has its licence's SPDX id, its category and per-weight, per-subset WOFF2 files on jsDelivr. Each
-package carries its licence text.
+(fontsource.org/docs/api/introduction) says the API "can be accessed by any HTTP client". Its hard limit is 2,500
+requests in 10 seconds, constant use near that can bring a temporary ban, and it reserves the right to throttle under
+fair use. It asks API users to sponsor the project and sets no other condition. Each family has its licence's SPDX id,
+its category and per-weight, per-subset WOFF2 files on jsDelivr. Each package carries its licence text.
+
+jsDelivr's Terms of Use (github.com/jsdelivr/jsdelivr, "Terms of Use.md", effective 5 October 2026) make the CDN "free
+for both personal and commercial use" with "no limits on bandwidth or number of requests". They prohibit using it as
+general file hosting and "scraping large amounts of otherwise infrequently accessed content": "Requesting unique files
+across hundreds of packages or repositories for more than a few minutes may be considered abuse." Content fetched
+through it must conform to its source's terms, which here are the fonts' own licences.
 
 ## Decision
 
@@ -62,6 +69,8 @@ package carries its licence text.
   font is not fetched.
 - Production needs the `heading-fonts` container (the Azure definition creates it) and outbound HTTPS from the API to
   `api.fontsource.org` and `cdn.jsdelivr.net`.
-- Fontsource and jsDelivr publish no other terms for this use. If either starts asking for a key or closes, the
-  `IFontSource` interface takes another source, such as a committed snapshot of the catalogue, with no change to the
-  picker or the careers pages.
+- ScreenHire stays well inside both sets of terms. The catalogue is one request a day. A family is downloaded once,
+  ever, as a handful of files. A preview is fetched once, ever, then served from our storage, and each person may open
+  at most `PreviewsPerMinute` (120 by default) a minute, so nobody's browsing turns into a crawl of hundreds of packages.
+- If Fontsource starts asking for a key or closes, the `IFontSource` interface takes another source, such as a
+  committed snapshot of the catalogue, with no change to the picker or the careers pages.

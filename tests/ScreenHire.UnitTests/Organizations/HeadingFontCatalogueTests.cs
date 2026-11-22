@@ -94,6 +94,20 @@ public sealed class HeadingFontCatalogueTests
     }
 
     [Fact]
+    public void A_file_the_careers_stylesheet_would_refuse_is_never_hosted()
+    {
+        // The careers pages throw on a missing or malformed unicode range and on an odd weight, which would take every page
+        // of the organization down; such a file is dropped before anything is stored.
+        HeadingFontHosting.ChooseFiles(Detail(("latin", 700)) with { UnicodeRanges = new Dictionary<string, string>() })
+            .Should().BeEmpty("latin without its range is no latin");
+        HeadingFontHosting.ChooseFiles(Detail(("latin", 700), ("latin-ext", 700)) with
+        {
+            UnicodeRanges = new Dictionary<string, string> { ["latin"] = Latin, ["latin-ext"] = "U+0100-02BA;}body{" },
+        }).Select(f => f.Subset).Should().Equal("latin");
+        HeadingFontHosting.ChooseFiles(Detail(("latin", 650), ("latin", 1000), ("latin", 700))).Select(f => f.Weight).Should().Equal(700);
+    }
+
+    [Fact]
     public void Fontsource_detail_keeps_only_upright_woff2_files_at_its_own_address()
     {
         using var json = JsonDocument.Parse(
@@ -138,8 +152,11 @@ public sealed class HeadingFontCatalogueTests
     private static SourceFont Font(string id, string family, string category, string license, bool google = true, string[]? subsets = null) =>
         new(id, family, category, license, google, subsets ?? ["latin", "latin-ext"], [400, 700], []);
 
+    private const string Latin = "U+0000-00FF,U+0131,U+2000-206F";
+
     private static SourceFontDetail Detail(params (string Subset, int Weight)[] files) =>
-        new("lora", "Lora", "serif", "OFL-1.1", true, "5.3.0", new Dictionary<string, string>(),
+        new("lora", "Lora", "serif", "OFL-1.1", true, "5.3.0",
+            new Dictionary<string, string> { ["latin"] = Latin, ["latin-ext"] = "U+0100-02BA", ["cyrillic"] = "U+0400-045F" },
             [.. files.Select(f => new SourceFontFile(f.Subset, f.Weight, new Uri(FilesUrl, $"lora@5.3.0/{f.Subset}-{f.Weight}-normal.woff2")))]);
 
     private static IReadOnlyList<HeadingFontStyle> Styles(IReadOnlyList<HeadingFontOption> fonts, string id) => fonts.Single(f => f.Id == id).Styles;

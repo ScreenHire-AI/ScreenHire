@@ -141,7 +141,7 @@
             {#each visible as font (font.id)}
               <label
                 {@attach face(font.id)}
-                class="flex min-h-11 cursor-pointer items-center gap-3 border-b border-border-subtle px-4 py-2 last:border-b-0 has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-inset"
+                class="flex min-h-11 items-center gap-3 border-b border-border-subtle px-4 py-2 last:border-b-0 has-checked:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring has-focus-visible:ring-inset"
               >
                 <input type="radio" name="heading-font-choice" value={font.id} bind:group={selected} class="size-4 shrink-0 accent-primary" />
                 <span class="min-w-0 flex-1 truncate text-heading font-bold" style:font-family={previewFamily(font.id, font.styles.includes('Serif'))}>

@@ -20,9 +20,12 @@ public sealed class FontsOptions
     [Range(typeof(TimeSpan), "00:01:00", "7.00:00:00")]
     public TimeSpan CatalogueLifetime { get; set; } = TimeSpan.FromHours(24);
 
-    /// <summary>How many font previews one person may load a minute (each is one download the first time).</summary>
+    /// <summary>
+    /// How many font previews one person may load a minute. Each is one download from jsDelivr the first time anyone
+    /// opens it, and jsDelivr's terms count requesting files across hundreds of packages for minutes as abuse (ADR-0031).
+    /// </summary>
     [Range(10, 10_000)]
-    public int PreviewsPerMinute { get; set; } = 240;
+    public int PreviewsPerMinute { get; set; } = 120;
 
     public FontsSandboxOptions Sandbox { get; set; } = new();
 

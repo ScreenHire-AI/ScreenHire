@@ -150,7 +150,7 @@ picked, and More fonts, a sheet (`heading-font-sheet.svelte`) with a search, the
 catalogue 40 at a time. Each name is drawn in its own face. A family's face loads from
 `GET /v1/heading-fonts/{id}/preview` only when its row scrolls into view (`heading-font-faces.svelte.ts`): its latin file
 nearest 700, downloaded the first time anyone opens it, kept in storage as `previews/{id}.woff2` and rate-limited per
-person (`PreviewsPerMinute`). A bundled font has no preview route, because the dashboard ships it. The Branding preview
+person (`PreviewsPerMinute`, 120 a minute, which keeps browsing well inside jsDelivr's terms; ADR-0031). A bundled font has no preview route, because the dashboard ships it. The Branding preview
 draws a catalogue font in the same face. Nothing reaches candidates until Save.
 
 ## 4. Brand images

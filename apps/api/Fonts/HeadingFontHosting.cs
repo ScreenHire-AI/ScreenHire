@@ -103,22 +103,23 @@ internal sealed partial class HeadingFontHosting(
             var name = $"{file.Subset}-{file.Weight}.woff2";
             await store.WriteAsync(HeadingFontStore.FileBlob(id, font.Version, name), bytes, "font/woff2", cancellationToken);
             stored.Add(new HostedFontFile(file.Subset, file.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                font.UnicodeRanges.GetValueOrDefault(file.Subset, ""), name, bytes.Length));
+                font.UnicodeRanges[file.Subset], name, bytes.Length));
         }
 
         await store.WriteAsync(
             HeadingFontStore.FileBlob(id, font.Version, HostedFont.LicenseFileName), Encoding.UTF8.GetBytes(licenseText), "text/plain; charset=utf-8",
             cancellationToken);
 
-        db.HostedFonts.Add(new HostedFont(id, font.Family, font.Category, license, font.Version, stored, time.GetUtcNow()));
+        var added = db.HostedFonts.Add(new HostedFont(id, font.Family, font.Category, license, font.Version, stored, time.GetUtcNow()));
         try
         {
             await db.SaveChangesAsync(cancellationToken);
         }
-        // Another save of the same family won the race; its files are the same bytes under the same names.
+        // Another save of the same family won the race; its files are the same bytes under the same names. Only this row
+        // is let go: the branding save's other tracked rows (its images, which it marks saved) stay tracked.
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
-            db.ChangeTracker.Clear();
+            added.State = EntityState.Detached;
         }
 
         var row = await db.HostedFonts.AsNoTracking().SingleAsync(f => f.Id == id, cancellationToken);
@@ -128,13 +129,18 @@ internal sealed partial class HeadingFontHosting(
 
     /// <summary>
     /// Latin and latin-ext files at <see cref="PickWeights"/> of the weights the family's latin subset has. A subset the
-    /// family lacks a chosen weight in is left out at that weight; latin-ext is a bonus, latin is required.
+    /// family lacks a chosen weight in is left out at that weight; latin-ext is a bonus, latin is required. A file is
+    /// kept only in the shape the careers stylesheet accepts (<c>apps/careers/src/lib/brand.ts</c>): a weight of 100 to
+    /// 900 in hundreds, and a subset with a well-formed unicode range. The careers pages refuse anything else, so storing
+    /// it would break every page of the organization that saved it.
     /// </summary>
     internal static List<SourceFontFile> ChooseFiles(SourceFontDetail font)
     {
-        var latin = font.Files.Where(f => f.Subset == "latin").ToList();
+        var usable = font.Files.Where(f => f.Weight is >= 100 and <= 900 && f.Weight % 100 == 0
+            && font.UnicodeRanges.TryGetValue(f.Subset, out var range) && UnicodeRangePattern().IsMatch(range)).ToList();
+        var latin = usable.Where(f => f.Subset == "latin").ToList();
         var weights = PickWeights(latin.Select(f => f.Weight));
-        return [.. Subsets.SelectMany(subset => weights.Select(weight => font.Files.FirstOrDefault(f => f.Subset == subset && f.Weight == weight)))
+        return [.. Subsets.SelectMany(subset => weights.Select(weight => usable.FirstOrDefault(f => f.Subset == subset && f.Weight == weight)))
             .OfType<SourceFontFile>()];
     }
 
@@ -168,6 +174,10 @@ internal sealed partial class HeadingFontHosting(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Hosted heading font {FontId} {Version}")]
     private static partial void Hosted(ILogger logger, string fontId, string version);
+
+    // The same pattern as `unicodeRange` in apps/careers/src/lib/brand.ts.
+    [GeneratedRegex(@"^U\+[0-9A-F?]{1,6}(-[0-9A-F]{1,6})?(,\s*U\+[0-9A-F?]{1,6}(-[0-9A-F]{1,6})?)*$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex UnicodeRangePattern();
 
     [GeneratedRegex("^[0-9A-Za-z][0-9A-Za-z.-]{0,39}$", RegexOptions.CultureInvariant)]
     private static partial Regex VersionPattern();
