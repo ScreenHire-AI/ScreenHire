@@ -62,8 +62,10 @@ sources:
 A bell in the top bar holds what needs one person's attention, and, in a second tab, what is happening across the
 workspace (Activity, below). Its first tab, Needs attention, has two parts:
 
-- **Setup**, for whoever can do the steps (Owners and Admins): the four steps a new organization takes, each linking to the
-  page where it is done, in the order a team does them: branding, the first published job, inviting the team, then sending email from the company's own domain (last, because it is DNS work outside ScreenHire and
+- **Setup**, for whoever can do the steps (Owners and Admins): the steps a new organization takes, each linking to the
+  page where it is done, in the order a team does them: branding, the first published job, inviting the team, connecting a
+  calendar or setting interview hours (Interviewing, only once a job has a stage that holds interviews:
+  `GET /v1/organization/setup` says `hasInterviewStage`, and the step is the person's own, done by either), then sending email from the company's own domain (last, because it is DNS work outside ScreenHire and
   the team can start without it). Whether a step is done is not stored. The dashboard works it out from the organization's own
   data, as it always did, and shows only the steps left, with the done ones folded into one line ("2 steps done"). Sending email
   from the company's own domain says Optional and never counts toward the badge. What the server keeps is the organization's

@@ -311,6 +311,10 @@ default hiring team; Clear, Review and Verify stay, and To review holds Review o
 - **Job boards:** Indeed and ZipRecruiter (phase 2, with paying customers), LinkedIn, then European boards
   ([job boards](research/job-boards.md), [job distribution](architecture/job-distribution.md)).
 - **Careers:** custom tenant domains (ADR-0003).
+- **Apple iCloud calendars (CalDAV):** a third calendar provider beside Google and Outlook. Until then an iCloud user sets
+  interview hours and subscribes to ScreenHire's calendar link ([interview scheduling](architecture/interview-scheduling.md)).
+- **Shift availability on the apply form:** the candidate says when they can work while applying, for hourly and shift
+  roles, so scheduling can start from it. Today they say when they are free only when an interview asks them to.
 - **Sign-in through an organization's own identity provider:** one company's Okta or Entra ID, required for its members,
   set up by its Owner. Sign-in today offers Google, Microsoft, emailed links and passkeys, plus any OpenID Connect
   provider the installation configures for everyone ([sign-in and tenancy](architecture/sign-in-and-tenancy.md)). A

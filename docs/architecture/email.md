@@ -91,8 +91,10 @@ There are two kinds, both listed by `GET /v1/email-templates` and edited on the 
 (`/templates/emails/{id}`; the old `/settings/email-templates` addresses redirect there):
 
 - **Built-in.** `application-received`, `stage-change`, `questionnaire-request`, `application-rejected`,
-  `talent-pool-invitation` and the five interview emails `interview-invitation`, `interview-confirmation`,
-  `interview-cancelled`, `interview-new-times` and `interview-reminder` (`EmailTemplateIds`). ScreenHire's
+  `talent-pool-invitation` and the nine interview emails `interview-invitation`, `interview-confirmation`,
+  `interview-cancelled`, `interview-new-times`, `interview-reminder`, `interview-invitation-suggest` (tell us when you're free),
+  `interview-invitation-proposed` (we'll suggest a time), `interview-options-updated` and `interview-more-times`
+  (`EmailTemplateIds`). ScreenHire's
   wording lives in `src/ScreenHire.Infrastructure/Email/Templates` (`{id}.subject.liquid`, `{id}.body.liquid`). An
   organization that edits one gets an `email_templates` row with `built_in_id` set; deleting the row restores
   ScreenHire's wording: the dashboard calls this Reset to original, and asks first. A built-in keeps its name and is
@@ -147,6 +149,13 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
   `{{ meetingLink }}`. The worker writes `interviewTime` from the instant, the interview's time zone and the candidate's
   language (`Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)` for en-US, `Tuesday 3 November 2026, 10:00 to
   10:30 (Europe/London)` for en-GB); the API never sends formatted dates. See "Dates in the candidate's language" below.
+  The invitation follows how the candidate picks ([interview scheduling](interview-scheduling.md#three-ways-to-pick-a-time)),
+  as a separate template each, so an organization's own wording of one never sends another way's words.
+  `interview-invitation-suggest`, `interview-invitation-proposed` (whose `{{ interviewTime }}` is the team's times, joined by
+  "or"), `interview-options-updated` ("We've updated your options", with `{{ interviewTime }}` the booked time a move keeps) and
+  `interview-more-times` (with `{{ teamNote }}`, the team's message, empty when it wrote none) each must use `{{ bookingLink }}`.
+  The confirmation and the cancellation of a booked interview carry a calendar invitation, `invite.ics`
+  (`EmailMessage.Attachments`, sent as an attachment by SMTP and SendGrid).
   The copy the team keeps hides the candidate's own link, as the follow-up questions email does.
 
 The template preview (`POST /v1/email-templates/preview`) renders unsaved wording with a made-up candidate, Jordan Lee.
