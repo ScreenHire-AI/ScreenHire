@@ -143,7 +143,8 @@
       {:else}
         <!-- A footer only once there is a photo to remove, never an empty strip. -->
         <Panel title="Photo" footer={details.photoUrl ? photoFooter : undefined}>
-          <div class="flex items-center gap-4">
+          <!-- The photo and its drop area keep the form's 688px together, so they end where the fields below end. -->
+          <div class="flex max-w-form items-center gap-4">
             {#if details.photoUrl}
               <img src={details.photoUrl} alt="" class="size-16 shrink-0 rounded-full object-cover" />
             {:else}

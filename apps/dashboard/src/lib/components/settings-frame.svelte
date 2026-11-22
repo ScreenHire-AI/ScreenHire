@@ -5,9 +5,10 @@
   // wide window's spare width splits evenly on both sides. Every page with the Settings or account menu has the same
   // frame, whatever it holds (a form, a list, Billing's columns), so moving between them never moves the menu (S8). The
   // header band's `frame` lines its title up with the menu on the same box, `max-w-settings-frame`: 74rem of content plus
-  // the page's 24px gutters (below `md` the window is narrower than the frame anyway). From `lg` the menu is a 200px column; below it the menu is a row above the column and the frame fills the
-  // window. The column is a container (`@container/column`), so what sits in it responds to the column's width. Panels
-  // fill the column, and a form's fields keep the 688px measure inside them (S6), so no width pools beside a short form.
+  // the page's 24px gutters (below `md` the window is narrower than the frame anyway). From `lg` the menu is a 200px
+  // column; below it the menu is a row above the column and the frame fills the window. The column is a container
+  // (`@container/column`), so what sits in it responds to the column's width. Panels fill the column, and a form's fields
+  // keep the 688px measure inside them (S6), so no width pools beside a short form.
   let {
     menu,
     children,

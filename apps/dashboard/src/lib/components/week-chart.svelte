@@ -57,6 +57,9 @@
   <!-- The readout has a line of its own, so reading a week never moves the columns. -->
   <p class="min-h-6 text-body font-semibold" aria-live="polite" data-week-readout>{weeks[active]?.summary ?? ''}</p>
   <div class="flex min-h-0 flex-1 flex-col overflow-x-auto pb-1">
+    <!-- A grid row, so each week's column is stretched to the row's height and the bars' percentage heights resolve
+         against it wherever the chart sits: a panel in a column of stacked panels has no definite height of its own, and
+         columns with `h-full` there came out 0px high, with no bars. -->
     <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions: the chart is one tab stop whose arrow keys move through the weeks -->
     <div
       role="group"
@@ -65,7 +68,7 @@
       {onkeydown}
       onfocus={() => (moved ??= weeks.length - 1)}
       onpointerleave={() => (pointed = null)}
-      class="flex min-h-32 flex-1 items-end gap-0.5 rounded-md border-b border-border"
+      class="grid min-h-32 flex-1 auto-cols-fr grid-flow-col gap-0.5 rounded-md border-b border-border"
       style:min-width={`${weeks.length * 0.875}rem`}
     >
       {#each weeks as week, index (week.key)}
@@ -73,7 +76,7 @@
           data-week
           role="presentation"
           aria-hidden="true"
-          class={cn('flex h-full min-w-0 flex-1 items-end justify-center gap-px rounded-sm', index === active && 'bg-muted')}
+          class={cn('flex min-w-0 items-end justify-center gap-px rounded-sm', index === active && 'bg-muted')}
           onpointerenter={() => (pointed = index)}
           onpointerdown={() => (pointed = index)}
         >

@@ -38,6 +38,7 @@
     /**
      * A page with the Settings or account menu: the band's contents sit on the settings frame's box (`SettingsFrame`), so the
      * title starts above the menu and the actions end at the column's right edge, wherever the frame is centred (section 7).
+     * It wins over `form`.
      */
     frame?: boolean;
     /**
@@ -60,7 +61,7 @@
     class={[
       'flex w-full flex-col gap-4 px-4 pt-5 md:px-6',
       frame && 'mx-auto max-w-settings-frame',
-      form && 'mx-auto max-w-form',
+      form && !frame && 'mx-auto max-w-form',
       !tabs && 'pb-5',
     ]}
   >
