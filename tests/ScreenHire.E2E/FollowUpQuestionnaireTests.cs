@@ -124,7 +124,8 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
         // The form is built once, in the library, and published.
         await SignInAsync(owner);
         await Page.GotoAsync(DashboardUrl("/templates?tab=forms"));
-        await Page.GetByRole(AriaRole.Button, new() { Name = "New template" }).ClickAsync();
+        // The header band's New template menu; the empty list below offers its own button too.
+        await Page.Locator("[data-slot=header-band]").GetByRole(AriaRole.Button, new() { Name = "New template" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Form", Exact = true }).ClickAsync();
         var create = Page.GetByRole(AriaRole.Dialog, new() { Name = "New form" });
         await create.GetByLabel("Name").FillAsync("Screening questionnaire");
