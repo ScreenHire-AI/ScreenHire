@@ -45,6 +45,21 @@ public sealed class OrganizationSetupTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task The_interviewing_step_shows_only_once_a_job_has_a_stage_that_holds_interviews()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        (await owner.GetAsync("/v1/organization/setup")).Expect(HttpStatusCode.OK).At("hasInterviewStage").GetBoolean().Should().BeFalse("no job has a stage yet");
+
+        // A new job's pipeline has an Interview stage.
+        (await owner.CreateJobAsync(Samples.RemoteJob("Interviewing job"))).Id();
+
+        (await owner.GetAsync("/v1/organization/setup")).Expect(HttpStatusCode.OK).At("hasInterviewStage").GetBoolean().Should().BeTrue();
+        // Another organization's jobs never count.
+        using var other = await fixture.SignedInWithOrganizationAsync();
+        (await other.GetAsync("/v1/organization/setup")).Expect(HttpStatusCode.OK).At("hasInterviewStage").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Skips_sent_at_the_same_time_all_stay()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

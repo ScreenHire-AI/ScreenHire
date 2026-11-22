@@ -2002,6 +2002,150 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}/suggest": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "SuggestPublicInterviewTimes",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicInterviewSuggestion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
+    "/v1/public/organizations/{organizationSlug}/interviews/{token}/another-time": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "AskPublicInterviewAnotherTime",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicInterviewAnotherTime"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/public/organizations/{organizationSlug}/talent-pool/{token}": {
       "get": {
         "tags": [
@@ -9466,6 +9610,146 @@
         ]
       }
     },
+    "/v1/account/interview-hours": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "GetInterviewHours",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewHoursSettings"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "UpdateInterviewHours",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInterviewHoursRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewHoursSettings"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/account/interview-hours/feed": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "TurnOnCalendarFeed",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewHoursSettings"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "TurnOffCalendarFeed",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewHoursSettings"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/notifications": {
       "get": {
         "tags": [
@@ -15850,6 +16134,377 @@
         ]
       }
     },
+    "/v1/interviews/{interviewId}/option": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "ChangeInterviewOption",
+        "parameters": [
+          {
+            "name": "interviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeInterviewOptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/interviews/{interviewId}/book": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "BookInterviewTime",
+        "parameters": [
+          {
+            "name": "interviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookInterviewTimeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/interviews/{interviewId}/more-times": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "AskForMoreInterviewTimes",
+        "parameters": [
+          {
+            "name": "interviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskForMoreTimesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationInterview"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/scheduling/open-times": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "PreviewInterviewOpenTimes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenTimesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpenTimes"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/scheduling/free": {
+      "post": {
+        "tags": [
+          "Interviews"
+        ],
+        "operationId": "ListInterviewersFree",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreeTimesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FreeTime"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/email-templates": {
       "get": {
         "tags": [
@@ -19077,6 +19732,9 @@
           "InterviewRescheduled",
           "InterviewCancelled",
           "InterviewNewTimesOffered",
+          "InterviewOptionChanged",
+          "InterviewTimesSuggested",
+          "InterviewAnotherTimeAsked",
           "EmailReceived"
         ]
       },
@@ -19285,6 +19943,83 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "option": {
+            "$ref": "#/components/schemas/InterviewOption"
+          },
+          "hours": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WeeklyHours"
+              }
+            ]
+          },
+          "useBlocks": {
+            "type": "boolean",
+            "default": false
+          },
+          "proposedTimes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "extraTimes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "candidateTimes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "candidateTimesAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "anotherTimeAskedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "candidateNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "teamNote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "waitsForTeam": {
+            "type": "boolean",
+            "default": false
           }
         },
         "description": "An interview offered to the candidate. `status` is `Open` (waiting for the candidate to pick a time),\n`Booked`, `Cancelled` or `Expired` (the window passed with no booking; an Open request past its window\nreads as Expired). `startsAt` and `endsAt` are set once booked, and stay on a cancelled interview that had\nbeen booked. `meetingUrl` is the organizer's Meet or Teams link, once their event made it. `cancelledByCandidate`\nis true when the candidate cancelled it. `createdByUserId` is null when a workflow action offered it.\n`newTimesOfferedAt` is set while the team's offer of new times for a booked interview waits for the candidate: the\nbooked time (`startsAt`) stays held, and `windowStart` and `windowEnd` are the new window. The end of that\nwindow ends the offer."
@@ -19595,7 +20330,8 @@
           "Review",
           "Task",
           "RejectionReview",
-          "Scorecard"
+          "Scorecard",
+          "ChooseScheduling"
         ]
       },
       "ApplicationTimelineEntry": {
@@ -19925,6 +20661,21 @@
         },
         "description": "Replaces a job's workflow with a published version of the template it came from (usually the newest, from\n`GET /v1/jobs/{jobId}/workflow/template-diff`). It replaces the job's own edits too, which the diff lists.\n`expectedWorkflowVersion` works as in UpdateJobWorkflowRequest."
       },
+      "AskForMoreTimesRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "None of the candidate's times works: the team asks for more, with an optional short message (500 characters at most)."
+      },
       "AuthenticityAssessmentView": {
         "required": [
           "id",
@@ -20130,6 +20881,26 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "interviewMode": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InterviewMode"
+              }
+            ]
+          },
+          "interviewOption": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InterviewOption"
+              }
             ]
           }
         },
@@ -21018,6 +21789,19 @@
         },
         "description": "A board an organization may post to, and what it can promise (docs/architecture/job-distribution.md §1)."
       },
+      "BookInterviewTimeRequest": {
+        "required": [
+          "start"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The team books one of the times the candidate suggested."
+      },
       "BrandImageKind": {
         "enum": [
           "Logo",
@@ -21205,7 +21989,8 @@
         "enum": [
           "Google",
           "Microsoft",
-          "Sandbox"
+          "Sandbox",
+          "ScreenHire"
         ],
         "description": "Whose calendar a member connected. CalendarProvider.Sandbox is the local stand-in (Development and tests only)."
       },
@@ -21610,6 +22395,62 @@
           }
         },
         "description": "Confirms the switch to `plan` priced at `prorationDate`, as the preview returned it."
+      },
+      "ChangeInterviewOptionRequest": {
+        "required": [
+          "option",
+          "windowStart",
+          "windowEnd"
+        ],
+        "type": "object",
+        "properties": {
+          "option": {
+            "$ref": "#/components/schemas/InterviewOption"
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hours": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WeeklyHours"
+              }
+            ]
+          },
+          "useBlocks": {
+            "type": "boolean",
+            "default": false
+          },
+          "proposedTimes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "extraTimes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "description": "Changes how the candidate picks a time: on an Open interview (Change how they pick), or to move a Booked one, whose time\nstays held until a new one is booked. The fields are ScheduleInterviewRequest's, over the new days\n`windowStart` to `windowEnd`; the interview keeps its interviewers, length and zone. The candidate's link stays\nthe same, and they are emailed that their options changed."
       },
       "ChangeMemberJobAccessRequest": {
         "required": [
@@ -22765,6 +23606,37 @@
         ],
         "description": "How the dashboard writes a date: the browser's way for the language, or one fixed order."
       },
+      "DayHours": {
+        "required": [
+          "day",
+          "from",
+          "to"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "$ref": "#/components/schemas/DayOfWeek"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "description": "One stretch of hours on one day of the week, in local wall-clock time: `from` and `to` are \"HH:mm\" (24 hour),\nand `to` may be \"24:00\" for the end of the day."
+      },
+      "DayOfWeek": {
+        "enum": [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday"
+        ]
+      },
       "DeclineDataRequestRequest": {
         "required": [
           "reason"
@@ -23623,6 +24495,67 @@
         ],
         "description": "What updating one hiring template did. `Published`: it had no draft, so the update is its new published version\n`version`, which new jobs get; its jobs stay on theirs until someone updates them. `UpdatedDraft`: its draft\n`version` now holds the form, waiting to be published with the rest of the draft. `NotUpdated`: nothing changed,\nand `problem` says why."
       },
+      "FreeTime": {
+        "required": [
+          "start",
+          "interviewers"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "interviewers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InterviewerFree"
+            }
+          }
+        },
+        "description": "Who is free at one time."
+      },
+      "FreeTimesRequest": {
+        "required": [
+          "jobId",
+          "interviewerUserIds",
+          "starts",
+          "durationMinutes"
+        ],
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interviewerUserIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "starts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "interviewId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "Whether each interviewer is free at each of `starts` (one to ten times) for an interview of `durationMinutes`:\nfor the team choosing among the candidate's times or picking its own. `interviewId` is the interview being moved, whose\nown time does not count as busy."
+      },
       "FunnelEnd": {
         "enum": [
           "None",
@@ -24375,9 +25308,98 @@
                 "$ref": "#/components/schemas/CalendarProvider"
               }
             ]
+          },
+          "hasHours": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).\n`calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are\nbusy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`\nsays which calendar it is, and is null when `calendarConnected` is false."
+        "description": "A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).\n`calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are\nbusy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`\nsays which calendar it is, and is null when `calendarConnected` is false. `hasHours` is true when they set their\nown interview hours, which is ScreenHire's calendar for someone with no connected one: either makes them someone times can\nbe offered from."
+      },
+      "InterviewerFree": {
+        "required": [
+          "userId",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "$ref": "#/components/schemas/InterviewerFreeness"
+          }
+        },
+        "description": "One interviewer at one time: `Free`, `Busy`, `OutsideHours` (outside their own interview hours) or `Unknown`."
+      },
+      "InterviewerFreeness": {
+        "enum": [
+          "Free",
+          "Busy",
+          "OutsideHours",
+          "Unknown"
+        ],
+        "description": "Whether one interviewer is free at one time, as the team sees it beside the candidate's or its own times."
+      },
+      "InterviewHoursSettings": {
+        "required": [
+          "timeZone",
+          "weekly",
+          "bufferMinutes",
+          "maxPerDay",
+          "feedUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "type": "string"
+          },
+          "weekly": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WeeklyHours"
+              }
+            ]
+          },
+          "bufferMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPerDay": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "feedUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The caller's own interview hours (Your account, Calendar): the days and hours they interview (`weekly`, null when\nthey set none), the minutes kept free around each interview (`bufferMinutes`, 0 to 120), the most interviews in a\nday (`maxPerDay`, 1 to 12, null for no limit) and the IANA `timeZone` the hours are in. Hours make them\nsomeone times can be offered from without a connected calendar (ScreenHire's calendar). `feedUrl` is their private\nsubscribe link, a calendar feed of their booked interviews, or null while it is off."
+      },
+      "InterviewMode": {
+        "enum": [
+          "Send",
+          "Choose",
+          null
+        ]
+      },
+      "InterviewOption": {
+        "enum": [
+          "OurTimes",
+          "TheirTimes",
+          "OurSuggestion"
+        ],
+        "description": "How the candidate picks a time (docs/architecture/interview-scheduling.md, \"Three ways to pick a time\"), chosen for each\ninterview before the candidate is told and changeable while it waits.",
+        "default": "OurTimes"
       },
       "InterviewParticipant": {
         "required": [
@@ -26543,6 +27565,101 @@
         },
         "description": "Creates the signed-in user's organization, with them as its Owner. `name` is the person's own name, asked for here\nbecause the team's lists and every \"by\" line show it; it replaces the one the identity provider gave, if any."
       },
+      "OpenTimes": {
+        "required": [
+          "slots",
+          "nextSevenDays",
+          "unavailableInterviewerUserIds"
+        ],
+        "type": "object",
+        "properties": {
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "nextSevenDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unavailableInterviewerUserIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "description": "What pick from our times would offer: `slots`, the first open times (at most 50) in order, and\n`nextSevenDays`, how many open times there are in the 7 days from now. `unavailableInterviewerUserIds` are the\ninterviewers whose time cannot be known (no calendar and no hours), while any are named nothing is offered."
+      },
+      "OpenTimesRequest": {
+        "required": [
+          "jobId",
+          "interviewerUserIds",
+          "durationMinutes",
+          "windowStart",
+          "windowEnd",
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interviewerUserIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "windowStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "dayStart": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "dayEnd": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hours": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WeeklyHours"
+              }
+            ]
+          },
+          "useBlocks": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "The times an interview would offer, before it is sent: for the sheet's check that pick from our times has something to\noffer. The fields are the interview's; `jobId` is the job the interviewers must see."
+      },
       "OrganizationBranding": {
         "required": [
           "brandColor",
@@ -26756,9 +27873,13 @@
             "items": {
               "$ref": "#/components/schemas/SetupStepId"
             }
+          },
+          "hasInterviewStage": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "The organization's own choices about the dashboard's setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization's data, not from here."
+        "description": "The organization's own choices about the dashboard's setup checklist. `skippedSteps` are the steps someone said the\norganization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold\nfor every Owner and Admin on every device. Whether a step is done comes from the organization's data, not from here.\n`hasInterviewStage` says a job has a stage that holds interviews (of the interview kind, or with a scheduling\ndefault), so the checklist shows its Interviewing step."
       },
       "OrganizationVerificationSettings": {
         "required": [
@@ -28027,9 +29148,71 @@
           },
           "meetingName": {
             "type": "string"
+          },
+          "option": {
+            "$ref": "#/components/schemas/InterviewOption"
+          },
+          "suggestable": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "suggestedTimes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "proposedTimes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "anotherTimeAsked": {
+            "type": "boolean",
+            "default": false
+          },
+          "waitingForTeam": {
+            "type": "boolean",
+            "default": false
+          },
+          "teamNote": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "The interview as the candidate's page shows it. `slots` are the start times offered, as UTC instants in order, each\n`durationMinutes` long: for an Open interview, and for a Booked one the candidate may still change. The page writes\nthem in `timeZone` (the `tz` asked for when it is a zone the server knows, otherwise `defaultTimeZone`,\nthe zone the team chose). `slotsUnavailable` is true when the team's calendars could not be read just now, so no\ntimes are offered; trying again later may work. `minNoticeHours` is how long before the start the candidate can\nstill move or cancel. `newTimesOffered` is true while the team's offer of new times waits for the candidate: the\nbooked time stays until they pick, and they may move or cancel it whatever the notice, until the offered days end.\n`meetingName` is what the team calls the meeting (the stage's meeting name), in lower case, such as \"trial shift\"\nor \"interview\"; the page uses it for its title, headings and buttons.\nNothing about the interviewers, and nothing from verification."
+      },
+      "PublicInterviewAnotherTime": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The candidate cannot make the team's times and asks for another, with an optional note (500 characters at most)."
       },
       "PublicInterviewChoice": {
         "required": [
@@ -28052,6 +29235,22 @@
           "Expired"
         ],
         "description": "Where a candidate's interview stands on the careers page."
+      },
+      "PublicInterviewSuggestion": {
+        "required": [
+          "times"
+        ],
+        "type": "object",
+        "properties": {
+          "times": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "description": "The times the candidate is free: 3 to 5 of `suggestable`."
       },
       "PublicJob": {
         "required": [
@@ -29594,6 +30793,50 @@
               "null",
               "string"
             ]
+          },
+          "option": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InterviewOption"
+              }
+            ]
+          },
+          "hours": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WeeklyHours"
+              }
+            ]
+          },
+          "useBlocks": {
+            "type": "boolean",
+            "default": false
+          },
+          "proposedTimes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "extraTimes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         },
         "description": "Offers an application's candidate an interview. `interviewerUserIds` are one to five members who see the job; the\nfirst is the organizer, whose calendar event invites the candidate and makes the meeting link. `durationMinutes`\nis 15, 30, 45, 60, 90 or 120. The candidate picks a start that fits inside `windowStart` and `windowEnd`\n(at most 90 days) within the working hours `dayStart` and `dayEnd` (`HH:mm`, default 09:00 and 17:00,\nweekdays only) in `timeZone` (an IANA id such as `Europe/London`), which is also the zone the candidate's page\nfirst shows."
@@ -30216,7 +31459,8 @@
           "Branding",
           "Job",
           "Team",
-          "Email"
+          "Email",
+          "Interviewing"
         ],
         "description": "A step of the setup checklist in the dashboard's notification bell (docs/architecture/notifications.md). The steps tick\nthemselves from the organization's own data; the server keeps only which ones the organization said it does not need.\nStored by name, so adding a step never renumbers the ones already skipped."
       },
@@ -30830,6 +32074,67 @@
           "Withdrawn",
           "Custom"
         ]
+      },
+      "StageScheduling": {
+        "type": "object",
+        "properties": {
+          "option": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InterviewOption"
+              }
+            ]
+          },
+          "interviewerUserIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "interviewerTeamId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "durationMinutes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "windowDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "hours": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WeeklyHours"
+              }
+            ]
+          },
+          "useBlocks": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "description": "How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a\nActionType.ScheduleInterview action with no option of its own sends with its option. Every member is optional."
       },
       "StartBillingCheckoutRequest": {
         "required": [
@@ -31793,6 +33098,44 @@
           }
         },
         "description": "Replaces a draft version's definition."
+      },
+      "UpdateInterviewHoursRequest": {
+        "required": [
+          "timeZone",
+          "weekly"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "weekly": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WeeklyHours"
+              }
+            ]
+          },
+          "bufferMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "maxPerDay": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Sets the caller's interview hours; see InterviewHoursSettings."
       },
       "UpdateJobRequest": {
         "required": [
@@ -33586,6 +34929,21 @@
         },
         "description": "An endpoint with its signing secret, returned only when the secret is new (create, rotate). Store it now: the API\ncannot show it again. Check each delivery's `ScreenHire-Signature: t={unix seconds},v1={hex}`, the hex\nHMAC-SHA256 of `{t}.{raw body}` keyed with this secret."
       },
+      "WeeklyHours": {
+        "required": [
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DayHours"
+            }
+          }
+        },
+        "description": "Hours in a week, in some time zone's wall-clock time (docs/architecture/interview-scheduling.md, \"Hours\"): the hours an\ninterview may be offered in (a request's hours, or the interview blocks a business sets, \"Tue and Thu, 2 to 5\"), and a\nmember's own interview hours. A day may have more than one stretch; a day with none has no hours."
+      },
       "WorkflowChange": {
         "required": [
           "path",
@@ -33681,6 +35039,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "scheduling": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/StageScheduling"
+              }
             ]
           }
         },

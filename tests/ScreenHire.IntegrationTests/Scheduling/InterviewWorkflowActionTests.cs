@@ -196,7 +196,7 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
         var run = await AutomationSamples.WaitForRunAsync(world.Owner, application, "schedule", "Failed");
         var action = run.GetProperty("actions")[0];
         action.GetProperty("status").GetString().Should().Be("Failed");
-        action.GetProperty("detail").GetString().Should().Contain("no working calendar connected").And.Contain("connect one in Your account, Connected accounts");
+        action.GetProperty("detail").GetString().Should().Contain("no working calendar and no interview hours").And.Contain("Your account, Calendar");
         (await world.InterviewsAsync(application)).Should().BeEmpty();
         (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().BeEmpty();
     }
@@ -215,6 +215,104 @@ public sealed class InterviewWorkflowActionTests(AppHostFixture fixture)
         run.GetProperty("actions")[0].GetProperty("detail").GetString().Should().Contain("not a member");
         (await world.InterviewsAsync(application)).Should().BeEmpty();
         (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Choose_mode_gives_the_team_a_task_that_offering_an_interview_finishes_and_nobody_can_tick_by_hand()
+    {
+        using var world = await InterviewWorld.CreateAsync(fixture);
+        var (_, application, email) = await JobAndApplicationAsync(world, "Action choose", ChooseOnStage("screening"));
+
+        await MoveAsync(world, application, "screening");
+
+        var run = await AutomationSamples.WaitForRunAsync(world.Owner, application, "choose", "Completed");
+        run.GetProperty("actions")[0].GetProperty("status").GetString().Should().Be("Completed");
+        var task = (await ChooseTasksAsync(world, application, "Open")).Should().ContainSingle().Which;
+        task.GetProperty("note").GetString().Should().Be("Choose how Casey Morgan schedules an interview.");
+        (await world.InterviewsAsync(application)).Should().BeEmpty("nothing was offered to the candidate");
+        (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().BeEmpty();
+        var taskId = task.GetProperty("id").GetGuid();
+
+        // It is done where its work is done: ticking it by hand, or reopening it, is refused.
+        (await world.Owner.PostAsync($"/v1/tasks/{taskId}/complete")).Expect(HttpStatusCode.Conflict);
+        (await world.Owner.PostAsync($"/v1/tasks/{taskId}/reopen")).Expect(HttpStatusCode.Conflict);
+        (await ChooseTasksAsync(world, application, "Open")).Should().ContainSingle("the refused tick left it open");
+
+        // Entering the stage again does not make a second task while one is open.
+        await MoveAsync(world, application, "interview");
+        await MoveAsync(world, application, "screening");
+        (await WaitForRunsAsync(world, application, "choose", 2)).Select(r => r.GetProperty("actions")[0].GetProperty("status").GetString())
+            .Should().BeEquivalentTo("Completed", "Skipped");
+        (await ChooseTasksAsync(world, application, "Open")).Should().ContainSingle();
+
+        // A person offers the interview, which finishes the task.
+        (await world.ScheduleAsync(applicationId: application, interviewers: [world.Owner.UserId])).Expect(HttpStatusCode.Created);
+        (await ChooseTasksAsync(world, application, "Open")).Should().BeEmpty();
+        var done = (await ChooseTasksAsync(world, application, "Completed")).Should().ContainSingle().Which;
+        done.GetProperty("id").GetGuid().Should().Be(taskId);
+        done.GetProperty("completedByUserId").GetGuid().Should().Be(world.Owner.UserId);
+    }
+
+    [Fact]
+    public async Task A_stage_default_of_tell_us_when_you_are_free_sends_that_invitation_when_the_action_does_not_choose()
+    {
+        using var world = await InterviewWorld.CreateAsync(fixture);
+        var (_, application, email) = await JobWithStageDefaultAsync(
+            world, "Action stage default", new JsonObject { ["option"] = "TheirTimes" }, ScheduleOnStage("screening", world.Owner.UserId, world.Second.UserId));
+
+        await MoveAsync(world, application, "screening");
+
+        var invitation = await world.WaitForEmailAsync(email, SchedulingOptionSupport.TheirTimesSubject);
+        var run = await AutomationSamples.WaitForRunAsync(world.Owner, application, "schedule", "Completed");
+        run.GetProperty("actions")[0].GetProperty("detail").GetString().Should().Contain("tell us when they are free");
+        var interview = (await world.InterviewsAsync(application)).Should().ContainSingle().Which;
+        interview.GetProperty("option").GetString().Should().Be("TheirTimes");
+        var page = (await world.PublicGetAsync(InterviewWorld.TokenIn(invitation.Text))).Expect(HttpStatusCode.OK);
+        page.Text("option").Should().Be("TheirTimes");
+        (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().NotContain(m => m.Subject.Contains(SchedulingOptionSupport.OurTimesSubject, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_stage_default_of_we_will_suggest_a_time_gives_the_team_a_task_because_a_person_must_pick_the_times()
+    {
+        using var world = await InterviewWorld.CreateAsync(fixture);
+        var (_, application, email) = await JobWithStageDefaultAsync(
+            world, "Action suggestion default", new JsonObject { ["option"] = "OurSuggestion" }, ScheduleOnStage("screening", world.Owner.UserId));
+
+        await MoveAsync(world, application, "screening");
+
+        await AutomationSamples.WaitForRunAsync(world.Owner, application, "schedule", "Completed");
+        (await ChooseTasksAsync(world, application, "Open")).Should().ContainSingle();
+        (await world.InterviewsAsync(application)).Should().BeEmpty();
+        (await fixture.Mailpit.MessagesAsync(email, Ct)).Should().BeEmpty();
+    }
+
+    private static JsonObject ChooseOnStage(string stageId) => new()
+    {
+        ["id"] = "choose",
+        ["name"] = "Choose how to schedule",
+        ["trigger"] = new JsonObject { ["type"] = "StageEntered", ["stageId"] = stageId },
+        ["actions"] = new JsonArray(new JsonObject { ["type"] = "ScheduleInterview", ["interviewMode"] = "Choose" }),
+    };
+
+    // The team's open or completed tasks to choose how this application's candidate schedules.
+    private static async Task<IReadOnlyList<JsonElement>> ChooseTasksAsync(InterviewWorld world, Guid application, string status) =>
+        [.. (await world.Owner.GetAsync($"/v1/tasks?scope=Team&status={status}")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
+            .Where(t => t.GetProperty("applicationId").GetGuid() == application && t.GetProperty("kind").GetString() == "ChooseScheduling")
+            .Select(t => t.Clone())];
+
+    // A job whose "screening" stage has this scheduling default, with these automations.
+    private static async Task<(Guid Job, Guid Application, string Email)> JobWithStageDefaultAsync(
+        InterviewWorld world, string title, JsonObject stageScheduling, params JsonObject[] automations)
+    {
+        var definition = Samples.DefinitionWith(automations);
+        definition["workflow"]!["stages"]!.AsArray().Select(stage => stage!.AsObject()).Single(stage => stage["id"]!.GetValue<string>() == "screening")["scheduling"] = stageScheduling;
+        var (_, versionId) = await world.Owner.CreatePublishedTemplateAsync($"{title} template", definition);
+        var body = Samples.RemoteJob(title);
+        body["templateVersionId"] = versionId;
+        var job = (await world.Owner.CreateJobAsync(body)).Id();
+        var email = ApiSession.NewEmail("candidate");
+        return (job, (await world.Owner.CreateApplicationAsync(job, email)).Id(), email);
     }
 
     private static JsonObject Copy(JsonObject node) => (JsonObject)node.DeepClone();

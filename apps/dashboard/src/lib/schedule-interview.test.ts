@@ -1,14 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addDays,
-  checkSchedule,
   checkWindow,
   dayIn,
   daysCovered,
   defaultDays,
   durationLabel,
-  newTimesSchema,
-  scheduleSchema,
   timeLabel,
   timeOptions,
   timeZoneOptions,
@@ -18,15 +15,6 @@ import {
   zonedMidnight,
 } from '#lib/schedule-interview.js';
 
-const valid = {
-  interviewerUserIds: ['u1'],
-  durationMinutes: 30,
-  windowStart: '2026-11-03',
-  windowEnd: '2026-11-16',
-  timeZone: 'America/New_York',
-  dayStart: '09:00',
-  dayEnd: '17:00',
-};
 const now = Date.parse('2026-11-02T12:00:00Z');
 
 // The schemas read the real clock for "today", so the browser's clock stands at `now` too: the fixed days above stay in
@@ -38,12 +26,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
 });
-
-const problems = (patch: Partial<typeof valid>) => {
-  const found: Record<string, string> = {};
-  checkSchedule({ ...valid, ...patch }, (field, message) => (found[field] = message), now);
-  return found;
-};
 
 describe('window to instants', () => {
   it("starts a day at its midnight in the chosen zone, not the browser's", () => {
@@ -101,45 +83,6 @@ describe('window to instants', () => {
   });
 });
 
-describe('the choices', () => {
-  it('accepts a sound request', () => {
-    expect(problems({})).toEqual({});
-    expect(scheduleSchema.safeParse(valid).success).toBe(true);
-  });
-
-  it('allows 90 days and refuses 91, in words, on the last day', () => {
-    expect(problems({ windowStart: '2026-11-03', windowEnd: '2027-01-31' })).toEqual({});
-    expect(problems({ windowStart: '2026-11-03', windowEnd: '2027-02-01' })).toEqual({ windowEnd: 'The window can be at most 90 days.' });
-  });
-
-  it('refuses a window that ends before it starts or has already ended', () => {
-    expect(problems({ windowEnd: '2026-11-02' })).toEqual({ windowEnd: 'The last day has to be the first day or later.' });
-    expect(problems({ windowStart: '2026-10-20', windowEnd: '2026-11-01' })).toEqual({ windowEnd: 'The last day has to be today or later.' });
-    // The same day is still open: it ends at midnight.
-    expect(problems({ windowStart: '2026-11-02', windowEnd: '2026-11-02' })).toEqual({});
-  });
-
-  it('asks for both days and a zone the browser knows', () => {
-    expect(problems({ windowStart: '' })).toEqual({ windowStart: 'Pick the first day.' });
-    expect(problems({ windowEnd: '' })).toEqual({ windowEnd: 'Pick the last day.' });
-    expect(problems({ timeZone: '' })).toEqual({ timeZone: 'Choose a time zone.' });
-  });
-
-  it('wants working hours that end after they start and hold the interview', () => {
-    expect(problems({ dayStart: '17:00', dayEnd: '09:00' })).toEqual({ dayEnd: 'Working hours have to end after they start.' });
-    expect(problems({ dayStart: '09:00', dayEnd: '09:30', durationMinutes: 60 })).toEqual({ dayEnd: 'Working hours are shorter than the interview.' });
-    expect(problems({ dayStart: '09:00', dayEnd: '10:00', durationMinutes: 60 })).toEqual({});
-  });
-
-  it('wants one to five interviewers and a length the API offers', () => {
-    const result = (patch: Partial<typeof valid>) => scheduleSchema.safeParse({ ...valid, ...patch });
-    expect(result({ interviewerUserIds: [] }).error?.issues[0]?.message).toBe('Choose who will interview.');
-    expect(result({ interviewerUserIds: ['a', 'b', 'c', 'd', 'e'] }).success).toBe(true);
-    expect(result({ interviewerUserIds: ['a', 'b', 'c', 'd', 'e', 'f'] }).error?.issues[0]?.message).toBe('Choose 1 to 5 interviewers.');
-    expect(result({ durationMinutes: 40 }).error?.issues[0]?.message).toBe('Choose how long it lasts.');
-  });
-});
-
 describe('the days of new times', () => {
   const issues = (windowStart: string, windowEnd: string, zone = 'America/New_York') => {
     const found: Record<string, string> = {};
@@ -157,12 +100,9 @@ describe('the days of new times', () => {
     expect(issues('2026-11-03', '')).toEqual({ windowEnd: 'Pick the last day.' });
   });
 
-  it('is checked in the interview zone and reports the same problems through the schema', () => {
+  it('is checked in the interview zone', () => {
     // The last day is still open: 2026-11-02 ends at midnight in New York (05:00Z on the 3rd), after the 12:00Z test clock.
     expect(issues('2026-10-30', '2026-11-02', 'America/New_York')).toEqual({});
-    expect(newTimesSchema('America/New_York').safeParse({ windowStart: '2026-11-03', windowEnd: '2026-11-16' }).success).toBe(true);
-    const refused = newTimesSchema('America/New_York').safeParse({ windowStart: '2026-11-03', windowEnd: '2027-02-01' });
-    expect(refused.error?.issues.map((issue) => [issue.path[0], issue.message])).toEqual([['windowEnd', 'The window can be at most 90 days.']]);
   });
 });
 

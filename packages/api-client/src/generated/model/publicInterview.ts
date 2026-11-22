@@ -4,6 +4,7 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { InterviewOption } from './interviewOption.ts';
 import type { PublicInterviewState } from './publicInterviewState.ts';
 import type { PublicOrganization } from './publicOrganization.ts';
 
@@ -36,4 +37,15 @@ export interface PublicInterview {
   minNoticeHours: number;
   newTimesOffered: boolean;
   meetingName: string;
+  option?: InterviewOption;
+  /** @nullable */
+  suggestable?: string[] | null;
+  /** @nullable */
+  suggestedTimes?: string[] | null;
+  /** @nullable */
+  proposedTimes?: string[] | null;
+  anotherTimeAsked?: boolean;
+  waitingForTeam?: boolean;
+  /** @nullable */
+  teamNote?: string | null;
 }

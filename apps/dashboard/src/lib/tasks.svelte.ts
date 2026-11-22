@@ -16,13 +16,18 @@ export const completesByHand = (kind: ApplicationTaskKind): boolean => kind === 
 /**
  * Where a task's work is done, for My tasks: a requested scorecard opens the candidate's Scorecards tab with the sheet
  * open on that scorecard, and a review with the sheet open on the scorecard for the stage they are in, since submitting
- * any scorecard finishes it. Every other task opens the candidate's Overview, where Needs you has it.
+ * any scorecard finishes it. Choosing how the candidate schedules opens Schedule interview, since offering it finishes the
+ * task. Every other task opens the candidate's Overview, where Needs you has it.
  */
 export function taskHref(task: { applicationId: string; kind: ApplicationTaskKind; scorecardTemplateId?: string | null }): string {
   const candidate = `/applications/${task.applicationId}`;
   if (task.kind === 'Scorecard' && task.scorecardTemplateId) return `${candidate}?${scorecardLink(task.scorecardTemplateId)}`;
+  if (task.kind === 'ChooseScheduling') return `${candidate}?${scheduleLink}`;
   return task.kind === 'Review' ? `${candidate}?${reviewLink}` : candidate;
 }
+
+/** The query that opens Schedule interview on the candidate's page. */
+export const scheduleLink = new URLSearchParams({ schedule: '1' }).toString();
 
 /** The query that opens the Scorecards tab with the fill-in sheet on the scorecard for the candidate's current stage. */
 export const reviewLink = new URLSearchParams({ tab: 'scorecards', fill: 'stage' }).toString();

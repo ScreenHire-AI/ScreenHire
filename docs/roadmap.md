@@ -311,6 +311,10 @@ default hiring team; Clear, Review and Verify stay, and To review holds Review o
 - **Job boards:** Indeed and ZipRecruiter (phase 2, with paying customers), LinkedIn, then European boards
   ([job boards](research/job-boards.md), [job distribution](architecture/job-distribution.md)).
 - **Careers:** custom tenant domains (ADR-0003).
+- **Apple iCloud calendars (CalDAV):** a third calendar provider beside Google and Outlook. Until then an iCloud user sets
+  interview hours and subscribes to ScreenHire's calendar link ([interview scheduling](architecture/interview-scheduling.md)).
+- **Shift availability on the apply form:** the candidate says when they can work while applying, for hourly and shift
+  roles, so scheduling can start from it. Today they say when they are free only when an interview asks them to.
 - **An organization's own font:** uploading a WOFF2 file of a typeface the company licenses, for its careers titles. The
   heading font is any Google Fonts family today, which ScreenHire downloads and hosts (ADR-0031,
   [branding](architecture/branding.md) section 3), and the body font stays ScreenHire's. An upload needs a licence the

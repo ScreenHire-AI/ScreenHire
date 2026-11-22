@@ -24,7 +24,8 @@ namespace ScreenHire.Infrastructure.Email;
 /// request email only. <c>jobLink</c> and <c>removeLink</c>: the invitation to apply's links, to the job's careers
 /// page and to the page where the candidate stops being kept; in that email <c>jobTitle</c> is the job they are invited
 /// to. <c>meeting.name</c>: what the stage calls the meeting, such as "trial shift", in lower case; "interview" when
-/// the stage names none. Only in the interview emails.
+/// the stage names none. Only in the interview emails. <c>teamNote</c>: the team's message when it asks the candidate for
+/// more times; only in that email.
 /// </remarks>
 public sealed record EmailTemplateModel(
     string CandidateName,
@@ -42,7 +43,8 @@ public sealed record EmailTemplateModel(
     string? MeetingLink = null,
     string? InterviewTime = null,
     string? InterviewLength = null,
-    string? MeetingName = null)
+    string? MeetingName = null,
+    string? TeamNote = null)
 {
     /// <summary>The made-up candidate a template's preview and test send use.</summary>
     public static EmailTemplateModel Sample(string organizationName) =>
@@ -50,7 +52,7 @@ public sealed record EmailTemplateModel(
             "https://careers.example.com/questionnaires/sample", "Jordan", "Lee",
             "https://careers.example.com/jobs/product-designer", "https://careers.example.com/talent-pool/sample",
             "https://careers.example.com/interviews/sample", "https://careers.example.com/interviews/sample", "https://meet.example.org/sample",
-            "Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)", "30 minutes", "interview");
+            "Tuesday, November 3, 2026, 10:00 AM to 10:30 AM (Europe/London)", "30 minutes", "interview", "Could you do a morning?");
 }
 
 /// <summary>
@@ -119,6 +121,9 @@ public sealed partial class EmailTemplates
     /// <summary>What the stage calls the meeting, in lower case: "interview", "trial shift". Written <c>{{ meeting.name }}</c>.</summary>
     public static EmailTemplateVariable MeetingName { get; } = new("meeting.name", "Meeting name");
 
+    /// <summary>The team's message when it asks the candidate for more times; empty when it wrote none.</summary>
+    public static EmailTemplateVariable TeamNote { get; } = new("teamNote", "Team's message");
+
     /// <summary>The variables <paramref name="templateId"/> may use: every template's, plus its own required ones.</summary>
     public static IReadOnlyList<EmailTemplateVariable> VariablesFor(string? templateId) => templateId switch
     {
@@ -130,8 +135,22 @@ public sealed partial class EmailTemplates
         EmailTemplateIds.InterviewCancelled => [.. Variables, InterviewTime, MeetingName],
         EmailTemplateIds.InterviewNewTimes => [.. Variables, BookingLink, InterviewTime, InterviewLength, MeetingName],
         EmailTemplateIds.InterviewReminder => [.. Variables, InterviewTime, ManageLink, MeetingLink, MeetingName],
+        EmailTemplateIds.InterviewInvitationSuggest => [.. Variables, BookingLink, InterviewLength, MeetingName],
+        EmailTemplateIds.InterviewInvitationProposed => [.. Variables, BookingLink, InterviewTime, InterviewLength, MeetingName],
+        EmailTemplateIds.InterviewOptionsUpdated => [.. Variables, BookingLink, InterviewTime, InterviewLength, MeetingName],
+        EmailTemplateIds.InterviewMoreTimes => [.. Variables, BookingLink, InterviewLength, MeetingName, TeamNote],
         _ => Variables,
     };
+
+    // The interview emails that exist to carry the candidate's link: without it they cannot pick, suggest or accept a time.
+    private static readonly FrozenSet<string> NeedsBookingLink = FrozenSet.Create(
+        StringComparer.Ordinal,
+        EmailTemplateIds.InterviewInvitation,
+        EmailTemplateIds.InterviewNewTimes,
+        EmailTemplateIds.InterviewInvitationSuggest,
+        EmailTemplateIds.InterviewInvitationProposed,
+        EmailTemplateIds.InterviewOptionsUpdated,
+        EmailTemplateIds.InterviewMoreTimes);
 
     // Filters that only change how a value reads. Nothing that reaches outside the value (date, json, and so on).
     private static readonly FrozenSet<string> AllowedFilters =
@@ -223,6 +242,12 @@ public sealed partial class EmailTemplates
             problems.Add(new("body", "The interview invitation must give the link to pick a time: add {{ bookingLink }}."));
         }
 
+        if (templateId is not null && templateId != EmailTemplateIds.InterviewInvitation && templateId != EmailTemplateIds.InterviewNewTimes
+            && NeedsBookingLink.Contains(templateId) && problems.Count == 0 && !used.Contains(BookingLink.Name))
+        {
+            problems.Add(new("body", "This email must give the candidate their link: add {{ bookingLink }}."));
+        }
+
         if (templateId == EmailTemplateIds.InterviewConfirmation && problems.Count == 0)
         {
             // The candidate needs the time, and the way to move or cancel it.
@@ -305,6 +330,7 @@ public sealed partial class EmailTemplates
         context.SetValue("meetingLink", model.MeetingLink ?? "");
         context.SetValue("interviewTime", model.InterviewTime ?? "");
         context.SetValue("interviewLength", model.InterviewLength ?? "");
+        context.SetValue("teamNote", model.TeamNote ?? "");
         // Fluid reads {{ meeting.name }} from a dictionary. Every other variable is flat, so this is the one object.
         context.SetValue("meeting", new Dictionary<string, object> { ["name"] = model.MeetingName ?? WorkflowStage.DefaultMeetingName });
 

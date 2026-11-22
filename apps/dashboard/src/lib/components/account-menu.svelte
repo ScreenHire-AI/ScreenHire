@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { page } from '$app/state';
-  import { visibleAccountSections } from '#lib/account.js';
-  import { getShell } from '#lib/shell.js';
+  import { accountSections } from '#lib/account.js';
 
   // The Your account menu (design system section 21, "Account pages"): the Settings menu's layout for the person's own
   // pages, a 200px column left of the content from `lg` and one row that scrolls sideways below it. Five entries at most and
@@ -16,8 +15,7 @@
     current?: string;
   } = $props();
 
-  const shell = getShell();
-  const sections = $derived(visibleAccountSections(shell?.hasConnections?.() ?? false));
+  const sections = accountSections;
 
   let list = $state<HTMLUListElement>();
   // Below lg the row may hide the current entry past its edge: scroll the row, never the page, to centre it.

@@ -2,16 +2,14 @@ import type { DateFormat, EmailChoice, NoticeKind, NoticeScope } from '@screenhi
 
 /**
  * Your account (design system section 21, "Account pages"): what belongs to the person, whatever organization they work in.
- * Its pages share one menu, as Settings' do, and none needs a permission. Connected accounts shows only where this
- * ScreenHire has a calendar to connect or a Slack workspace connected (A3).
+ * Its pages share one menu, as Settings' do, and none needs a permission. Calendar and accounts always shows: everyone can
+ * set their own interview hours, and it lists a calendar or Slack to connect only where this ScreenHire has one (A3).
  */
 export interface AccountSection {
   label: string;
   href: string;
   /** Everyday words that find it in Ctrl K. */
   keywords: readonly string[];
-  /** Shown only where something can be connected. */
-  connected?: true;
 }
 
 export const accountHome = '/account';
@@ -19,15 +17,10 @@ export const accountHome = '/account';
 export const accountSections: readonly AccountSection[] = [
   { label: 'Profile', href: '/account/profile', keywords: ['name', 'photo', 'picture', 'time zone', 'language', 'date format', 'email'] },
   { label: 'Notifications', href: '/account/notifications', keywords: ['email', 'digest', 'toasts', 'alerts', 'slack', 'mentions'] },
-  { label: 'Connected accounts', href: '/account/connected', keywords: ['calendar', 'google', 'outlook', 'slack'], connected: true },
+  { label: 'Calendar and accounts', href: '/account/connected', keywords: ['calendar', 'interview hours', 'subscribe', 'google', 'outlook', 'slack'] },
   { label: 'Sign-in and security', href: '/account/security', keywords: ['passkeys', 'sign in', 'sign out everywhere', 'sessions', 'security'] },
   { label: 'Preferences', href: '/account/preferences', keywords: ['theme', 'dark', 'shortcuts', 'confirm moves', 'motion'] },
 ];
-
-/** The account pages this person sees: Connected accounts only when there is something to connect. */
-export function visibleAccountSections(hasConnections: boolean): readonly AccountSection[] {
-  return accountSections.filter((section) => !section.connected || hasConnections);
-}
 
 /** The breadcrumb of an account page: Account, then the page. */
 export function accountCrumbs(href: string): { label: string; href?: string }[] {

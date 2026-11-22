@@ -35,6 +35,8 @@
   import BuiltInBadge from '#lib/components/built-in-badge.svelte';
   import ChartPanel, { type ChartColumn } from '#lib/components/chart-panel.svelte';
   import ChoiceCard from '#lib/components/choice-card.svelte';
+  import WeeklyHoursEditor from '#lib/components/weekly-hours-editor.svelte';
+  import { weekdayHours } from '#lib/interview-options.js';
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import PublishCheckDialog from '#lib/components/publish-check-dialog.svelte';
   import CountButton, { type CountItem } from '#lib/components/count-button.svelte';
@@ -460,6 +462,7 @@
     { name: 'Needs visa', applications: 2 },
   ];
   let jobsChoice = $state<'All' | 'HiringTeamOnly'>('All');
+  let weeklyHours = $state(weekdayHours());
   let countriesChoice = $state(['GB', 'IE']);
   const sampleTeam = [
     { id: 'm1', userId: 'u1', email: 'avery@example.com', displayName: 'Avery Quinn', role: 'Owner' as const, customRoleId: null, roleName: 'Owner', joinedAt: ago(30 * day), jobAccess: 'All' as const, seesAllJobs: true, jobCount: 0 },
@@ -924,6 +927,9 @@
             <ChoiceCard name="style-guide-jobs" value="All" bind:group={jobsChoice} title="All jobs" description="Including jobs added later." />
             <ChoiceCard name="style-guide-jobs" value="HiringTeamOnly" bind:group={jobsChoice} title="Only jobs they're on" description="Each job's hiring team decides." />
           </div>
+        </Panel>
+        <Panel title="Weekly hours" class="flex-[1_1_320px]">
+          <WeeklyHoursEditor bind:value={weeklyHours} id="style-guide-hours" legend="Days and hours" />
         </Panel>
       </div>
 

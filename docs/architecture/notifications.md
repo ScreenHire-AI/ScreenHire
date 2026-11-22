@@ -62,8 +62,10 @@ sources:
 A bell in the top bar holds what needs one person's attention, and, in a second tab, what is happening across the
 workspace (Activity, below). Its first tab, Needs attention, has two parts:
 
-- **Setup**, for whoever can do the steps (Owners and Admins): the four steps a new organization takes, each linking to the
-  page where it is done, in the order a team does them: branding, the first published job, inviting the team, then sending email from the company's own domain (last, because it is DNS work outside ScreenHire and
+- **Setup**, for whoever can do the steps (Owners and Admins): the steps a new organization takes, each linking to the
+  page where it is done, in the order a team does them: branding, the first published job, inviting the team, connecting a
+  calendar or setting interview hours (Interviewing, only once a job has a stage that holds interviews:
+  `GET /v1/organization/setup` says `hasInterviewStage`, and the step is the person's own, done by either), then sending email from the company's own domain (last, because it is DNS work outside ScreenHire and
   the team can start without it). Whether a step is done is not stored. The dashboard works it out from the organization's own
   data, as it always did, and shows only the steps left, with the done ones folded into one line ("2 steps done"). Sending email
   from the company's own domain says Optional and never counts toward the badge. What the server keeps is the organization's
@@ -206,7 +208,7 @@ Both messages implement `ITenantMessage`, so the handler runs under the organiza
 | `mention` | the note's id | `actor`, when known | the note on the candidate's Activity | the person mentioned |
 | `candidate-reply` | the reply's id | none: the line never names the candidate | the candidate's Messages | the person who sent the email it answers |
 | `task-assigned` | the task's id | `actor`, when a teammate gave it | the application | the person the task is for |
-| `interview-changed` | `interviewId:revision` | `change` (`Booked`, `Moved`, `Cancelled`) | the application | each member on the interview |
+| `interview-changed` | `interviewId:revision`, or `interviewId:change:ticks` for the team's next step | `change` (`Booked`, `Moved`, `Cancelled`, `TimesSuggested`, `AnotherTimeAsked`) | the application | each member on the interview, and for the team's next step the person who offered it |
 
 The last four are raised for one person, not an audience by permission: `NoticeDelivery.RaiseForPersonAsync` inserts the row
 with the same `ON CONFLICT DO NOTHING` and returns whether it did, so the caller sends `NotificationsChanged`.
@@ -228,7 +230,7 @@ The rows are one list on each side, `NoticeRows` in `NoticePreferences.cs` and `
 |---|---|---|---|---|
 | Mentions | `Mentions` (the tray's card) | Instantly | on (the Slack link's Mentions) | everyone |
 | Candidate replies | `Replies` (the tray's card) | Instantly | none | everyone |
-| Interviews booked or changed | `Interviews`: the candidate books, moves or cancels on a job in the person's scope (email goes to the interviewers) | Instantly | none | everyone |
+| Interviews booked or changed | `Interviews`: the candidate books, moves or cancels, sends the times they are free, or asks for another time, on a job in the person's scope (email goes to the interviewers) | Instantly | none | everyone |
 | Tasks assigned to you | `Tasks` | Daily digest | on (the Slack link's Tasks) | everyone |
 | New applications and answered forms | `NewCandidates`, `Forms` (a candidate answers a follow-up form) | Daily digest | none | everyone |
 | Teammates' moves and notes | `Moves`, `Notes`, `Tags`, `Emails`, `Scorecards`, `Templates` (one switch; Choose kinds opens each) | Off | none | everyone |
@@ -265,7 +267,7 @@ Every notice goes through `NoticeDelivery.EmailAsync` with the person's choice: 
 |---|---|---|
 | Mentions | `TeammateMentionedHandler` | the person mentioned, unless they wrote the note or no longer see the job |
 | Candidate replies | `CandidateRepliedHandler` | the person who sent the email it answers |
-| Interviews | `NotifyInterviewChanged` from the calendar handlers (booked, moved, cancelled), then `NotifyMember` | the members on the interview, never the member who cancelled it from the dashboard (bookings and moves are the candidate's); a later revision tells them again, so an out-of-date one tells nobody |
+| Interviews | `NotifyInterviewChanged` from the calendar handlers (booked, moved, cancelled) and from the candidate's times or request for another time, then `NotifyMember` | the members on the interview, never the member who cancelled it from the dashboard (bookings and moves are the candidate's); the candidate's times and a request for another time also tell the person who offered the interview, since the next step is theirs; a later revision tells them again, so an out-of-date one tells nobody |
 | Tasks | `NotifyMember` from `ApplicationTaskCreated` (a member or a key) and from an automation's task | the assignee, never the member who gave it to themselves |
 | New applications | `NotifyNewApplication` from `ApplicationSubmitted` | the members whose scope covers the job and who do not have it Off |
 | Teammates' moves and notes | `NotifyTeammateChange` from `ApplicationMoved` and `ApplicationNoteAdded` with a member as actor | as new applications, never the actor; never an API key, an automation or a candidate |

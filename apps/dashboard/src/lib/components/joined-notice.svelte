@@ -8,12 +8,21 @@
   // line the person can dismiss, not a problem (that is `Notice`, E2) and not a toast. Mounting it is the page's job, from the
   // `?joined=1` the accept redirect adds, so there is nothing to remember. The page keeps the `role="status"` region it sits
   // in, so a screen reader announces it as it arrives.
-  let { organization, ondismiss }: { organization: CurrentOrganization; ondismiss: () => void } = $props();
+  // Someone who will interview and has neither a calendar connected nor hours set is pointed to where either is done
+  // (`interviewReady` false); undefined while that is not known, or for someone who does not schedule.
+  let {
+    organization,
+    ondismiss,
+    interviewReady,
+  }: { organization: CurrentOrganization; ondismiss: () => void; interviewReady?: boolean } = $props();
 </script>
 
 <div data-slot="joined-notice" class="flex w-full items-center gap-3 rounded-panel bg-secondary py-1.5 pl-3.5 pr-1.5 text-secondary-foreground">
   <p class="min-w-0 flex-1">
     You joined {organization.name} as {organization.roleName}.{#if !organization.seesAllJobs}{' '}You see the jobs you are on.{/if}
+    {#if interviewReady === false}
+      {' '}<a href="/account/connected" class="font-semibold underline underline-offset-2">Connect your calendar or set your hours</a> so you can be scheduled for interviews.
+    {/if}
   </p>
   <IconButton label="Dismiss" onclick={ondismiss}><XIcon aria-hidden="true" /></IconButton>
 </div>

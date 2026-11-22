@@ -335,7 +335,7 @@ CORS origin. Leave `CookieDomain` empty: a parent-domain cookie would also reach
 ### Your account
 
 What belongs to the person, whatever organization they work in, is under `/account` (design system section 21): Profile,
-Notifications, Connected accounts (only where there is a calendar or a Slack workspace to connect), Sign-in and security, and
+Notifications, Calendar and accounts (interview hours and the subscribe link for everyone, plus a calendar or Slack to connect where there is one), Sign-in and security, and
 Preferences, with one menu like Settings'. The person's menu in the sidebar holds their name and email, Your account, Keyboard
 shortcuts, Billing (an Owner, where a payment provider is set up) and Sign out.
 

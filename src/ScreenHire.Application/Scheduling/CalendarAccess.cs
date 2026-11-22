@@ -167,6 +167,7 @@ public static class CalendarProviderNames
         CalendarProvider.Google => "Google Calendar",
         CalendarProvider.Microsoft => "Outlook calendar",
         CalendarProvider.Sandbox => "Sandbox calendar",
+        CalendarProvider.ScreenHire => "ScreenHire calendar",
         _ => provider.ToString(),
     };
 }

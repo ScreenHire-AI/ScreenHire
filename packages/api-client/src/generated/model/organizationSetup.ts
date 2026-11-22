@@ -10,8 +10,11 @@ import type { SetupStepId } from './setupStepId.ts';
  * The organization's own choices about the dashboard's setup checklist. `skippedSteps` are the steps someone said the
  * organization does not need, in the order they were skipped; `hidden` says someone hid the whole checklist. Both hold
  * for every Owner and Admin on every device. Whether a step is done comes from the organization's data, not from here.
+ * `hasInterviewStage` says a job has a stage that holds interviews (of the interview kind, or with a scheduling
+ * default), so the checklist shows its Interviewing step.
  */
 export interface OrganizationSetup {
   hidden: boolean;
   skippedSteps: SetupStepId[];
+  hasInterviewStage?: boolean;
 }

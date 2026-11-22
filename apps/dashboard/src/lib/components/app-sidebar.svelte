@@ -106,7 +106,7 @@
   const settingsActive = $derived(page.url.pathname === settingsHome || page.url.pathname.startsWith(`${settingsHome}/`));
 
   // Each person's own calendar, once this ScreenHire has a calendar to connect (docs/architecture/interview-scheduling.md). Your
-  // account > Connected accounts shows it; this sheet is for a page that needs it connected (scheduling an interview).
+  // account > Calendar and accounts shows it; this sheet is for a page that needs it connected (scheduling an interview).
   const calendarAvailable = $derived(Boolean(calendar && calendar.providers.length > 0));
   let calendarOutcome = $state('');
   // An outcome belongs to the visit it came back with, so the sheet opens clean when a page opens it through the shell.
@@ -114,7 +114,7 @@
     if (!calendarOpen) calendarOutcome = '';
   });
   // Connecting from the sheet comes back to the page it started on with ?calendar=: the sheet opens to show how it went, and
-  // the parameter leaves the address so a reload does not repeat it. Connected accounts reads its own.
+  // the parameter leaves the address so a reload does not repeat it. Calendar and accounts reads its own.
   $effect(() => {
     const outcome = page.url.searchParams.get('calendar');
     if (!isCalendarOutcome(outcome) || page.url.pathname.startsWith('/account/')) return;

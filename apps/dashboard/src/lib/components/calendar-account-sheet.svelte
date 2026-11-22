@@ -4,7 +4,8 @@
   import * as Sheet from '#lib/components/ui/sheet/index.js';
 
   // The person's calendar as a sheet, for a page that needs it connected (scheduling an interview opens it through the
-  // shell). The same connection is a section of Your account > Connected accounts.
+  // shell). The same connection is a section of Your account > Calendar and accounts, which also holds the person's own
+  // interview hours: hours instead of a calendar work too, so the sheet links there.
   let {
     open = $bindable(false),
     status,
@@ -24,6 +25,10 @@
     </Sheet.Header>
     <div class="px-4 pb-4">
       {#if open}<CalendarConnection {status} {outcome} />{/if}
+      <p class="mt-5 text-muted-foreground">
+        No Google or Outlook calendar? <a href="/account/connected" class="font-semibold underline underline-offset-2" onclick={() => (open = false)}>Set your interview hours</a>
+        instead.
+      </p>
     </div>
   </Sheet.Content>
 </Sheet.Root>

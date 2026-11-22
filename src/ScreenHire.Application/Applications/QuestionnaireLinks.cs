@@ -117,6 +117,7 @@ public static class QuestionnaireLinkRegistration
         services.TryAddSingleton<QuestionnaireLinks>();
         services.TryAddSingleton<TalentPool.TalentPoolLinks>();
         services.TryAddSingleton<Scheduling.InterviewLinks>();
+        services.TryAddSingleton<Scheduling.CalendarFeedLinks>();
 
         // The link to a candidate's page ends every email to them (docs/architecture/candidate-portal.md), so every host that sends one needs its signer.
         services.AddOptions<Portal.PortalOptions>().BindConfiguration(Portal.PortalOptions.Section);

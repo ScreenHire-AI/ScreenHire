@@ -393,3 +393,54 @@ describe('changing an interview', () => {
     expect((await changeInterview('book', form(posted), undefined)).outcome).toBe('error');
   });
 });
+
+describe('telling the team when you are free, and asking for another time', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const json = (status: number, body: unknown = null) =>
+    new Response(body === null ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/problem+json' } });
+
+  it('sends every ticked time as an instant, whichever day they were ticked in', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(204));
+    vi.stubGlobal('fetch', fetch);
+    const data = new FormData();
+    data.append('organization', 'acme');
+    data.append('token', token);
+    for (const time of ['2026-03-03T09:00:00+00:00', '2026-03-04T10:30:00+00:00', '2026-03-06T14:00:00+00:00']) data.append('times', time);
+
+    expect((await changeInterview('suggest', data, undefined)).outcome).toBe('suggested');
+    const [url, init] = fetch.mock.calls[0]!;
+    expect(String(url)).toContain(`/interviews/${token}/suggest`);
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({ times: ['2026-03-03T09:00:00.000Z', '2026-03-04T10:30:00.000Z', '2026-03-06T14:00:00.000Z'] });
+  });
+
+  it('says to choose more without calling the API when nothing is ticked, and maps the refusals', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(json(409, { type: 'too_few_times', status: 409 })).mockResolvedValueOnce(json(409, { type: 'not_offered', status: 409 }));
+    vi.stubGlobal('fetch', fetch);
+    const data = new FormData();
+    data.append('organization', 'acme');
+    data.append('token', token);
+
+    expect((await changeInterview('suggest', data, undefined)).outcome).toBe('too-few');
+    expect(fetch).not.toHaveBeenCalled();
+    data.append('times', '2026-03-03T09:00:00+00:00');
+    expect((await changeInterview('suggest', data, undefined)).outcome).toBe('too-few');
+    expect((await changeInterview('suggest', data, undefined)).outcome).toBe('not-offered');
+    expect(outcomeOf('suggest', 409, { type: 'too_many_times' })).toBe('too-many');
+  });
+
+  it('asks for another time with the note, trimmed, or none', async () => {
+    const fetch = vi.fn().mockResolvedValue(json(204));
+    vi.stubGlobal('fetch', fetch);
+    const data = new FormData();
+    data.append('organization', 'acme');
+    data.append('token', token);
+    data.append('note', '  Mornings are hard  ');
+
+    expect((await changeInterview('another-time', data, undefined)).outcome).toBe('another-asked');
+    expect(String(fetch.mock.calls[0]![0])).toContain(`/interviews/${token}/another-time`);
+    expect(JSON.parse(String((fetch.mock.calls[0]![1] as RequestInit).body))).toEqual({ note: 'Mornings are hard' });
+    expect(noticeFor('another-asked')?.kind).toBe('success');
+    expect(shownOutcome('suggested')).toBe('suggested');
+  });
+});

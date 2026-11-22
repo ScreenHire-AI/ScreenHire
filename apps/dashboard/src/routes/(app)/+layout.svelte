@@ -176,14 +176,13 @@
   let paletteOpen = $state(false);
   let shortcutsOpen = $state(false);
   // The Calendar sheet is the shell's (AppSidebar mounts it); a page that needs a calendar opens it through the shell, and
-  // Your account > Connected accounts shows the same connection as a section.
+  // Your account > Calendar and accounts shows the same connection as a section.
   let calendarOpen = $state(false);
   setShell({
     openPalette: () => (paletteOpen = true),
     openShortcuts: () => (shortcutsOpen = true),
     openNotifications: () => void goto('/account/notifications'),
     openCalendar: () => (calendarOpen = true),
-    hasConnections: () => Boolean((calendar.data?.data.providers.length ?? 0) > 0 || (slack.data?.data.available && slack.data.data.workspace)),
     refreshAccount: () => void account.refetch(),
     live: () => live.connection.status,
     user: () => data.user,

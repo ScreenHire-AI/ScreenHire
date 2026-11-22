@@ -51,8 +51,8 @@ describe('Your account', () => {
 
     const menu = await screen.findByRole('navigation', { name: 'Your account' });
     const links = within(menu).getAllByRole('link');
-    // Connected accounts shows only where there is something to connect; the test shell has nothing.
-    expect(links.map((link) => link.textContent?.trim())).toEqual(['Profile', 'Notifications', 'Sign-in and security', 'Preferences']);
+    // Calendar and accounts always shows: everyone can set their interview hours, with or without a calendar to connect.
+    expect(links.map((link) => link.textContent?.trim())).toEqual(['Profile', 'Notifications', 'Calendar and accounts', 'Sign-in and security', 'Preferences']);
     expect(within(menu).getByRole('link', { name: 'Profile' })).toHaveAttribute('aria-current', 'page');
   });
 
