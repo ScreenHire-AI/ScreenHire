@@ -5,21 +5,25 @@
   import CopyIcon from '~icons/lucide/copy';
   import PlusIcon from '~icons/lucide/plus';
   import RotateCcwIcon from '~icons/lucide/rotate-ccw';
-  import type { EmailTemplateEntry, HiringTemplateSummary, ScorecardTemplateSummary, TemplateUse } from '@screenhire/api-client';
+  import type { EmailTemplateEntry, FormTemplateSummary, HiringTemplateSummary, ScorecardTemplateSummary, TemplateUse } from '@screenhire/api-client';
   import {
     createArchiveEmailTemplate,
+    createArchiveFormTemplate,
     createArchiveHiringTemplate,
     createArchiveScorecardTemplate,
     createCreateEmailTemplate,
+    createCreateFormTemplate,
     createCreateHiringTemplate,
     createCreateScorecardTemplate,
     createDeleteEmailTemplate,
     createGetTemplateUsage,
     createListEmailTemplates,
+    createListFormTemplates,
     createListHiringTemplates,
     createListScorecardTemplates,
     createListTeamMembers,
     createUnarchiveEmailTemplate,
+    createUnarchiveFormTemplate,
     createUnarchiveHiringTemplate,
     createUnarchiveScorecardTemplate,
     getGetHiringTemplateQueryOptions,
@@ -32,6 +36,7 @@
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
+  import NewFormDialog from '#lib/components/new-form-dialog.svelte';
   import NewScorecardDialog from '#lib/components/new-scorecard-dialog.svelte';
   import RecordTabs from '#lib/components/record-tabs.svelte';
   import TemplateList, { type TemplateRow } from '#lib/components/template-list.svelte';
@@ -46,6 +51,7 @@
   import { templatesPath } from '#lib/realtime.js';
   import {
     copyName,
+    formTemplatesPath,
     maxNameLength,
     scorecardTemplatesPath,
     subjectParts,
@@ -65,6 +71,7 @@
   const sidebar = Sidebar.useSidebar();
   const hiring = createListHiringTemplates();
   const scorecards = createListScorecardTemplates();
+  const forms = createListFormTemplates();
   const emails = createListEmailTemplates();
   const usage = createGetTemplateUsage();
   const team = createListTeamMembers();
@@ -84,7 +91,7 @@
   const uses = $derived.by(() => {
     const data = usage.data?.data;
     const index = (list: readonly TemplateUse[] | undefined) => new Map((list ?? []).map((use) => [use.templateId, use]));
-    return { hiring: index(data?.hiring), scorecards: index(data?.scorecards), emails: index(data?.emails) };
+    return { hiring: index(data?.hiring), scorecards: index(data?.scorecards), forms: index(data?.forms), emails: index(data?.emails) };
   });
   const variableLabels = $derived(new Map((emails.data?.data.variables ?? []).map((variable) => [variable.name, variable.label])));
 
@@ -114,6 +121,20 @@
       questions: scorecard.questions,
     })),
   );
+  const formRows = $derived<TemplateRow[]>(
+    (forms.data?.data.forms ?? []).map((form) => ({
+      id: form.id,
+      name: form.name,
+      builtIn: false,
+      archived: form.archived,
+      href: templateHref('forms', form.id),
+      usage: uses.forms.get(form.id),
+      lastUpdated: form.lastUpdated,
+      published: form.latestPublishedVersion,
+      draft: form.draftVersion,
+      questions: form.questions,
+    })),
+  );
   const emailRows = $derived<TemplateRow[]>(
     (emails.data?.data.templates ?? []).map((template) => ({
       id: template.id,
@@ -130,8 +151,8 @@
   const shownCount = (rows: readonly TemplateRow[]) => rows.filter((row) => !row.archived).length;
   const tabsView = $derived(
     templateKinds.map((kind) => {
-      const query = kind === 'hiring' ? hiring : kind === 'scorecards' ? scorecards : emails;
-      const rows = kind === 'hiring' ? hiringRows : kind === 'scorecards' ? scorecardRows : emailRows;
+      const query = { hiring, scorecards, forms, emails }[kind];
+      const rows = { hiring: hiringRows, scorecards: scorecardRows, forms: formRows, emails: emailRows }[kind];
       return { value: kind, label: templateKindViews[kind].label, count: query.isSuccess ? shownCount(rows) : undefined };
     }),
   );
@@ -145,13 +166,16 @@
   const createScorecard = createCreateScorecardTemplate(onSettled(scorecardTemplatesPath));
   const archiveScorecard = createArchiveScorecardTemplate(onSettled(scorecardTemplatesPath));
   const unarchiveScorecard = createUnarchiveScorecardTemplate(onSettled(scorecardTemplatesPath));
+  const createForm = createCreateFormTemplate(onSettled(formTemplatesPath));
+  const archiveForm = createArchiveFormTemplate(onSettled(formTemplatesPath));
+  const unarchiveForm = createUnarchiveFormTemplate(onSettled(formTemplatesPath));
   const createEmail = createCreateEmailTemplate(onSettled(emailTemplatesPath));
   const archiveEmail = createArchiveEmailTemplate(onSettled(emailTemplatesPath));
   const unarchiveEmail = createUnarchiveEmailTemplate(onSettled(emailTemplatesPath));
   const resetEmail = createDeleteEmailTemplate(onSettled(emailTemplatesPath));
 
-  let messages = $state<Record<TemplateKind, string>>({ hiring: '', scorecards: '', emails: '' });
-  let failures = $state<Record<TemplateKind, string>>({ hiring: '', scorecards: '', emails: '' });
+  let messages = $state<Record<TemplateKind, string>>({ hiring: '', scorecards: '', forms: '', emails: '' });
+  let failures = $state<Record<TemplateKind, string>>({ hiring: '', scorecards: '', forms: '', emails: '' });
 
   async function act(kind: TemplateKind, run: () => Promise<string | void>, failure: string) {
     messages[kind] = '';
@@ -196,6 +220,18 @@
     );
   }
 
+  // A copy of a form starts as a draft of its newest version, named "<name> (copy)".
+  function duplicateForm(form: FormTemplateSummary) {
+    return act(
+      'forms',
+      async () => {
+        const response = await createForm.mutateAsync({ data: { copyFromFormId: form.id } });
+        await goto(templateHref('forms', response.data.id));
+      },
+      `Could not duplicate ${form.name}`,
+    );
+  }
+
   function duplicateEmail(template: EmailTemplateEntry) {
     return act(
       'emails',
@@ -214,6 +250,7 @@
     const run = {
       hiring: () => (archived ? archiveHiring : unarchiveHiring).mutateAsync(variables),
       scorecards: () => (archived ? archiveScorecard : unarchiveScorecard).mutateAsync(variables),
+      forms: () => (archived ? archiveForm : unarchiveForm).mutateAsync({ formId: row.id }),
       emails: () => (archived ? archiveEmail : unarchiveEmail).mutateAsync(variables),
     }[kind];
     return act(
@@ -243,11 +280,13 @@
 
   const hiringOf = (row: TemplateRow) => hiring.data?.data.find((template) => template.id === row.id);
   const scorecardOf = (row: TemplateRow) => scorecards.data?.data.find((scorecard) => scorecard.id === row.id);
+  const formOf = (row: TemplateRow) => forms.data?.data.forms.find((form) => form.id === row.id);
   const emailOf = (row: TemplateRow) => emails.data?.data.templates.find((template) => template.id === row.id);
   // The rejection and follow-up questions emails use variables only their own actions fill, so a copy could never send.
   const duplicable = (template: EmailTemplateEntry | undefined) => Boolean(template && !template.rejectOnly && !template.questionnaireOnly && !template.invitationOnly);
 
   let creatingScorecard = $state(false);
+  let creatingForm = $state(false);
   const offersNew = $derived(editsHiring || editsEmails);
 </script>
 
@@ -299,6 +338,23 @@
         failure={failures.scorecards}
       />
     </Tabs.Content>
+    <Tabs.Content value="forms" class="flex w-full flex-col px-4 py-6 md:px-6">
+      <TemplateList
+        kind="forms"
+        rows={formRows}
+        pending={forms.isPending}
+        error={forms.isError ? describeError(forms.error, 'Could not load the forms') : undefined}
+        onretry={() => forms.refetch()}
+        usagePending={usage.isPending}
+        {members}
+        {currentUserId}
+        menu={formMenu}
+        hasMenu={() => editsHiring}
+        oncreate={editsHiring ? () => (creatingForm = true) : undefined}
+        message={messages.forms}
+        failure={failures.forms}
+      />
+    </Tabs.Content>
     <Tabs.Content value="emails" class="flex w-full flex-col px-4 py-6 md:px-6">
       <TemplateList
         kind="emails"
@@ -330,6 +386,7 @@
       {#if editsHiring}
         <DropdownMenu.Item>{#snippet child({ props })}<a href="/templates/new" {...props}>Hiring template</a>{/snippet}</DropdownMenu.Item>
         <DropdownMenu.Item onSelect={() => (creatingScorecard = true)}>Scorecard</DropdownMenu.Item>
+        <DropdownMenu.Item onSelect={() => (creatingForm = true)}>Form</DropdownMenu.Item>
       {/if}
       {#if editsEmails}
         <DropdownMenu.Item>{#snippet child({ props })}<a href="/templates/emails/new" {...props}>Email template</a>{/snippet}</DropdownMenu.Item>
@@ -362,6 +419,13 @@
   </MoreMenu>
 {/snippet}
 
+{#snippet formMenu(row: TemplateRow)}
+  <MoreMenu label={`Actions for ${row.name}`} size="icon" quiet>
+    <DropdownMenu.Item onSelect={() => formOf(row) && duplicateForm(formOf(row)!)}><CopyIcon aria-hidden="true" />Duplicate</DropdownMenu.Item>
+    {@render archiveItems('forms', row)}
+  </MoreMenu>
+{/snippet}
+
 {#snippet emailMenu(row: TemplateRow)}
   {@const template = emailOf(row)}
   <MoreMenu label={`Actions for ${row.name}`} size="icon" quiet onclosed={onMenuClosed}>
@@ -382,6 +446,7 @@
 {/snippet}
 
 <NewScorecardDialog bind:open={creatingScorecard} />
+<NewFormDialog bind:open={creatingForm} />
 
 <ConfirmDialog
   bind:open={confirmReset}

@@ -53,7 +53,7 @@ const version = (): HiringTemplateVersionDetail =>
 
 let problems: DefinitionError[] = [];
 
-const noUsage: TemplateUsageList = { hiring: [], scorecards: [], emails: [] };
+const noUsage: TemplateUsageList = { hiring: [], scorecards: [], emails: [], forms: [] };
 
 function renderPage(routes: Parameters<typeof apiStub>[0] = {}) {
   const fetchMock = vi.fn(
@@ -200,6 +200,7 @@ const usage: TemplateUsageList = {
   ],
   scorecards: [],
   emails: [],
+  forms: [],
 };
 
 const versionOf = (number: number, status: 'Draft' | 'Published') => () =>
