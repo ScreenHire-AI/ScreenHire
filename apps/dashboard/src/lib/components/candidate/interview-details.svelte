@@ -18,6 +18,14 @@
   // A window's last day: its end is the start of the day after.
   const lastDay = (value: ApplicationInterview) => formatDateIn(new Date(Date.parse(value.windowEnd) - 1).toISOString(), value.timeZone);
 
+  /** What an open interview waits for, by how the candidate picks. */
+  function waitingLine(value: ApplicationInterview): string {
+    const days = `${formatDateIn(value.windowStart, value.timeZone)} to ${lastDay(value)}`;
+    if (value.option === 'OurSuggestion') return `You suggested ${(value.proposedTimes ?? []).map(formatDateTime).join(' or ')}.`;
+    if (value.option === 'TheirTimes') return value.teamNote !== null && value.teamNote !== undefined ? `Asked for more times, from ${days}.` : `Asked when they are free, from ${days}.`;
+    return `${value.useBlocks ? 'Interview blocks' : 'Times'} from ${days}.`;
+  }
+
   /** How a cancelled or expired interview ended, in one line. */
   function ended(value: ApplicationInterview): string {
     if (value.status === 'Expired') return `The candidate did not pick a time before ${lastDay(value)}.`;
@@ -28,8 +36,17 @@
 
 {#if interview.status === 'Open'}
   <div class="flex flex-col items-start gap-1.5">
-    <StatusBadge status="waiting" label="Waiting for the candidate" />
-    <p class="text-muted-foreground">Times from {formatDateIn(interview.windowStart, interview.timeZone)} to {lastDay(interview)}.</p>
+    {#if interview.waitsForTeam && interview.option === 'TheirTimes'}
+      <StatusBadge status="review" label="Times to book" />
+      <p class="text-muted-foreground">{firstName(candidate)} sent the times they are free. Book one, or ask for more.</p>
+    {:else if interview.waitsForTeam && interview.option === 'OurSuggestion'}
+      <StatusBadge status="review" label="Wants another time" />
+      <p class="text-muted-foreground">{firstName(candidate)} cannot make the times you suggested. Change how they pick to offer others.</p>
+      {#if interview.candidateNote}<p class="min-w-0 break-words">"{interview.candidateNote}"</p>{/if}
+    {:else}
+      <StatusBadge status="waiting" label="Waiting for the candidate" />
+      <p class="text-muted-foreground">{waitingLine(interview)}</p>
+    {/if}
   </div>
 {:else if interview.status === 'Booked'}
   <div class="flex flex-col items-start gap-4">

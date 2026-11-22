@@ -15,7 +15,9 @@ const applicationId = '01a157d4-0000-7000-8000-000000000300';
 const interviewId = '01a157d4-0000-7000-8000-000000000400';
 const listUrl = `/v1/applications/${applicationId}/interviews`;
 const cancelUrl = `/v1/interviews/${interviewId}/cancel`;
-const offerUrl = `/v1/interviews/${interviewId}/new-times`;
+const optionUrl = `/v1/interviews/${interviewId}/option`;
+const bookUrl = `/v1/interviews/${interviewId}/book`;
+const moreUrl = `/v1/interviews/${interviewId}/more-times`;
 
 const interview = (overrides: Partial<ApplicationInterview>): ApplicationInterview => ({
   id: interviewId,
@@ -55,21 +57,27 @@ afterEach(() => {
 
 function renderPanel(list: ApplicationInterview[], routes: Parameters<typeof apiStub>[0] = {}, mayChange = true) {
   const calls: string[] = [];
-  const stub = apiStub({ [`GET ${listUrl}`]: () => Response.json(list), ...routes });
+  const stub = apiStub({
+    [`GET ${listUrl}`]: () => Response.json(list),
+    'POST /v1/scheduling/open-times': () => Response.json({ slots: [], nextSevenDays: 3, unavailableInterviewerUserIds: [] }),
+    'POST /v1/scheduling/free': () =>
+      Response.json([{ start: '2026-11-04T15:00:00Z', interviewers: [{ userId: 'u1', state: 'Free' }, { userId: 'u2', state: 'Busy' }] }]),
+    ...routes,
+  });
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
     calls.push(`${(init?.method ?? 'GET').toUpperCase()} ${String(input)}`);
     return stub(input, init);
   });
   const ondone = vi.fn();
-  render(WithQueryClient, { props: { component: InterviewPanel, props: { applicationId, candidateName: 'Casey Morgan', mayChange, ondone } } });
+  render(WithQueryClient, { props: { component: InterviewPanel, props: { applicationId, jobId: 'job-1', candidateName: 'Casey Morgan', mayChange, ondone } } });
   return { calls, ondone, panel: () => screen.findByRole('region', { name: 'Interview' }) };
 }
 
-async function chooseOffer() {
+async function chooseMove(item = 'Move the interview', dialog = 'Move the interview') {
   const trigger = await screen.findByRole('button', { name: 'Interview actions' });
   await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
-  await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: 'Offer new times' }));
-  return screen.findByRole('dialog', { name: 'Offer new times' });
+  await fireEvent.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: item }));
+  return screen.findByRole('dialog', { name: dialog });
 }
 
 async function chooseCancel() {
@@ -209,16 +217,16 @@ describe('Interview panel', () => {
 
     await panel();
     expect(screen.queryByRole('button', { name: 'Interview actions' })).toBeNull();
-    expect(screen.queryByRole('dialog', { name: 'Offer new times' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Move the interview' })).toBeNull();
   });
 
-  it('offers new times only for a booked interview, from the same menu as Cancel', async () => {
+  it('changes how an open interview is picked, and moves a booked one, from the same menu as Cancel', async () => {
     renderPanel([interview({})]);
 
     const trigger = await screen.findByRole('button', { name: 'Interview actions' });
     await fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
     const items = within(await screen.findByRole('menu')).getAllByRole('menuitem').map((item) => item.textContent?.trim());
-    expect(items).toEqual(['Cancel interview']);
+    expect(items).toEqual(['Change how they pick', 'Cancel interview']);
   });
 
   it('says the offer is waiting while the candidate has new times, and that the booked time stays', async () => {
@@ -232,51 +240,84 @@ describe('Interview panel', () => {
     await expectNoAxeViolations();
   });
 
-  it('offers new times for the days chosen in the interview zone, closes, and says so', async () => {
+  it('moves a booked interview with the way chosen, in the interview zone, closes, and says so', async () => {
     const bodies: unknown[] = [];
     const { calls, ondone } = renderPanel([booked()], {
-      [`POST ${offerUrl}`]: (init) => (bodies.push(JSON.parse(String(init?.body))), Response.json(booked({ newTimesOfferedAt: '2026-11-02T12:00:00Z' }))),
+      [`POST ${optionUrl}`]: (init) => (bodies.push(JSON.parse(String(init?.body))), Response.json(booked({ newTimesOfferedAt: '2026-11-02T12:00:00Z' }))),
     });
 
-    const dialog = await chooseOffer();
-    expect(dialog).toHaveTextContent('Casey Morgan gets a link to pick another time.');
-    expect(dialog).toHaveTextContent('Same hours as before: 9:00 AM to 5:00 PM on weekdays, New York (Eastern Time), 30 minutes.');
-    expect(dialog).toHaveTextContent('The booked time stays until they pick.');
+    const dialog = await chooseMove();
+    expect(dialog).toHaveTextContent('The booked time stays until a new one is booked.');
+    await fireEvent.click(within(dialog).getByRole('radio', { name: /^Tell us when you're free/ }));
     await fireEvent.input(within(dialog).getByLabelText('First day'), { target: { value: '2026-11-09' } });
     await fireEvent.input(within(dialog).getByLabelText('Last day'), { target: { value: '2026-11-13' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send new times' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
 
     await waitFor(() => expect(bodies).toHaveLength(1));
-    // Midnight in New York: 05:00Z before the clock change on 2026-11-01 ended, so EST is 5 hours behind.
-    expect(bodies[0]).toEqual({ windowStart: '2026-11-09T05:00:00.000Z', windowEnd: '2026-11-14T05:00:00.000Z' });
+    // Midnight in New York: EST, 5 hours behind, once the clock change on 2026-11-01 ended daylight saving time.
+    expect(bodies[0]).toMatchObject({ option: 'TheirTimes', windowStart: '2026-11-09T05:00:00.000Z', windowEnd: '2026-11-14T05:00:00.000Z' });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(ondone).toHaveBeenCalledWith('Offered Casey Morgan new times to choose from.');
-    expect(calls.filter((call) => call.startsWith('POST'))).toEqual([`POST ${offerUrl}`]);
+    expect(ondone).toHaveBeenCalledWith('Asked Casey Morgan to pick a new time.');
+    expect(calls.filter((call) => call.startsWith(`POST ${optionUrl}`))).toHaveLength(1);
   });
 
   it('refuses a window of more than 90 days in words and posts nothing', async () => {
     const { calls } = renderPanel([booked()]);
 
-    const dialog = await chooseOffer();
+    const dialog = await chooseMove();
     await fireEvent.input(within(dialog).getByLabelText('First day'), { target: { value: '2026-11-09' } });
     await fireEvent.input(within(dialog).getByLabelText('Last day'), { target: { value: '2027-03-09' } });
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send new times' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
 
     const last = within(dialog).getByLabelText('Last day');
     await waitFor(() => expect(last).toHaveAttribute('aria-invalid', 'true'));
     expect(document.getElementById(last.getAttribute('aria-describedby')!)).toHaveTextContent('The window can be at most 90 days.');
-    expect(calls.filter((call) => call.startsWith('POST'))).toEqual([]);
+    expect(calls.filter((call) => call.startsWith(`POST ${optionUrl}`))).toEqual([]);
   });
 
   it("keeps the sheet open with the API's words when it refuses", async () => {
-    renderPanel([booked()], {
-      [`POST ${offerUrl}`]: () => Response.json({ title: 'Conflict', detail: 'New times can be offered only for a booked interview.', status: 409 }, { status: 409 }),
+    renderPanel([interview({})], {
+      [`POST ${optionUrl}`]: () => Response.json({ title: 'Conflict', detail: 'This interview is cancelled or has expired.', status: 409 }, { status: 409 }),
     });
 
-    const dialog = await chooseOffer();
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send new times' }));
+    const dialog = await chooseMove('Change how they pick', 'Change how they pick');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
 
-    await waitFor(() => expect(dialog).toHaveTextContent('New times can be offered only for a booked interview.'));
-    expect(screen.getByRole('dialog', { name: 'Offer new times' })).toBeInTheDocument();
+    await waitFor(() => expect(dialog).toHaveTextContent('This interview is cancelled or has expired.'));
+    expect(screen.getByRole('dialog', { name: 'Change how they pick' })).toBeInTheDocument();
+  });
+
+  it("lists the candidate's times with who is free, books one, and asks for more with a message", async () => {
+    const times = { option: 'TheirTimes' as const, waitsForTeam: true, candidateTimes: ['2026-11-04T15:00:00Z'] };
+    const posts: [string, unknown][] = [];
+    const { ondone, panel } = renderPanel([interview(times)], {
+      [`POST ${bookUrl}`]: (init) => (posts.push([bookUrl, JSON.parse(String(init?.body))]), Response.json(booked())),
+      [`POST ${moreUrl}`]: (init) => (posts.push([moreUrl, JSON.parse(String(init?.body))]), Response.json(interview({ option: 'TheirTimes' }))),
+    });
+
+    const region = await panel();
+    expect(region).toHaveTextContent('Times to book');
+    const list = within(region).getByRole('list', { name: 'Times Casey is free' });
+    await waitFor(() => expect(list).toHaveTextContent('Free: Avery Quinn. Busy: Robin Ashby.'));
+    await fireEvent.click(within(list).getByRole('button', { name: 'Book' }));
+    await waitFor(() => expect(posts[0]).toEqual([bookUrl, { start: '2026-11-04T15:00:00Z' }]));
+    await waitFor(() => expect(ondone).toHaveBeenCalledWith('Booked the time with Casey Morgan.'));
+
+    await fireEvent.click(within(region).getByRole('button', { name: 'Ask for more times' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Ask for more times' });
+    await fireEvent.input(within(sheet).getByLabelText('Message (optional)'), { target: { value: 'Any afternoon?' } });
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Ask for more times' }));
+    await waitFor(() => expect(posts[1]).toEqual([moreUrl, { note: 'Any afternoon?' }]));
+    await expectNoAxeViolations();
+  });
+
+  it("says the candidate wants another time than the team's, with their note", async () => {
+    const { panel } = renderPanel([
+      interview({ option: 'OurSuggestion', waitsForTeam: true, anotherTimeAskedAt: '2026-11-02T10:00:00Z', candidateNote: 'Mornings are hard for me', proposedTimes: [] }),
+    ]);
+
+    const region = await panel();
+    expect(region).toHaveTextContent('Wants another time');
+    expect(region).toHaveTextContent('"Mornings are hard for me"');
   });
 });

@@ -455,3 +455,45 @@ describe('removing from the sheet', () => {
     expect(within(dialog).queryByRole('button', { name: /^More for / })).toBeNull();
   });
 });
+
+describe('the stage scheduling default', () => {
+  const scheduling = () => (stages().find((stage) => stage.id === 'interview') as unknown as { scheduling?: Record<string, unknown> | null }).scheduling;
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        apiStub({
+          'GET /v1/email-templates': () => Response.json({ templates: [], sendingEnabled: false }),
+          'GET /v1/organization/teams/': () => Response.json([{ id: 'team-1', name: 'Kitchen', members: [] }]),
+          'GET /v1/team/members': () => Response.json([]),
+        }),
+      ),
+    );
+  });
+
+  it('sets how interviews here are offered: the way to pick, a team, the length and the days ahead', async () => {
+    renderSheet();
+    const dialog = await sheet();
+    expect(scheduling()).toBeUndefined();
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Set a default' }));
+    expect(scheduling()).toEqual({ option: 'OurTimes', durationMinutes: 30, windowDays: 14 });
+
+    await fireEvent.click(within(dialog).getByRole('radio', { name: /^Tell us when you're free/ }));
+    await fireEvent.change(within(dialog).getByRole('combobox', { name: 'Length' }), { target: { value: '45' } });
+    expect(scheduling()).toMatchObject({ option: 'TheirTimes', durationMinutes: 45 });
+
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove the default' }));
+    expect(scheduling()).toBeNull();
+  });
+
+  it('shows its own errors under it, not under the stage name', async () => {
+    renderSheet({ errors: [{ path: 'stages[1].scheduling.windowDays', message: 'How far ahead candidates pick in "Interview" must be between 1 and 60 days.' }], flow: { ...workflow, stages: workflow.stages.map((stage) => (stage.id === 'interview' ? { ...stage, scheduling: { windowDays: 0 } } : stage)) } });
+    const dialog = await sheet();
+
+    const section = dialog.querySelector<HTMLElement>('[data-stage-scheduling]')!;
+    expect(section).toHaveTextContent('must be between 1 and 60 days');
+    await waitFor(() => expect(within(dialog).getAllByText(/must be between 1 and 60 days/)).toHaveLength(1));
+  });
+});

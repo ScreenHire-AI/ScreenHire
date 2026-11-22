@@ -209,6 +209,17 @@
   const stages = $derived(workflow?.stages ?? []);
   // What the candidate's stage calls the meeting ("trial shift"); "interview" when it names none.
   const meetingName = $derived(meetingNameOf(stages.find((stage) => stage.id === detail?.stage.id)));
+  // How interviews in the candidate's stage are usually offered: the Schedule interview sheet opens from it.
+  const stageScheduling = $derived(stages.find((stage) => stage.id === detail?.stage.id)?.scheduling ?? null);
+  // A "Choose how ... schedules" task links here with ?schedule=1, which opens the sheet once it can be offered, then leaves
+  // the address, so a reload does not open it again and the task's link works a second time.
+  $effect(() => {
+    if (page.url.searchParams.get('schedule') !== '1' || !canSchedule) return;
+    scheduleOpen = true;
+    const url = new URL(page.url.href);
+    url.searchParams.delete('schedule');
+    void goto(url, { replace: true, reset: false });
+  });
   const stageName = (id: string | null | undefined) => (id ? (stages.find((stage) => stage.id === id)?.name ?? id) : '');
   const questions = $derived(new Map((workflow?.questionnaire.questions ?? []).map((question) => [question.id, question])));
   const followUpName = (requestId: string | null | undefined) =>
@@ -637,6 +648,7 @@
         jobId={detail.jobId}
         candidateName={detail.candidate.fullName}
         {meetingName}
+        {stageScheduling}
         {currentUserId}
         ondone={(message) => (scheduled = message)}
       />

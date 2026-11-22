@@ -6,9 +6,9 @@ import { formatDateTime } from '#lib/dates.js';
 export type CandidateKind = Exclude<ToastKind, 'Tasks' | 'Templates' | 'Mentions' | 'Replies' | 'Interviews' | 'Forms'>;
 
 /** What a candidate did to their interview from their booking page: the changes the hiring team hears of. */
-export type InterviewChange = 'Booked' | 'Rescheduled' | 'Cancelled';
+export type InterviewChange = 'Booked' | 'Rescheduled' | 'Cancelled' | 'TimesSuggested' | 'AnotherTimeAsked';
 
-const interviewChanges: readonly string[] = ['Booked', 'Rescheduled', 'Cancelled'] satisfies InterviewChange[];
+const interviewChanges: readonly string[] = ['Booked', 'Rescheduled', 'Cancelled', 'TimesSuggested', 'AnotherTimeAsked'] satisfies InterviewChange[];
 
 export type TaskAction = 'created' | 'completed' | 'reopened';
 
@@ -202,6 +202,8 @@ const interviewWords: Record<InterviewChange, (when: string) => string> = {
   Booked: (when) => (when ? ` booked ${when}` : ' booked an interview'),
   Rescheduled: (when) => (when ? ` moved their interview to ${when}` : ' moved their interview'),
   Cancelled: (when) => (when ? ` cancelled their interview on ${when}` : ' cancelled their interview'),
+  TimesSuggested: () => ' sent the times they are free for an interview',
+  AnotherTimeAsked: () => ' asked for another interview time',
 };
 
 // The sentence and link of a template change: a published hiring template version, or an edit of an email template or a scorecard.

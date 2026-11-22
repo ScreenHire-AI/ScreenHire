@@ -3,7 +3,7 @@
   import PencilIcon from '~icons/lucide/pencil';
   import PlusIcon from '~icons/lucide/plus';
   import type { JobStatus, JobSummary, PublishCheckItem } from '@screenhire/api-client';
-  import { createListApplications, createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
+  import { createGetCalendar, createGetInterviewHours, createListApplications, createListJobs, createPublishJob } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import { tick } from 'svelte';
   import { goto } from '$app/navigation';
@@ -130,6 +130,14 @@
   // team this person is on, once. It is read once and the parameter leaves the address, so a reload or a status choice
   // (which copies the address) does not bring it back.
   let joined = $state(page.url.searchParams.get('joined') === '1');
+  // The welcome also asks a newcomer to connect a calendar or set their hours, so they can be scheduled for interviews.
+  const joinedCalendar = createGetCalendar(() => ({ query: { enabled: joined } }));
+  const joinedHours = createGetInterviewHours(() => ({ query: { enabled: joined } }));
+  const interviewReady = $derived(
+    joinedCalendar.data && joinedHours.data
+      ? (joinedCalendar.data.data.connection != null && joinedCalendar.data.data.connection.problem == null) || joinedHours.data.data.weekly != null
+      : undefined,
+  );
   $effect(() => {
     if (!page.url.searchParams.has('joined')) return;
     const url = new URL(page.url.href);
@@ -305,7 +313,7 @@
     <!-- A live region that is always there, so the line is announced when it arrives; it takes no room while empty. -->
     <div role="status" class="empty:hidden">
       {#if joined && page.data.user?.organization}
-        <JoinedNotice organization={page.data.user.organization} ondismiss={dismissJoined} />
+        <JoinedNotice organization={page.data.user.organization} ondismiss={dismissJoined} {interviewReady} />
       {/if}
     </div>
     <!-- Four zeros say nothing to a new team: the overview starts with the first job, and the empty state below says what to do. -->

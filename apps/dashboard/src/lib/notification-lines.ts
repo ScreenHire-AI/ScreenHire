@@ -32,6 +32,16 @@ const lines: Record<string, (payload: Payload, now: Date) => string> = {
   'ai-usage-budget': (payload) => `AI usage is at ${payload.percent ?? ''}% of this month's budget`,
   'ai-usage-cap': () => `AI checks are paused: this month's cap is reached`,
   'ai-usage-spike': () => 'AI usage yesterday was well above the recent average',
+  // The person's own interview notices (NotifyInterviewChanged): what happened, from the change the payload names.
+  'interview-changed': (payload) => interviewLines[payload.change ?? ''] ?? 'An interview changed',
+};
+
+const interviewLines: Record<string, string> = {
+  Booked: 'An interview was booked',
+  Moved: 'An interview was moved',
+  Cancelled: 'An interview was cancelled',
+  TimesSuggested: 'A candidate sent times to book',
+  AnotherTimeAsked: 'A candidate asked for another interview time',
 };
 
 const generic = 'Something needs a look';

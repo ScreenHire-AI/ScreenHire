@@ -723,6 +723,7 @@ export function describeAction(
     return `Ask ${members?.find((member) => member.userId === action.assigneeUserId)?.displayName ?? 'a teammate'} to review`;
   }
   if (action.type === 'ScheduleInterview') {
+    if (action.interviewMode === 'Choose') return 'Ask the team to choose how they schedule';
     const names = (action.interviewerUserIds ?? []).map((id) => members?.find((member) => member.userId === id)?.displayName ?? 'a teammate');
     return names.length > 0 ? `Schedule an interview with ${names.join(', ')}` : label;
   }

@@ -142,9 +142,20 @@ public sealed partial class Mailpit(Uri baseAddress)
         {
             var message = await Client.GetFromJsonAsync<JsonElement>(
                 new Uri(baseAddress, $"/api/v1/message/{summary.GetProperty("ID").GetString()}"), cancellationToken);
+            var attachments = new List<MailpitAttachment>();
+            if (message.TryGetProperty("Attachments", out var parts) && parts.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var part in parts.EnumerateArray())
+                {
+                    var content = await Client.GetStringAsync(
+                        new Uri(baseAddress, $"/api/v1/message/{summary.GetProperty("ID").GetString()}/part/{part.GetProperty("PartID").GetString()}"), cancellationToken);
+                    attachments.Add(new MailpitAttachment(part.GetProperty("FileName").GetString() ?? "", part.GetProperty("ContentType").GetString() ?? "", content));
+                }
+            }
+
             messages.Add(new MailpitMessage(
                 message.GetProperty("Subject").GetString() ?? "", message.GetProperty("Text").GetString() ?? "", message.GetProperty("HTML").GetString() ?? "",
-                MailpitAddress.From(message, "From"), MailpitAddress.From(message, "ReplyTo")));
+                MailpitAddress.From(message, "From"), MailpitAddress.From(message, "ReplyTo"), attachments));
         }
 
         return messages;
@@ -163,8 +174,18 @@ public sealed partial class Mailpit(Uri baseAddress)
     private static partial Regex InvitationToken();
 }
 
-/// <summary>One email as Mailpit stored it. <c>From</c> and <c>ReplyTo</c> are null when the email had no such header.</summary>
-public sealed record MailpitMessage(string Subject, string Text, string Html, MailpitAddress? From = null, MailpitAddress? ReplyTo = null);
+/// <summary>
+/// One email as Mailpit stored it. <c>From</c> and <c>ReplyTo</c> are null when the email had no such header; <c>Attachments</c>
+/// holds each attached file with its content read as text (empty when there are none).
+/// </summary>
+public sealed record MailpitMessage(
+    string Subject, string Text, string Html, MailpitAddress? From = null, MailpitAddress? ReplyTo = null, IReadOnlyList<MailpitAttachment>? Attachments = null)
+{
+    public IReadOnlyList<MailpitAttachment> Files => Attachments ?? [];
+}
+
+/// <summary>A file attached to an email: its name, content type and text content.</summary>
+public sealed record MailpitAttachment(string FileName, string ContentType, string Content);
 
 /// <summary>A mailbox in an email header: the display name (empty when there is none) and the address.</summary>
 public sealed record MailpitAddress(string Name, string Address)

@@ -19,7 +19,7 @@ export const accountHome = '/account';
 export const accountSections: readonly AccountSection[] = [
   { label: 'Profile', href: '/account/profile', keywords: ['name', 'photo', 'picture', 'time zone', 'language', 'date format', 'email'] },
   { label: 'Notifications', href: '/account/notifications', keywords: ['email', 'digest', 'toasts', 'alerts', 'slack', 'mentions'] },
-  { label: 'Connected accounts', href: '/account/connected', keywords: ['calendar', 'google', 'outlook', 'slack'], connected: true },
+  { label: 'Calendar and accounts', href: '/account/connected', keywords: ['calendar', 'interview hours', 'subscribe', 'google', 'outlook', 'slack'] },
   { label: 'Sign-in and security', href: '/account/security', keywords: ['passkeys', 'sign in', 'sign out everywhere', 'sessions', 'security'] },
   { label: 'Preferences', href: '/account/preferences', keywords: ['theme', 'dark', 'shortcuts', 'confirm moves', 'motion'] },
 ];

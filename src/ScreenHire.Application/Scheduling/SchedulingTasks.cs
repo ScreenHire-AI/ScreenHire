@@ -13,8 +13,12 @@ namespace ScreenHire.Application.Scheduling;
 public static class SchedulingTasks
 {
     /// <summary>The task's words: "Choose how Grace schedules an interview."</summary>
-    public static string Note(string candidateFirstName, string meetingName) =>
-        $"Choose how {InterviewText.Plain(candidateFirstName)} schedules a {InterviewText.Plain(meetingName)}.";
+    public static string Note(string candidateFirstName, string meetingName)
+    {
+        var meeting = InterviewText.Plain(meetingName);
+        var article = meeting.Length > 0 && "aeiouAEIOU".Contains(meeting[0]) ? "an" : "a";
+        return $"Choose how {InterviewText.Plain(candidateFirstName)} schedules {article} {meeting}.";
+    }
 
     /// <summary>
     /// Marks the application's open choose-scheduling tasks done by <paramref name="userId"/> (null for an automation) and
