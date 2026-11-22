@@ -22,7 +22,7 @@
 <div
   data-overview-columns
   class={[
-    'grid items-start gap-5',
+    'grid grid-cols-1 items-start gap-5',
     within === 'settings' ? '@min-[55rem]/column:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]' : '@min-[69rem]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]',
   ]}
 >

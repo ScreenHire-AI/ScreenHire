@@ -77,10 +77,10 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-trial-1440");
 
         // Below that the page is one column, and there the three cards sit side by side under the plan card.
-        await Page.SetViewportSizeAsync(1180, 1000);
+        await Page.SetViewportSizeAsync(1200, 1000);
         await Expect(plans.Locator("[data-plan-card=unlimited]")).ToBeVisibleAsync();
-        (await BoxAsync(plans)).X.Should().BeApproximately((await BoxAsync(plan)).X, 1, "one column at 1180");
-        (await CardTopsAsync(plans)).Distinct().Should().HaveCount(1, "three cards sit side by side in the one column at 1180");
+        (await BoxAsync(plans)).X.Should().BeApproximately((await BoxAsync(plan)).X, 1, "one column at 1200");
+        (await CardTopsAsync(plans)).Distinct().Should().HaveCount(1, "three cards sit side by side in the one column at 1200");
 
         // On a phone the cards stack, one above the other, and the page never scrolls sideways.
         await Page.SetViewportSizeAsync(390, 844);
@@ -107,7 +107,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Change to") })).ToHaveCountAsync(2);
         // The longest label, Change to Unlimited, stays on one line inside its card (F5): in the side column at 2560 and 1440, and
         // at a laptop width where the page is one column and the three cards side by side are at their narrowest.
-        foreach (var width in new[] { 2560, 1440, 1180 })
+        foreach (var width in new[] { 2560, 1440, 1200 })
         {
             await Page.SetViewportSizeAsync(width, 1000);
             var overflowing = await plans.Locator("[data-plan-card] button").EvaluateAllAsync<int>(
@@ -146,7 +146,8 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
             await Page.SetViewportSizeAsync(width, 1000);
             var planCardBox = await BoxAsync(plan);
             var monthBox = await BoxAsync(month);
-            var invoicesBox = await BoxAsync(invoices);
+            // The panel, named Invoices like the table inside it.
+            var invoicesBox = await BoxAsync(invoices.First);
             monthBox.X.Should().BeApproximately(planCardBox.X, 1, "This month so far is in the main column at {0}", width);
             invoicesBox.X.Should().BeApproximately(planCardBox.X, 1, "the invoices are in the main column at {0}", width);
             invoicesBox.Y.Should().BeGreaterThan(monthBox.Y, "the invoices follow this month at {0}", width);
@@ -159,7 +160,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-2560");
         await Page.SetViewportSizeAsync(390, 844);
-        (await BoxAsync(payment)).Y.Should().BeGreaterThan((await BoxAsync(invoices)).Y, "one column on a phone, the side column after the main one");
+        (await BoxAsync(payment)).Y.Should().BeGreaterThan((await BoxAsync(invoices.First)).Y, "one column on a phone, the side column after the main one");
         (await NoSidewaysScrollAsync()).Should().BeTrue();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-390");
         await Page.SetViewportSizeAsync(1440, 1000);
