@@ -9,9 +9,9 @@
   import { goto } from '$app/navigation';
   import FailureText from '#lib/components/failure-text.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
-  import * as Dialog from '#lib/components/ui/dialog/index.js';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
+  import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { firstFormQuestion } from '#lib/form-library.js';
   import { applyValidationProblem } from '#lib/forms.js';
@@ -73,13 +73,13 @@
   });
 </script>
 
-<Dialog.Root bind:open>
-  <Dialog.Content class="sm:max-w-md">
-    <Dialog.Header>
-      <Dialog.Title>New form</Dialog.Title>
-      <Dialog.Description>Hiring templates can then send it at a stage, or you can send it by hand.</Dialog.Description>
-    </Dialog.Header>
-    <form method="POST" use:enhance novalidate class="flex flex-col gap-4">
+<Sheet.Root bind:open>
+  <Sheet.Content side="right" class="w-full overflow-y-auto">
+    <Sheet.Header>
+      <Sheet.Title>New form</Sheet.Title>
+      <Sheet.Description>Hiring templates can then send it at a stage, or you can send it by hand.</Sheet.Description>
+    </Sheet.Header>
+    <form method="POST" use:enhance novalidate class="flex flex-col gap-5 px-4 pb-4">
       <Field.Field>
         <Field.Label for="new-form-source">Start from</Field.Label>
         <select id="new-form-source" name="copyFrom" class={selectClass} bind:value={$form.copyFrom}>
@@ -116,10 +116,10 @@
       {#if $errors._errors}
         <FailureText message={$errors._errors[0]} />
       {/if}
-      <Dialog.Footer>
-        <Dialog.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Dialog.Close>
+      <div class="flex justify-end gap-2">
+        <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
         <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create form</Button>
-      </Dialog.Footer>
+      </div>
     </form>
-  </Dialog.Content>
-</Dialog.Root>
+  </Sheet.Content>
+</Sheet.Root>

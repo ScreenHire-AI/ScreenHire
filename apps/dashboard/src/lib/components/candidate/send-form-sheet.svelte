@@ -59,7 +59,7 @@
     </Sheet.Header>
     <div class="flex flex-col gap-4 px-4 pb-4">
       {#if rows.length === 0}
-        <p>This job has no forms to send yet. Add one on its pipeline's Forms tab.</p>
+        <p>This job has no forms to send.</p>
       {:else}
         <ul class="flex flex-col divide-y divide-border rounded-lg border border-border">
           {#each rows as row (row.id)}

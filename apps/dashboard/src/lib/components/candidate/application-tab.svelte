@@ -55,7 +55,7 @@
   <Panel title="Forms" id="forms">
     {#snippet actions()}
       {#if detail.followUps.length > 1}
-        <Button variant="ghost" onclick={toggleAll}>{allOpen ? 'Collapse all' : 'Expand all'}</Button>
+        <Button variant="outline" onclick={toggleAll}>{allOpen ? 'Collapse all' : 'Expand all'}</Button>
       {/if}
       {#if canSend && forms.length > 0}
         <Button variant="outline" onclick={() => (sending = true)}><SendIcon aria-hidden="true" />Send a form</Button>

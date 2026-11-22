@@ -13,7 +13,7 @@
 </script>
 
 <script lang="ts">
-  import ExternalLinkIcon from '~icons/lucide/external-link';
+  import PencilIcon from '~icons/lucide/pencil';
   import RefreshCwIcon from '~icons/lucide/refresh-cw';
   import Trash2Icon from '~icons/lucide/trash-2';
   import type { DefinitionError, HiringWorkflow, QuestionType } from '@screenhire/api-client';
@@ -33,7 +33,7 @@
   import FormBuilder from '#lib/components/form-builder.svelte';
   import Hint from '#lib/components/hint.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
-  import NewFormDialog from '#lib/components/new-form-dialog.svelte';
+  import NewFormSheet from '#lib/components/new-form-sheet.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PreviewFrame from '#lib/components/preview-frame.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -265,7 +265,7 @@
             {#if newer != null}
               <Button variant="outline" onclick={takeNewer}><RefreshCwIcon aria-hidden="true" />Use version {newer}</Button>
             {/if}
-            <Button variant="outline" href={templateHref('forms', current.formTemplateId!)}><ExternalLinkIcon aria-hidden="true" />Edit in the library</Button>
+            <Button variant="outline" href={templateHref('forms', current.formTemplateId!)}><PencilIcon aria-hidden="true" />Edit in the library</Button>
           {/snippet}
           <p class="mb-3 text-muted-foreground">Version {current.formVersion} of the library form.</p>
           <QuestionList questions={current.questions} />
@@ -305,7 +305,7 @@
 </div>
 
 <AddFormSheet bind:open={adding} {workflow} onadd={addFrom} onbuild={templateId && mayBuild ? () => (building = true) : undefined} />
-{#if templateId}<NewFormDialog bind:open={building} returnTo={templateId} />{/if}
+{#if templateId}<NewFormSheet bind:open={building} returnTo={templateId} />{/if}
 
 {#if current}
   <ConfirmDialog

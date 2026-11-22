@@ -36,7 +36,7 @@
   import ConfirmDialog from '#lib/components/confirm-dialog.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
-  import NewFormDialog from '#lib/components/new-form-dialog.svelte';
+  import NewFormSheet from '#lib/components/new-form-sheet.svelte';
   import NewScorecardDialog from '#lib/components/new-scorecard-dialog.svelte';
   import RecordTabs from '#lib/components/record-tabs.svelte';
   import TemplateList, { type TemplateRow } from '#lib/components/template-list.svelte';
@@ -446,7 +446,7 @@
 {/snippet}
 
 <NewScorecardDialog bind:open={creatingScorecard} />
-<NewFormDialog bind:open={creatingForm} />
+<NewFormSheet bind:open={creatingForm} />
 
 <ConfirmDialog
   bind:open={confirmReset}
