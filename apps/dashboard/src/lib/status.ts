@@ -14,6 +14,7 @@ import FilePenLineIcon from '~icons/lucide/file-pen-line';
 import IdCardIcon from '~icons/lucide/id-card';
 import InfoIcon from '~icons/lucide/info';
 import LoaderCircleIcon from '~icons/lucide/loader-circle';
+import MegaphoneIcon from '~icons/lucide/megaphone';
 import ShieldXIcon from '~icons/lucide/shield-x';
 import SparklesIcon from '~icons/lucide/sparkles';
 import WrenchIcon from '~icons/lucide/wrench';
@@ -52,6 +53,8 @@ export const statuses = {
   review: view('review', 'eye', EyeIcon),
   /** Overdue: the hiring team is late, never the candidate. */
   overdue: view('review', 'clock-alert', ClockAlertIcon),
+  /** Still posted by you: a listing the team posted themselves is still up after the job closed or its end date passed. */
+  stillPosted: view('review', 'megaphone', MegaphoneIcon),
   /** Verification suggested. */
   verification: view('verify', 'id-card', IdCardIcon),
   /** Needs fixes: a refused or failed posting, a workflow with problems, a webhook turned off or a delivery that failed. */

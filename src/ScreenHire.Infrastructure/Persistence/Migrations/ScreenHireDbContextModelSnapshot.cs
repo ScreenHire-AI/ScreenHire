@@ -1662,6 +1662,77 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("job_postings", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Distribution.ManualPosting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BoardName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("board_name");
+
+                    b.Property<DateTimeOffset>("ContentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("content_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly?>("EndsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("ends_on");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<string>("ListingUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("listing_url");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("PostedContent")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("posted_content");
+
+                    b.Property<DateOnly>("PostedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("posted_on");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("source_key");
+
+                    b.Property<DateTimeOffset?>("TakenDownAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("taken_down_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_manual_postings");
+
+                    b.HasIndex("OrganizationId", "JobId", "SourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_manual_postings_organization_id_job_id_source_key");
+
+                    b.ToTable("manual_postings", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Distribution.SandboxListing", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5867,6 +5938,17 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_job_postings_jobs_organization_id_job_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Distribution.ManualPosting", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "JobId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_manual_postings_jobs_organization_id_job_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Distribution.SandboxListing", b =>

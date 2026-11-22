@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Slack;
@@ -92,15 +93,17 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<List<ApplicationSummary>>, NotFound>> ListJobApplications(
-        Guid jobId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
+        Guid jobId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, BoardRegistry boards,
+        CancellationToken cancellationToken) =>
         await db.Jobs.AnyAsync(j => j.Id == jobId, cancellationToken)
-            ? TypedResults.Ok(await ApplicationReads.ListAsync(user, tenant, db, time, new(JobId: jobId), cancellationToken))
+            ? TypedResults.Ok(await ApplicationReads.ListAsync(user, tenant, db, time, boards, new(JobId: jobId), cancellationToken))
             : TypedResults.NotFound();
 
     // Every application in the organization, newest first: the dashboard's candidates table across jobs.
     private static Task<List<ApplicationSummary>> ListApplications(
-        ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken) =>
-        ApplicationReads.ListAsync(user, tenant, db, time, new(), cancellationToken);
+        ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, BoardRegistry boards,
+        CancellationToken cancellationToken) =>
+        ApplicationReads.ListAsync(user, tenant, db, time, boards, new(), cancellationToken);
 
     // A recruiter adds an application by hand (ApplicationSubmission): the candidate is found by email within the
     // organization, or created, and the application starts in the job's first stage. A resume uploaded through
@@ -113,6 +116,7 @@ internal static class ApplicationEndpoints
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ApplicantUploads uploads,
         ITenantContext tenant,
+        BoardRegistry boards,
         ClaimsPrincipal user,
         TimeProvider time,
         CancellationToken cancellationToken)
@@ -167,7 +171,7 @@ internal static class ApplicationEndpoints
         var (application, candidate) = created;
         return TypedResults.Created(
             $"/v1/applications/{application.Id}",
-            await ApplicationReads.DetailOfAsync(tenant, db, application, job, candidate, cancellationToken));
+            await ApplicationReads.DetailOfAsync(tenant, db, boards, application, job, candidate, cancellationToken));
     }
 
     // Where to upload a resume for a candidate a recruiter is adding: a create-only link straight to storage, as the
@@ -221,8 +225,8 @@ internal static class ApplicationEndpoints
         ApplicationForm.QuestionsFor(job.Workflow).First(q => q.Id == ApplicationForm.ResumeQuestionId);
 
     private static async Task<Results<Ok<ApplicationDetail>, NotFound>> GetApplication(
-        Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken) =>
-        await ApplicationReads.DetailAsync(tenant, db, applicationId, cancellationToken) is { } detail
+        Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, BoardRegistry boards, CancellationToken cancellationToken) =>
+        await ApplicationReads.DetailAsync(tenant, db, boards, applicationId, cancellationToken) is { } detail
             ? TypedResults.Ok(detail)
             : TypedResults.NotFound();
 
@@ -232,10 +236,11 @@ internal static class ApplicationEndpoints
         IValidator<MoveApplicationRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
+        BoardRegistry boards,
         ClaimsPrincipal user,
         TimeProvider time,
         CancellationToken cancellationToken) =>
-        ApplicationChanges.MoveAsync(applicationId, request, validator, outbox, tenant, user, time, cancellationToken);
+        ApplicationChanges.MoveAsync(applicationId, request, validator, outbox, tenant, boards, user, time, cancellationToken);
 
     private static Task<Results<Created<ApplicationTimelineEntry>, NotFound, ValidationProblem>> AddApplicationNote(
         Guid applicationId,
@@ -377,20 +382,22 @@ internal static class ApplicationEndpoints
         IValidator<AddApplicationTagRequest> validator,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
+        BoardRegistry boards,
         ClaimsPrincipal user,
         TimeProvider time,
         CancellationToken cancellationToken) =>
-        ApplicationChanges.AddTagAsync(applicationId, request, validator, outbox, tenant, user, time, cancellationToken);
+        ApplicationChanges.AddTagAsync(applicationId, request, validator, outbox, tenant, boards, user, time, cancellationToken);
 
     private static Task<Results<Ok<ApplicationDetail>, NotFound, ValidationProblem, ProblemHttpResult>> RemoveApplicationTag(
         Guid applicationId,
         string? tag,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
+        BoardRegistry boards,
         ClaimsPrincipal user,
         TimeProvider time,
         CancellationToken cancellationToken) =>
-        ApplicationChanges.RemoveTagAsync(applicationId, tag, outbox, tenant, user, time, cancellationToken);
+        ApplicationChanges.RemoveTagAsync(applicationId, tag, outbox, tenant, boards, user, time, cancellationToken);
 
     private static Task<Results<Created<ApplicationTaskEntry>, NotFound, ValidationProblem>> CreateApplicationTask(
         Guid applicationId,
@@ -439,7 +446,8 @@ internal static class ApplicationEndpoints
     }
 
     private static async Task<Results<Ok<CandidateDetail>, NotFound>> GetCandidate(
-        Guid candidateId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
+        Guid candidateId, ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, BoardRegistry boards,
+        CancellationToken cancellationToken)
     {
         var candidate = await db.Candidates.AsNoTracking().SingleOrDefaultAsync(c => c.Id == candidateId, cancellationToken);
         if (candidate is null)
@@ -449,7 +457,7 @@ internal static class ApplicationEndpoints
 
         return TypedResults.Ok(new CandidateDetail(
             candidate.Id, candidate.FullName, candidate.Email, candidate.Phone, candidate.CreatedAt,
-            await ApplicationReads.ListAsync(user, tenant, db, time, new(CandidateId: candidateId), cancellationToken),
+            await ApplicationReads.ListAsync(user, tenant, db, time, boards, new(CandidateId: candidateId), cancellationToken),
             candidate.FirstName, candidate.LastName));
     }
 }

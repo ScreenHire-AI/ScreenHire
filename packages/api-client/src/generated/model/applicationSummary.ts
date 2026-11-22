@@ -36,4 +36,8 @@ export interface ApplicationSummary {
   sourceSite?: string | null;
   /** @nullable */
   nextInterviewAt?: string | null;
+  /** @nullable */
+  sourceBoard?: string | null;
+  /** @nullable */
+  sourceBoardName?: string | null;
 }

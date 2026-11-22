@@ -5,6 +5,7 @@ using ScreenHire.Api.Content;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Endpoints;
 using ScreenHire.Api.Hiring;
+using ScreenHire.Application.Distribution;
 using ScreenHire.Application.TalentPool;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Candidates;
@@ -36,7 +37,8 @@ internal static class ApplicationReads
     /// <c>(organization_id, application_id, occurred_at)</c> index. Verification and ratings follow in one query each.
     /// </remarks>
     public static async Task<List<ApplicationSummary>> ListAsync(
-        ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, ApplicationFilter filter, CancellationToken cancellationToken)
+        ClaimsPrincipal user, ITenantContext tenant, ScreenHireDbContext db, TimeProvider time, BoardRegistry boards, ApplicationFilter filter,
+        CancellationToken cancellationToken)
     {
         var now = time.GetUtcNow();
         var applications = db.Applications.AsNoTracking();
@@ -76,30 +78,54 @@ internal static class ApplicationReads
                 NextInterviewAt = db.InterviewRequests
                     .Where(i => i.ApplicationId == r.Application.Id && i.Status == InterviewStatus.Booked && i.StartsAt >= now)
                     .Min(i => i.StartsAt),
+                ManualBoardName = db.ManualPostings
+                    .Where(p => p.JobId == r.Application.JobId && p.SourceKey == r.Application.SourceBoard)
+                    .Select(p => p.BoardName)
+                    .FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
         var verification = await VerificationSummariesAsync(user, db, [.. found.Select(r => r.Application.Id)], cancellationToken);
         var ratings = await RatingReads.ForAsync(db, [.. found.Select(r => r.Application.Id)], tenant.UserId, cancellationToken);
         return [.. found.Select(r => r.Application.ToSummary(
             r.Job, r.Candidate, ApplicationActivity.LastAt(r.Application.SubmittedAt, r.LastEventAt, r.LastTaskCompletedAt),
-            verification.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id), r.NextInterviewAt))];
+            verification.GetValueOrDefault(r.Application.Id), ratings.GetValueOrDefault(r.Application.Id), r.NextInterviewAt,
+            SourceBoardName(r.Application.SourceBoard, r.ManualBoardName, boards)))];
     }
+
+    /// <summary>
+    /// The name of the board an application came through: as the team named it for a board they posted on themselves, else the
+    /// registry's, else the bare id (a board whose configuration was removed).
+    /// </summary>
+    private static string? SourceBoardName(string? sourceBoard, string? manualName, BoardRegistry boards) =>
+        sourceBoard is null ? null : manualName ?? boards.Find(sourceBoard)?.Name ?? sourceBoard;
+
+    private static async Task<string?> SourceBoardNameAsync(
+        ScreenHireDbContext db, BoardRegistry boards, JobApplication application, CancellationToken cancellationToken) =>
+        application.SourceBoard is not { } key
+            ? null
+            : SourceBoardName(
+                key,
+                await db.ManualPostings.AsNoTracking().Where(p => p.JobId == application.JobId && p.SourceKey == key)
+                    .Select(p => p.BoardName).FirstOrDefaultAsync(cancellationToken),
+                boards);
 
     /// <summary>One application with its candidate, files and follow-ups, or null when the reader cannot see it.</summary>
     public static async Task<ApplicationDetail?> DetailAsync(
-        ITenantContext tenant, ScreenHireDbContext db, Guid applicationId, CancellationToken cancellationToken)
+        ITenantContext tenant, ScreenHireDbContext db, BoardRegistry boards, Guid applicationId, CancellationToken cancellationToken)
     {
         var row = await LoadAsync(db, applicationId, cancellationToken);
-        return row is { } found ? await DetailOfAsync(tenant, db, found.Application, found.Job, found.Candidate, cancellationToken) : null;
+        return row is { } found ? await DetailOfAsync(tenant, db, boards, found.Application, found.Job, found.Candidate, cancellationToken) : null;
     }
 
     /// <summary>The detail of an application already loaded, for a write that answers with it.</summary>
     public static async Task<ApplicationDetail> DetailOfAsync(
-        ITenantContext tenant, ScreenHireDbContext db, JobApplication application, Job job, Candidate candidate, CancellationToken cancellationToken) =>
+        ITenantContext tenant, ScreenHireDbContext db, BoardRegistry boards, JobApplication application, Job job, Candidate candidate,
+        CancellationToken cancellationToken) =>
         application.ToDetail(
             job, candidate, await FilesOfAsync(db, application.Id, cancellationToken), await FollowUpsOfAsync(db, application.Id, cancellationToken),
             await db.TalentPoolEntries.AnyAsync(e => e.ApplicationId == application.Id, cancellationToken),
-            await RatingReads.ForAsync(db, application.Id, tenant.UserId, cancellationToken));
+            await RatingReads.ForAsync(db, application.Id, tenant.UserId, cancellationToken),
+            await SourceBoardNameAsync(db, boards, application, cancellationToken));
 
     /// <summary>
     /// The application's timeline, oldest first, or null when the reader cannot see the application. A key sees no
