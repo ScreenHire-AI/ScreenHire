@@ -396,6 +396,13 @@ public static partial class DefinitionValidator
         {
             errors.Add(new(Join(path, "kind"), $"{Cap(owner)} has a kind that does not exist. Choose the form again."));
         }
+
+        // An equality monitoring form is made only in the library, where a deployment decides whether it offers them.
+        if (followUp.Kind == FormKind.EqualityMonitoring && followUp.FormTemplateId is null)
+        {
+            errors.Add(new(Join(path, "kind"),
+                $"{Cap(owner)} is an equality monitoring form that copies no library form. Make it in the form library, then add it from there."));
+        }
     }
 
     private static void ValidateFormQuestions(

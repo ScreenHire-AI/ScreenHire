@@ -82,6 +82,14 @@ public sealed class FormLibraryTests
             "automations[0].conditions.rules[0].fact", "automations[1].trigger.questionnaireId");
     }
 
+    // The deployment's setting is checked where library forms are made, so no workflow can declare one of its own.
+    [Fact]
+    public void An_equality_monitoring_form_must_copy_a_library_form()
+    {
+        var own = Equality with { FormTemplateId = null, FormVersion = null };
+        DefinitionValidator.Validate(Workflow(followUps: [own])).Select(e => e.Path).Should().Equal("followUpQuestionnaires[0].kind");
+    }
+
     [Fact]
     public void A_published_version_never_changes_and_a_form_keeps_one_draft()
     {

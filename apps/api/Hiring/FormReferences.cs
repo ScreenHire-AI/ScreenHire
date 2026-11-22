@@ -108,7 +108,8 @@ internal static class FormReferences
 
         var adopted = followUps.Select(followUp =>
         {
-            if (followUp is null || followUp.FormTemplateId is not null)
+            // An equality monitoring form is made only in the library, where the deployment's setting is checked.
+            if (followUp is null || followUp.FormTemplateId is not null || followUp.Kind == FormKind.EqualityMonitoring)
             {
                 return followUp;
             }

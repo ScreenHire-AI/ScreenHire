@@ -182,15 +182,15 @@ describe('job workflow page', () => {
     expect(within(row).getByRole('link', { name: 'Change policy' })).toHaveAttribute('href', `/jobs/${jobId}/edit#ai-use`);
   });
 
-  it('keeps the tab in the address: pressing Questions goes to ?tab=questions', async () => {
+  it('keeps the tab in the address: pressing Forms goes to ?tab=forms', async () => {
     stubApi('Open');
     renderPage();
     await screen.findByRole('tabpanel', { name: 'Pipeline' });
 
-    await fireEvent.mouseDown(screen.getByRole('tab', { name: 'Questions' }), { button: 0 });
-    await fireEvent.focus(screen.getByRole('tab', { name: 'Questions' }));
+    await fireEvent.mouseDown(screen.getByRole('tab', { name: 'Forms' }), { button: 0 });
+    await fireEvent.focus(screen.getByRole('tab', { name: 'Forms' }));
 
     expect(goto).toHaveBeenCalledTimes(1);
-    expect(goto.mock.calls[0]![0]).toBe('/?tab=questions');
+    expect(goto.mock.calls[0]![0]).toBe('/?tab=forms');
   });
 });

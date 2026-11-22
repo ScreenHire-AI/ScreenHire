@@ -14,6 +14,8 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
     /// </summary>
     public partial class AddFormLibrary : Migration
     {
+        // questionnaire_requests.form_template_id is a soft link, with no foreign key: a request keeps the form it was sent
+        // from for Reports' totals, the application role cannot delete a form, and an answer must never go with a form.
         // Tenant row-level security like every tenant table. A published version is immutable in the database too, as a
         // hiring template version is (AddHiringModel): the update and delete policies match drafts only. Deleting a form
         // would cascade to its published versions, which are meant to be permanent, so the application role cannot.
@@ -65,7 +67,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     INSERT INTO form_template_versions (id, organization_id, form_template_id, version, status, content, created_at, created_by, published_at, published_by)
                     VALUES (gen_random_uuid(), organization, form, number, 'Published', body, at, by_user, at, by_user);
                     UPDATE form_templates
-                    SET name = left(body ->> 'name', 80), latest_published_version = number, updated_at = GREATEST(updated_at, at)
+                    SET name = left(COALESCE(NULLIF(body ->> 'name', ''), 'Form'), 80), latest_published_version = number, updated_at = GREATEST(updated_at, at)
                     WHERE id = form;
                 END IF;
                 RETURN number;
@@ -105,7 +107,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         IF form IS NULL THEN
                             form := gen_random_uuid();
                             INSERT INTO form_templates (id, organization_id, name, kind, created_at, updated_at)
-                            VALUES (form, v.organization_id, left(follow_up ->> 'name', 80), 'Standard', v.at, v.at);
+                            VALUES (form, v.organization_id, left(COALESCE(NULLIF(follow_up ->> 'name', ''), 'Form'), 80), 'Standard', v.at, v.at);
                             INSERT INTO follow_up_forms VALUES (v.template_id, follow_up ->> 'id', form);
                         END IF;
                         number := pg_temp.form_version_of(form, v.organization_id, body, v.at, v.created_by);
@@ -133,7 +135,7 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         SELECT FROM form_template_versions fv WHERE fv.organization_id = j.organization_id AND fv.content = body) THEN
                         form := gen_random_uuid();
                         INSERT INTO form_templates (id, organization_id, name, kind, created_at, updated_at)
-                        VALUES (form, j.organization_id, left(j.follow_up ->> 'name', 80), 'Standard', j.created_at, j.created_at);
+                        VALUES (form, j.organization_id, left(COALESCE(NULLIF(j.follow_up ->> 'name', ''), 'Form'), 80), 'Standard', j.created_at, j.created_at);
                         PERFORM pg_temp.form_version_of(form, j.organization_id, body, j.created_at, NULL);
                     END IF;
                 END LOOP;
@@ -141,10 +143,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                 IF EXISTS (
                     SELECT FROM hiring_template_versions tv
                     JOIN hiring_templates t ON t.id = tv.template_id
-                    CROSS JOIN LATERAL jsonb_array_elements(tv.definition -> 'workflow' -> 'followUpQuestionnaires') AS f(value)
+                    CROSS JOIN LATERAL jsonb_array_elements(
+                        CASE WHEN jsonb_typeof(tv.definition -> 'workflow' -> 'followUpQuestionnaires') = 'array'
+                             THEN tv.definition -> 'workflow' -> 'followUpQuestionnaires' ELSE '[]'::jsonb END) AS f(value)
                     WHERE t.organization_id IS NOT NULL
                       AND (tv.status = 'Draft' OR tv.version = t.latest_published_version)
-                      AND jsonb_typeof(tv.definition -> 'workflow' -> 'followUpQuestionnaires') = 'array'
                       AND (f.value -> 'formTemplateId' IS NULL OR f.value -> 'formVersion' IS NULL)) THEN
                     RAISE EXCEPTION 'A current hiring template version has a follow-up questionnaire that did not become a library form.';
                 END IF;
