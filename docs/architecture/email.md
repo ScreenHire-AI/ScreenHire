@@ -28,6 +28,14 @@ sources:
   - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-new-times.subject.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-reminder.body.liquid
   - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-reminder.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-invitation-suggest.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-invitation-suggest.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-invitation-proposed.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-invitation-proposed.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-options-updated.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-options-updated.subject.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-more-times.body.liquid
+  - resource: src/ScreenHire.Infrastructure/Email/Templates/interview-more-times.subject.liquid
   - resource: src/ScreenHire.Application/Applications/SendApplicationEmail.cs
   - resource: src/ScreenHire.Domain/Applications/ApplicationEmail.cs
   - resource: apps/api/Endpoints/EmailEndpoints.cs

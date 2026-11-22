@@ -90,7 +90,7 @@ page the candidate books on, and the recruiter's side in the dashboard.
 
 ## Connecting a calendar
 
-Any member can connect a calendar on Your account > Connected accounts (`CalendarConnection`), or from the Calendar sheet a
+Any member can connect a calendar on Your account > Calendar and accounts (`CalendarConnection`), or from the Calendar sheet a
 page opens when it needs one (scheduling an interview, through `shell.openCalendar()`). No permission is needed: each route
 changes only the caller's own row. The section shows only when this ScreenHire has a calendar to connect.
 
@@ -106,7 +106,7 @@ handler signs a person in, while this stores tokens for later calls. Sign-in's o
 Data Protection under its own purpose, limited to ten minutes, and carries the provider, the organization, the member and
 a nonce. The nonce also sits in an HttpOnly, Lax cookie whose path is `/v1/calendar/oauth/callback`, so a state copied out
 of one browser does not work in another. The callback redirects to the dashboard with `?calendar=connected`, `denied`,
-`expired` or `failed`, and the page it started on shows how it went: Connected accounts in its Calendar section, any other page
+`expired` or `failed`, and the page it started on shows how it went: Calendar and accounts in its Calendar section, any other page
 in the Calendar sheet.
 
 The redirect URI is built like Slack's, `ScreenHire:Domains` plus the callback path, so it sits on the dashboard origin,
