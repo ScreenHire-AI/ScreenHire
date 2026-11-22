@@ -34,6 +34,9 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/verification/checks/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/verification/ai-use/+page.ts
   - resource: apps/dashboard/src/routes/(app)/verification/policy/+page.ts
+  - resource: apps/dashboard/src/routes/(app)/verification/usage/+page.ts
+  - resource: apps/dashboard/src/routes/(app)/verification/ai-model/+page.ts
+  - resource: apps/dashboard/src/routes/(app)/verification/notifications/+page.ts
   - resource: apps/dashboard/src/routes/(app)/verification/tab-guard.ts
   - resource: src/ScreenHire.Domain/Verification/DeviceCheckBasis.cs
   - resource: src/ScreenHire.Domain/Verification/TrustedSources.cs

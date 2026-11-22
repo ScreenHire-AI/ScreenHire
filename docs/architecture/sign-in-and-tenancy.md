@@ -81,6 +81,7 @@ sources:
   - resource: apps/dashboard/src/lib/permissions.ts
   - resource: apps/dashboard/src/lib/settings.ts
   - resource: apps/dashboard/src/lib/integrations.ts
+  - resource: apps/dashboard/src/routes/(app)/settings/+layout.svelte
   - resource: apps/dashboard/src/lib/components/settings-menu.svelte
   - resource: apps/dashboard/src/lib/hiring-team.ts
   - resource: apps/dashboard/src/lib/components/member-access-sheet.svelte
@@ -440,7 +441,7 @@ provider is set up and for anyone who can see AI usage, whatever the provider (`
 Verification is a sidebar item of its own at `/verification`, for every member: its Overview, Activity log and Checks tabs are open
 to all (`verificationTabs` in `apps/dashboard/src/lib/verification-area.ts`); its old AI use tab's parts moved to Billing, Settings
 > Integrations > AI model and Settings > Notification defaults, and its address redirects there by role. `/settings/verification` and `/settings/integrity` redirect to it. A page's menu lists only the pages of its group, and its breadcrumb is Settings, the group and
-the page; each page is behind its permission (`settingsSections` and `settingsGroups` in `apps/dashboard/src/lib/settings.ts`, the
+the page; each page is behind its permission, which the settings layout checks (`settingsSections` and `settingsGroups` in `apps/dashboard/src/lib/settings.ts`, the
 integrations from `integrations` in `apps/dashboard/src/lib/integrations.ts`), and the command palette finds the same settings by the
 same words (`searchSettings`). Settings search also lists the pages people look for there that live in an area of their own (`settingsElsewhere`, `searchElsewhere`: Templates and Verification's Checks), only for a role that may open them. Slack's page and entry are left out wherever `GET /v1/slack` says Slack is not `available` (a feature on its
 settings row, `SettingsFeatures`), and so is Email domain's wherever `GET /v1/organization/sending-domain` says
