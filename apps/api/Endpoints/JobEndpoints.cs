@@ -915,13 +915,18 @@ internal static class JobEndpoints
             return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["stageMappings"] = unmapped });
         }
 
+        // Each application's stage as the old pipeline had it, read before the switch replaces the workflow: whether it had
+        // ended decides whether its stage clock (and so its retention clock) carries over.
+        var fromStages = applications.Select(a => a.CurrentStageId).Distinct(StringComparer.Ordinal)
+            .ToDictionary(id => id, id => CurrentStage(job, id), StringComparer.Ordinal);
         var now = time.GetUtcNow();
         job.SwitchTemplate(version, now, await ScorecardReferences.OwnAsync(db, to.ScorecardTemplateIds(), cancellationToken));
         foreach (var application in applications)
         {
             // The job's own copy of the stage, scorecard included.
             var target = job.Workflow.FindStage(targets.GetValueOrDefault(application.CurrentStageId) ?? application.CurrentStageId)!;
-            db.ApplicationEvents.Add(application.ChangePipeline(target, version.Id, now, tenant.UserId, user.ApiKeyId()));
+            db.ApplicationEvents.Add(application.ChangePipeline(
+                fromStages[application.CurrentStageId], target, version.Id, now, tenant.UserId, user.ApiKeyId()));
         }
 
         return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);

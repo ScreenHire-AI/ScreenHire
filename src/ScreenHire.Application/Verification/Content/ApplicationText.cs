@@ -20,7 +20,7 @@ public static class ApplicationText
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(answers);
-        var questions = ApplicationForm.QuestionsFor(job.Workflow).ToDictionary(q => q.Id, StringComparer.Ordinal);
+        var questions = job.Former.WithQuestions(ApplicationForm.QuestionsFor(job.Workflow)).ToDictionary(q => q.Id, StringComparer.Ordinal);
         return [.. answers
             .Where(a => a.Value is { Length: > 0 } && questions.TryGetValue(a.QuestionId, out var q) && q.Type is QuestionType.ShortText or QuestionType.LongText)
             .Select(a => new FreeTextAnswer(a.QuestionId, questions[a.QuestionId].Label, a.Value!))];
@@ -36,7 +36,7 @@ public static class ApplicationText
     {
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(answers);
-        var questions = ApplicationForm.QuestionsFor(job.Workflow).ToDictionary(q => q.Id, StringComparer.Ordinal);
+        var questions = job.Former.WithQuestions(ApplicationForm.QuestionsFor(job.Workflow)).ToDictionary(q => q.Id, StringComparer.Ordinal);
         var text = new StringBuilder();
         foreach (var answer in answers)
         {

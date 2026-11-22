@@ -284,7 +284,9 @@ export function feedLine(entry: ActivityEntry, members: readonly TeamMember[] | 
     case 'Submitted':
       return entry.by === 'Candidate' ? candidate(' applied') : done('added ', name, entry.toStageName ? ` to ${entry.toStageName}` : '', href);
     case 'StageChanged':
-      return done('moved ', name, `${entry.toStageName ? ` to ${entry.toStageName}` : ''}${event.templateVersionId ? ' with the new pipeline' : ''}`, href);
+      // A template switch is not a move: the person changed the job's pipeline, and the candidate landed in a stage of it.
+      if (event.templateVersionId) return done('changed the pipeline for ', name, entry.toStageName ? `, now in ${entry.toStageName}` : '', href);
+      return done('moved ', name, entry.toStageName ? ` to ${entry.toStageName}` : '', href);
     case 'TagAdded':
       return done('tagged ', name, ` "${event.tag ?? ''}"`, href);
     case 'TagRemoved':

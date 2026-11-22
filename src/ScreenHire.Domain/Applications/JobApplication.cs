@@ -194,19 +194,23 @@ public sealed class JobApplication : IJobScoped
     /// the timeline entry that says the pipeline changed (<see cref="ApplicationEventData.TemplateVersionId"/>). Every
     /// application of the job gets one, even one whose stage id carries over, so it starts a new stage entry and any
     /// timer of the old pipeline does nothing when it fires. Unlike <see cref="MoveTo"/>, a saved candidate stays saved,
-    /// and the time in the stage starts again only when the stage changes. The caller publishes no ApplicationMoved: the
-    /// switch sends no email and runs no automation.
+    /// and the time in the stage starts again only when the stage changes. An application that had ended
+    /// (<paramref name="current"/>, its stage in the old pipeline, is Hired, Rejected or Withdrawn) and lands in a stage
+    /// that ends one keeps its time too, because retention counts from when it ended. The caller publishes no
+    /// ApplicationMoved: the switch sends no email and runs no automation.
     /// </summary>
-    public ApplicationEvent ChangePipeline(WorkflowStage target, Guid templateVersionId, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
+    public ApplicationEvent ChangePipeline(
+        WorkflowStage current, WorkflowStage target, Guid templateVersionId, DateTimeOffset now, Guid? actorUserId, Guid? actorApiKeyId = null)
     {
+        ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(target);
         var from = CurrentStageId;
-        if (target.Id != from)
+        if (target.Id != from && !(current.Kind.IsTerminal() && target.Kind.IsTerminal()))
         {
-            CurrentStageId = target.Id;
             StageEnteredAt = now;
         }
 
+        CurrentStageId = target.Id;
         return NewEvent(
             ApplicationEventType.StageChanged,
             new ApplicationEventData(from, target.Id, ApiKeyId: actorApiKeyId, TemplateVersionId: templateVersionId),

@@ -61,7 +61,12 @@ public sealed record AutomationFacts(
         var seen = triggerIndex >= 0 && trigger is not (TriggerType.TimeElapsed or TriggerType.SlaBreached)
             ? timeline.Take(triggerIndex + 1).ToList()
             : [.. timeline.Where(e => e.OccurredAt <= occurredAt)];
-        var entries = seen.Where(e => e.Type is ApplicationEventType.Submitted or ApplicationEventType.StageChanged).ToList();
+        // A template switch that left the application in a stage with the same id is not a new stage entry: its time in the
+        // stage runs on from when it entered, as StageEnteredAt does (JobApplication.ChangePipeline).
+        var entries = seen
+            .Where(e => e.Type is ApplicationEventType.Submitted or ApplicationEventType.StageChanged)
+            .Where(e => !(e.Data.TemplateVersionId is not null && e.Data.FromStageId == e.Data.ToStageId))
+            .ToList();
         if (trigger == TriggerType.StageExited && triggerIndex >= 0 && entries.Count > 0 && entries[^1].Id == triggerEventId)
         {
             // The move itself starts the next stage; the stage that was exited began at the entry before it.

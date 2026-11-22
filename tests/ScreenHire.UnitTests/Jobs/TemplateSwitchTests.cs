@@ -128,7 +128,7 @@ public sealed class TemplateSwitchTests
         application.KeepInMind(job.Workflow.FindStage("screening"), Monday.AddHours(1), Recruiter, "Good fit for a later role");
         var versionId = Guid.CreateVersion7();
 
-        var entry = application.ChangePipeline(Kitchen.FindStage("call")!, versionId, Monday.AddDays(1), Recruiter);
+        var entry = application.ChangePipeline(job.Workflow.FindStage("screening")!, Kitchen.FindStage("call")!, versionId, Monday.AddDays(1), Recruiter);
 
         application.CurrentStageId.Should().Be("call");
         application.StageEnteredAt.Should().Be(Monday.AddDays(1));
@@ -141,14 +141,28 @@ public sealed class TemplateSwitchTests
     [Fact]
     public void A_stage_that_carries_over_still_gets_an_entry_and_keeps_its_time_in_stage()
     {
-        var (_, application) = Application();
+        var (job, application) = Application();
 
-        var entry = application.ChangePipeline(new WorkflowStage("applied", "Applied", StageKind.Applied), Guid.CreateVersion7(), Monday.AddDays(2), Recruiter);
+        var entry = application.ChangePipeline(
+            job.Workflow.FindStage("applied")!, new WorkflowStage("applied", "Applied", StageKind.Applied), Guid.CreateVersion7(), Monday.AddDays(2), Recruiter);
 
         application.CurrentStageId.Should().Be("applied");
         application.StageEnteredAt.Should().Be(Monday, "the candidate is still where they were");
         entry.Data.FromStageId.Should().Be("applied");
         entry.Data.ToStageId.Should().Be("applied");
+    }
+
+    [Fact]
+    public void An_ended_application_mapped_to_a_stage_that_ends_one_keeps_when_it_ended_for_retention()
+    {
+        var (job, application) = Application();
+        application.MoveTo(job.Workflow.FindStage("rejected")!, Monday.AddHours(1), Recruiter, null);
+
+        application.ChangePipeline(job.Workflow.FindStage("rejected")!, Kitchen.FindStage("no")!, Guid.CreateVersion7(), Monday.AddDays(30), Recruiter);
+
+        application.CurrentStageId.Should().Be("no");
+        application.StageEnteredAt.Should().Be(
+            Monday.AddHours(1), "retention counts from when the application ended, and a template switch does not start it again");
     }
 
     private static HiringTemplateVersion Published(string name, HiringWorkflow workflow)

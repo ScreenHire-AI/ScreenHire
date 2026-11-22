@@ -15,6 +15,7 @@
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { isTerminal } from '#lib/workflow.js';
   import { applicationsPath, jobsPath } from '#lib/realtime.js';
   import { candidateCount, moveLines, stageMappings, suggestedChoices, type StageChoices } from '#lib/template-switch.js';
   import { templateUsagePath } from '#lib/templates.js';
@@ -75,7 +76,7 @@
     ['Template', 'Stages', 'Review'].map((label, index) => ({ label, state: index < step ? 'done' : index === step ? 'current' : 'upcoming' })),
   );
   const headings = ['Which template?', 'Where do the candidates go?', 'What changes'];
-  const openStages = $derived((shown?.stages ?? []).filter((stage) => !['Hired', 'Rejected', 'Withdrawn'].includes(stage.kind)));
+  const openStages = $derived((shown?.stages ?? []).filter((stage) => !isTerminal(stage.kind)));
 
   async function go(to: number) {
     failure = '';
@@ -101,12 +102,16 @@
       onswitched?.(response.data, shown.templateName, candidateCount(shown));
     } catch (error) {
       // A 400 names what stops it (a stage left without a choice, a template that changed) in the validator's sentences.
-      failure =
-        error instanceof ApiError && error.status === 400
-          ? Object.values((error.body as { errors?: Record<string, string[]> } | undefined)?.errors ?? {})
-              .flat()
-              .join(' ') || describeError(error, 'Could not switch the template')
-          : describeError(error, 'Could not switch the template');
+      failure = describeError(error, 'Could not switch the template');
+      // A stage that filled after the preview was read has no choice yet. The failed switch refetched the preview (onSettled
+      // waits for it), so go back to the stages with that stage's suggestion added and the person's choices kept.
+      const errors = error instanceof ApiError && error.status === 400 ? (error.body as { errors?: Record<string, unknown> } | undefined)?.errors : undefined;
+      if (errors && 'stageMappings' in errors && shown) {
+        choices = { ...suggestedChoices(shown), ...choices };
+        step = 1;
+        await tick();
+        heading?.focus();
+      }
     }
   }
 </script>
@@ -115,7 +120,7 @@
   <Sheet.Content side="right" class="w-full overflow-y-auto" data-switch-template>
     <Sheet.Header>
       <Sheet.Title>Switch template</Sheet.Title>
-      <Sheet.Description>{job.title} takes another template's pipeline, and its candidates move to the stages you choose.</Sheet.Description>
+      <Sheet.Description>Give {job.title} another template's pipeline.</Sheet.Description>
     </Sheet.Header>
     <div class="flex flex-col gap-5 px-4 pb-4">
       <StepMarkers label="Steps of the switch" {steps} />
@@ -160,6 +165,7 @@
             {/each}
           </div>
         {/if}
+        <FailureText message={failure} />
       {:else if step === 2 && shown}
         <dl class="flex flex-col gap-4">
           <div class="flex flex-col gap-1">

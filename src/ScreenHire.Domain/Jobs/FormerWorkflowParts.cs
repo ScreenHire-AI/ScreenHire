@@ -23,6 +23,17 @@ public sealed record FormerWorkflowParts(IReadOnlyList<FormerStage> Stages, IRea
         return stageId is null ? null : current.FindStage(stageId)?.Name ?? Stages.FirstOrDefault(s => s.Id == stageId)?.Name;
     }
 
+    /// <summary>
+    /// <paramref name="current"/> (the apply form's questions), then each former question it no longer asks, so an answer
+    /// given to one still has its question wherever answers are read.
+    /// </summary>
+    public IReadOnlyList<Question> WithQuestions(IReadOnlyList<Question> current)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        var asked = current.Select(q => q.Id).ToHashSet(StringComparer.Ordinal);
+        return [.. current, .. Questions.Where(q => !asked.Contains(q.Id))];
+    }
+
     /// <summary>These parts, plus what <paramref name="before"/> had that <paramref name="after"/> drops; a part dropped again replaces its older copy.</summary>
     public FormerWorkflowParts Keep(HiringWorkflow before, HiringWorkflow after)
     {

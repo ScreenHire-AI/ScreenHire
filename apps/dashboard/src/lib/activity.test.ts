@@ -1,6 +1,6 @@
-import type { ApplicationTimelineEntry } from '@screenhire/api-client';
+import type { ActivityEntry, ApplicationTimelineEntry, TeamMember } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
-import { activityHref, actorText, describeEvent, eventIcons, kindCounts, visibleEntries } from '#lib/activity.js';
+import { activityHref, actorText, describeEvent, eventIcons, feedLine, kindCounts, visibleEntries } from '#lib/activity.js';
 import { formatDateTime } from '#lib/dates.js';
 
 const base: ApplicationTimelineEntry = {
@@ -70,6 +70,18 @@ describe('activity', () => {
     expect(describeEvent(stayed, stageNames)).toBe('The pipeline changed: stayed in Phone call');
     expect(describeEvent({ ...moved, templateVersionId: null }, stageNames)).toBe('Moved from Screening to Phone call');
     expect(kindCounts([moved])).toMatchObject({ stage: 1 });
+
+    // The Activity page's feed says the same: the person changed the pipeline, they did not move the candidate.
+    const feed = (event: ApplicationTimelineEntry): ActivityEntry => ({
+      id: event.id, kind: 'Moves', occurredAt: event.occurredAt, by: 'Member', actorUserId: 'u1', actorApiKeyName: null, jobId: 'j1',
+      jobTitle: 'Line cook', applicationId: 'a1', candidateName: 'Robin Example', event, fromStageName: 'Screening', toStageName: 'Phone call',
+      stageName: null, followUpName: null, jobChange: null,
+    });
+    const members = [{ userId: 'u1', displayName: 'Avery Quinn' }] as unknown as TeamMember[];
+    const switched = feedLine(feed(moved), members, 'u2');
+    expect(`${switched.before}${switched.link}${switched.after}`).toBe('Avery Quinn changed the pipeline for Robin Example, now in Phone call');
+    const plain = feedLine(feed({ ...moved, templateVersionId: null }), members, 'u2');
+    expect(`${plain.before}${plain.link}${plain.after}`).toBe('Avery Quinn moved Robin Example to Phone call');
   });
 
   it('names a created task, with whoever created it, and lists it under All only', () => {
