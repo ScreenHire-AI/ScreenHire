@@ -322,6 +322,7 @@ describe('Schedule interview sheet', () => {
     expect(await within(sheet()).findByText(/Nobody who sees this job has a calendar connected or interview hours set\./)).toBeInTheDocument();
     expect(within(sheet()).queryByRole('button', { name: 'Send' })).toBeNull();
     expect(within(sheet()).queryByRole('checkbox')).toBeNull();
+    expect(within(sheet()).getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     await expectNoAxeViolations();
 
     await fireEvent.click(within(sheet()).getByRole('button', { name: 'Connect your calendar or set your hours' }));

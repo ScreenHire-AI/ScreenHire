@@ -109,7 +109,7 @@
     <p class="sr-only" role="status">Loading your interview hours…</p>
   {:else}
     <form class="flex flex-col gap-5" onsubmit={submit} data-interview-hours>
-      <p class="text-muted-foreground">When you interview. Scheduling offers only these times, and keeps your calendar's busy time and the limits below.</p>
+      <p class="text-muted-foreground">Scheduling offers only these times.</p>
       <label class="flex items-center gap-2 pointer-coarse:min-h-11">
         <input type="checkbox" class={checkboxClass} bind:checked={draft.hasHours} />
         Set my interview hours
@@ -145,17 +145,15 @@
       </Field.Field>
       <FailureText message={failure} />
       <p role="status" class="text-muted-foreground">{saved}</p>
-      <Button type="submit" size="lg" class="w-fit" disabled={save.isPending}>Save hours</Button>
+      <!-- Outline: the calendar's Connect button below is the page's one primary action (design system A1). -->
+      <Button type="submit" variant="outline" size="lg" class="w-fit" disabled={save.isPending}>Save hours</Button>
     </form>
   {/if}
 </Panel>
 
 <Panel title="ScreenHire calendar">
   <div class="flex flex-col gap-3" data-calendar-feed>
-    <p class="text-muted-foreground">
-      Your interviews booked through ScreenHire, in any calendar app that subscribes to a link, such as the one on your phone. The link shows the times and jobs,
-      never a candidate's name.
-    </p>
+    <p class="text-muted-foreground">A link your phone's calendar can subscribe to, with your interviews' times and jobs but never a candidate's name.</p>
     {#if feedUrl}
       <Field.Field>
         <Field.Label for="account-feed-url">Your private link</Field.Label>

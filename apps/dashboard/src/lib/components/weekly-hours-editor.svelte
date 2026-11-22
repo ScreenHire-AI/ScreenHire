@@ -8,7 +8,8 @@
 
   // Hours in a week (design system section 11, Weekly hours): a row per day, Monday first, each a box that turns the day on
   // and its From and To. One stretch a day; a day that is off has no hours. The interview's hours and blocks on the Schedule
-  // interview sheet, a stage's default, and a person's own interview hours all use it.
+  // interview sheet, a stage's default, and a person's own interview hours all use it. In a narrow container (a phone's sheet)
+  // a day's From and To go on the line under its name, so the times stay readable.
   let {
     value = $bindable([]),
     legend,
@@ -46,14 +47,14 @@
   const errorId = $derived(`${id}-error`);
 </script>
 
-<fieldset class="flex min-w-0 flex-col gap-2" aria-describedby={errors?.length ? errorId : undefined}>
+<fieldset class="@container flex min-w-0 flex-col gap-2" aria-describedby={errors?.length ? errorId : undefined}>
   <legend class="mb-1 text-body font-medium">{legend}</legend>
   {#if description}<p class="text-muted-foreground">{description}</p>{/if}
   <ul class="flex flex-col gap-2">
     {#each weekDays as { day, label } (day)}
       {@const row = of(day)}
-      <li class="grid min-w-0 grid-cols-[minmax(0,7rem)_1fr_1fr] items-center gap-2">
-        <label class="flex min-w-0 items-center gap-2 pointer-coarse:min-h-11">
+      <li class="grid min-w-0 grid-cols-2 items-center gap-2 @sm:grid-cols-[minmax(0,7rem)_1fr_1fr]">
+        <label class={cn('flex min-w-0 items-center gap-2 pointer-coarse:min-h-11', row && 'col-span-2 @sm:col-span-1')}>
           <input type="checkbox" class={checkboxClass} checked={row !== undefined} onchange={(event) => toggle(day, event.currentTarget.checked)} />
           <span class={cn('truncate', !row && 'text-muted-foreground')}>{label}</span>
         </label>
@@ -65,7 +66,7 @@
             {#each timeOptions as time (time.value)}<option value={time.value}>{time.label}</option>{/each}
           </select>
         {:else}
-          <span class="col-span-2 text-muted-foreground">No hours</span>
+          <span class="text-muted-foreground @sm:col-span-2">No hours</span>
         {/if}
       </li>
     {/each}

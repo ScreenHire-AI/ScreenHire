@@ -122,15 +122,15 @@
 </script>
 
 <Sheet.Root bind:open>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
+  <Sheet.Content side="right" class="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
     <Sheet.Header>
       <Sheet.Title>{fixed.booked ? 'Move the interview' : 'Change how they pick'}</Sheet.Title>
       <Sheet.Description>
         {fixed.booked ? 'The booked time stays until a new one is booked.' : `${firstName}'s link stays the same, and they are emailed the change.`}
-        {durationLabel(fixed.minutes)}, in {zoneLabel(fixed.zone)}.
       </Sheet.Description>
     </Sheet.Header>
     <form method="POST" use:enhance novalidate class="flex flex-col gap-5 px-4 pb-4" data-change-option>
+      <p class="text-muted-foreground">{durationLabel(fixed.minutes)}, in {zoneLabel(fixed.zone)}.</p>
       <div class="flex flex-col gap-2">
         <span id="change-option-label" class="text-body font-medium">How should {firstName} pick a time?</span>
         <div role="radiogroup" aria-labelledby="change-option-label" class="flex flex-col gap-2">

@@ -22,7 +22,6 @@ export const accountSections: readonly AccountSection[] = [
   { label: 'Preferences', href: '/account/preferences', keywords: ['theme', 'dark', 'shortcuts', 'confirm moves', 'motion'] },
 ];
 
-
 /** The breadcrumb of an account page: Account, then the page. */
 export function accountCrumbs(href: string): { label: string; href?: string }[] {
   const section = accountSections.find((entry) => entry.href === href);

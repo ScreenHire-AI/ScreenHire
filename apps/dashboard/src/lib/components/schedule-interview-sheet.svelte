@@ -226,7 +226,7 @@
 </script>
 
 <Sheet.Root bind:open>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
+  <Sheet.Content side="right" class="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
     <Sheet.Header>
       <Sheet.Title>Schedule {meetingName}</Sheet.Title>
       <Sheet.Description>Nothing reaches {candidateName} until you send it.</Sheet.Description>
@@ -253,7 +253,7 @@
           <!-- Times from calendars need someone whose time is known; this opens the sheet that connects a calendar. -->
           <Empty.Root>
             <Empty.Header>
-              <Empty.Description>Nobody who sees this job has a calendar connected or interview hours set.</Empty.Description>
+              <Empty.Description>Nobody who sees this job has a calendar connected or interview hours set. The other two ways work without them.</Empty.Description>
             </Empty.Header>
             <Empty.Content>
               <Button type="button" variant="outline" size="lg" onclick={connectCalendar}><CalendarIcon aria-hidden="true" />Connect your calendar or set your hours</Button>
@@ -429,14 +429,12 @@
         {/if}
       {/if}
       <FailureText message={$errors._errors?.[0]} />
-      {#if !nobodyCanInterview}
-        <div class="flex justify-end gap-2">
-          <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
-          {#if people}
-            <Button type="submit" size="lg" disabled={$submitting}><SendIcon aria-hidden="true" />Send</Button>
-          {/if}
-        </div>
-      {/if}
+      <div class="flex justify-end gap-2">
+        <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
+        {#if people && !nobodyCanInterview}
+          <Button type="submit" size="lg" disabled={$submitting}><SendIcon aria-hidden="true" />Send</Button>
+        {/if}
+      </div>
     </form>
   </Sheet.Content>
 </Sheet.Root>

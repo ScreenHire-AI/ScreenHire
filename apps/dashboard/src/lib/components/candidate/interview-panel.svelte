@@ -154,7 +154,7 @@
 {/if}
 
 <Sheet.Root bind:open={askOpen}>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-xl">
+  <Sheet.Content side="right" class="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
     <Sheet.Header>
       <Sheet.Title>Ask for more times</Sheet.Title>
       <Sheet.Description>{firstName} is emailed on the same link to send a few more times.</Sheet.Description>
