@@ -393,7 +393,7 @@ Authors check their screens against this list, and the `design-review` agent rep
   its sheet (a team, a tag's Rename, a member's Edit access, a scorecard, a board's Customize), marked `data-row-link`.
   `rowLink` (`#lib/row-link.ts`, `{@attach rowLink}` on the `<tr>`) follows it from the rest of the row and leaves alone
   a click on a button, a menu, a checkbox, a text field or another link, a click that ends a text selection or closes a
-  menu, and a tap on cut text, which opens its tooltip (F4). Ctrl, Cmd, Shift or a middle click opens a link's record in a
+  menu, and a tap on cut text, which opens its tooltip (F4); text that fits opens the record on a tap. Ctrl, Cmd, Shift or a middle click opens a link's record in a
   new tab. The row has a hover background and the hand cursor, which the theme gives a `data-row-click` row while it
   holds the control. The checkbox's cell is the whole target for selecting: its label fills the cell (`selectCellLabel`),
   at least 48px tall and 70px wide on touch. A row with nothing to open (an API key, an invitation, a scorecard still

@@ -298,9 +298,14 @@ describe('candidate table', () => {
 
     await fireEvent.click(stage!);
     expect(follow).toHaveBeenCalledTimes(1);
+    // A tap on the stage's words opens the record too: they fit, so their tooltip is off and has nothing to show.
+    const tap = new MouseEvent('click', { bubbles: true, cancelable: true });
+    Object.defineProperty(tap, 'pointerType', { value: 'touch' });
+    within(stage!).getByText(applications.find((application) => application.candidateName === 'Casey Morgan')!.stage.name).dispatchEvent(tap);
+    expect(follow).toHaveBeenCalledTimes(2);
     await fireEvent.click(select!);
     expect(within(row).getByRole('checkbox')).toBeChecked();
-    expect(follow).toHaveBeenCalledTimes(1);
+    expect(follow).toHaveBeenCalledTimes(2);
   });
 
   it('keeps its sr-only labels inside the scroller, so a phone page does not scroll sideways (F1)', () => {

@@ -16,6 +16,7 @@ function makeRow(control: 'link' | 'button' | 'none' = 'link') {
     }</td>
     <td data-cell="text"><span data-text>Senior .NET Engineer</span></td>
     <td data-cell="hint"><span data-tooltip-trigger tabindex="0">Remote (United Kingdom, Ireland)</span></td>
+    <td data-cell="fits"><span data-tooltip-trigger data-disabled>Full time</span></td>
     <td data-cell="job"><a href="/jobs/1" data-other-link>Job</a></td>
     <td data-cell="menu"><button type="button" aria-haspopup="menu" data-menu>More</button><span role="menuitem" data-item>Move</span></td>
     <td data-cell="note"><input type="text" data-field /><span data-row-ignore><span data-ignored>Own click</span></span></td>
@@ -91,6 +92,9 @@ describe('rowLink', () => {
     click(find('[data-cell="select"]'));
     expect(box.checked).toBe(true);
     click(find('[data-cell="select"]'), { ctrlKey: true });
+    expect(box.checked).toBe(false);
+    click(find('[data-cell="select"]'), { button: 1 }, 'pointerdown');
+    click(find('[data-cell="select"]'), { button: 1 }, 'auxclick');
     expect(box.checked).toBe(false);
     box.disabled = true;
     click(find('[data-cell="select"]'));
@@ -189,15 +193,19 @@ describe('rowLink', () => {
     expect(follow).toHaveBeenCalledTimes(1);
   });
 
-  it("lets a tap on cut text open its tooltip, while a mouse click on it follows the row", () => {
+  it('lets a tap on cut text open its tooltip, while a mouse click on it, or a tap on text that fits, follows the row', () => {
     const { row, find } = makeRow();
-    const tap = new MouseEvent('click', { bubbles: true });
-    Object.defineProperty(tap, 'target', { value: find('[data-tooltip-trigger]') });
-    Object.defineProperty(tap, 'pointerType', { value: 'touch' });
-    expect(rowClick(tap, row)).toBeNull();
+    const tap = (selector: string) => {
+      const event = new MouseEvent('click', { bubbles: true });
+      Object.defineProperty(event, 'target', { value: find(selector) });
+      Object.defineProperty(event, 'pointerType', { value: 'touch' });
+      return rowClick(event, row);
+    };
+    expect(tap('[data-cell="hint"] span')).toBeNull();
+    expect(tap('[data-cell="fits"] span')).toEqual({ control: find('[data-row-link]'), newTab: false });
 
     const mouse = new MouseEvent('click', { bubbles: true });
-    Object.defineProperty(mouse, 'target', { value: find('[data-tooltip-trigger]') });
+    Object.defineProperty(mouse, 'target', { value: find('[data-cell="hint"] span') });
     Object.defineProperty(mouse, 'pointerType', { value: 'mouse' });
     expect(rowClick(mouse, row)).toEqual({ control: find('[data-row-link]'), newTab: false });
   });

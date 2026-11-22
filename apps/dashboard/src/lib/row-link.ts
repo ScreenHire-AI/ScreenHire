@@ -59,12 +59,13 @@ export function rowClick(event: MouseEvent, row: HTMLElement): RowClick {
   if (!target || !row.contains(target)) return null;
   const own = target.closest(ownClick);
   if (own && row.contains(own)) return null;
-  // A tap on cut text opens its tooltip (Hint, F4), because a touch screen has no hover to show it.
-  if ((event as PointerEvent).pointerType === 'touch' && target.closest('[data-tooltip-trigger]')) return null;
+  // A tap on cut text opens its tooltip (Hint, F4), because a touch screen has no hover to show it. Text that fits has a
+  // disabled trigger, and a tap on it opens the record like any other.
+  if ((event as PointerEvent).pointerType === 'touch' && target.closest('[data-tooltip-trigger]:not([data-disabled])')) return null;
   if (selectsText(row)) return null;
   // The checkbox's cell is all its own: a click in it selects, wherever the label stops (L5).
   const checkbox = target.closest('td, th')?.querySelector<HTMLInputElement>('input[type="checkbox"]');
-  if (checkbox) return checkbox.disabled ? null : { control: checkbox, newTab: false };
+  if (checkbox) return checkbox.disabled || event.button !== 0 ? null : { control: checkbox, newTab: false };
   const control = row.querySelector<HTMLElement>('[data-row-link]');
   if (!control || control.matches(':disabled, [aria-disabled="true"]')) return null;
   const isLink = control instanceof HTMLAnchorElement && control.href !== '';
