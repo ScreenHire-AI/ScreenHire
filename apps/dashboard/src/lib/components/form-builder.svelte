@@ -367,14 +367,14 @@
                     {#snippet trigger(props)}
                       {@const Icon = kind.icon}
                       <Button {...props} variant="outline" size="lg" aria-label={`Answer: ${kind.label}`} class="shrink-0">
-                        {#if Icon}<Icon aria-hidden="true" />{/if}{kind.label}<ChevronDownIcon aria-hidden="true" />
+                        {#if Icon}<Icon aria-hidden="true" />{/if}<span class="hidden @md:inline">{kind.label}</span><ChevronDownIcon aria-hidden="true" />
                       </Button>
                     {/snippet}
                   </AnswerMenu>
                 </span>
               {:else}
                 <!-- The kind in the box the open row's answer menu takes, so nothing moves. The name gives way to its icon
-                     in a narrow list, so the question keeps the room (F5). -->
+                     in a narrow list, open or closed, so the question keeps the room (F5). -->
                 <span aria-hidden="true" class="inline-flex h-9 items-center gap-2 border border-transparent px-3 text-muted-foreground">
                   {#if kind.icon}{@const Icon = kind.icon}<Icon />{/if}<span class="hidden @md:inline">{kind.label}</span>
                 </span>

@@ -915,8 +915,8 @@ export const actionKindWords: Partial<Record<ActionType, string>> = {
 const probeTag = '\u0001probe';
 
 /**
- * The action kinds the sentence offers at step `step` (or a new step at the end). Never a rejection (a saved one stays
- * readable, adding one is on Rules), never RequestVerification (not available yet), and, for an automation a check
+ * The action kinds the sentence offers at step `step` (or a new step at the end). Never a rejection (a saved one opens on
+ * Rules, `sentenceLimit`, and reads as a sentence only in the list and on the map), never RequestVerification (not available yet), and, for an automation a check
  * drives, only what the validator allows after a check. Each kind is offered only if choosing it creates no refused step
  * anywhere in the workflow.
  */

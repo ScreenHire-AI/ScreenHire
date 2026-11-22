@@ -1,7 +1,7 @@
 // Our addition: whether a focus is the person's own keyboard move. A tooltip opens on hover and on keyboard focus, never
 // when code moves the focus (a sheet's first field, a view that settles, the focus coming back when a menu or sheet
-// closes). bits-ui's `ignoreNonKeyboardFocus` asks `:focus-visible`, which browsers also match for a script's focus after
-// any key press, Enter and Escape included, so a sheet opened with Enter still showed its Close tooltip. A focus counts
+// closes). bits-ui's `ignoreNonKeyboardFocus` asks `:focus-visible`, which Chrome also matches for a script's focus after
+// any key press, Enter and Escape included, and jsdom for every focus, so it cannot tell the two apart. A focus counts
 // here only while the default action of a key that moves focus runs: Tab, and the arrows, Home and End a toolbar moves by.
 
 const focusKeys = new Set(['Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End']);

@@ -191,13 +191,13 @@ public abstract class BrowserTest(E2EFixture fixture) : IAsyncLifetime
     {
         // Colours ease when the theme switches or a button's state changes (disabled fades to half opacity), and an overlay
         // fades in (a tooltip, a menu); axe measuring mid-way reports a contrast no one sees. Two frames first, so a state
-        // change the page has just made has started, then every transition and every animation that ends. An endless
-        // animation (a skeleton's pulse) would never finish, so it is left out.
+        // change the page has just made has started, then every running transition and animation that ends. An endless
+        // animation (a skeleton's pulse) or a paused one would never finish, so it is left out.
         await page.EvaluateAsync(
             """
             async () => {
               for (let frame = 0; frame < 2; frame++) await new Promise(resolve => requestAnimationFrame(() => resolve()));
-              const ends = a => a instanceof CSSTransition || (a instanceof CSSAnimation && Number.isFinite(a.effect?.getComputedTiming().endTime));
+              const ends = a => a.playState === 'running' && (a instanceof CSSTransition || (a instanceof CSSAnimation && Number.isFinite(a.effect?.getComputedTiming().endTime)));
               await Promise.all(document.getAnimations().filter(ends).map(a => a.finished.catch(() => undefined)));
             }
             """);
