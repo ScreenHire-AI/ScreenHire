@@ -28,7 +28,7 @@ ScreenHire is in development. This file and the site describe the product as des
 - One-click posting to a careers page, Google for Jobs and job boards, one-click removal with per-board status, and
   manual postings with tracked links for boards with no feed.
 - A public API and webhooks, Slack, Google and Outlook calendars, and an MCP server for AI assistants that asks the
-  person before it sends an email, publishes or closes a job, or rejects a candidate.
+  person before it sends an email, publishes or closes a job, or moves a candidate to a rejected stage.
 - Stages, a library of forms and scorecards, email templates and branding that a team sets up its own way, with roles,
   named teams and access to each job.
 - Pricing by how many jobs are open at once, with unlimited users and every feature on every plan.

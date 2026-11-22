@@ -33,7 +33,7 @@ const render = (component: Parameters<AstroContainer['renderToString']>[0], prop
   container.renderToString(component, { props, request: new Request('http://localhost/pricing/') });
 
 describe('LevelChip', () => {
-  it("draws each level as the dashboard does: its one word, the long name for screen readers, and its icon", async () => {
+  it('draws each level as the dashboard does: its one word, the long name for screen readers, and its icon', async () => {
     for (const [key, level] of Object.entries(levels)) {
       const html = await render(LevelChip, { level: key });
       expect(html).toContain(`<span aria-hidden="true">${level.word}</span>`);

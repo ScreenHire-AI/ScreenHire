@@ -140,8 +140,8 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
                 WideTo: page => PanelTitled(page, "Stages"), WideMargin: 4,
                 Phone: new(Height: 1800, Margin: 10, From: page => PanelTitled(page, "Stages"), To: Stage4)),
 
-            // 7. Try it on the showcase job: the good-fit applicant, moved on from Applied, with what the next stage sends and the
-            // team's tasks there. Never the applicant the checks flag. Both pictures end below the row with Start again.
+            // 7. Try it on the showcase job: the good-fit applicant, moved on from Applied, with the email the next stage sends and the
+            // step that moves them on. Never the applicant the checks flag. Both pictures end below the row with Start again.
             new("try-it", DashboardUrl($"/jobs/{showcaseJobId}/workflow?tab=test"), "pipeline", TryItAsync, Height: 1500,
                 WideTo: StartAgain, WideMargin: 24,
                 Phone: new(Height: 2400, Margin: 24, From: page => page.Locator("[data-try-it-step]"), To: StartAgain)),
