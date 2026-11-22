@@ -146,6 +146,12 @@ joined by single hyphens, and a family that is not letters and digits in single-
 (`HeadingFonts.IsValidId`, `IsValidFamily`). Every Google Fonts id and name has that shape. `CareersLayout` preloads the
 hosted font's latin file nearest 700, so the title more often draws in it on first paint.
 
+Measured on 2026-11-22 with mobile Lighthouse (performance only, median of three runs) on the production builds
+(`ScreenHire:Frontends=Built`), on Brightwater's jobs list and a job page. With ScreenHire's font, both scored 100,
+with LCP 1,058 and 1,057 ms. With hosted Merriweather they scored 100 again, with LCP 1,062 and 1,063 ms. CLS was 0 and
+0.0015 both times. The hosted family added two files of 48 KB each (latin 700 and 800), both from the careers origin,
+and no request left it.
+
 **The picker.** Branding's Heading font panel offers the six and ScreenHire's, the catalogue font in use or just
 picked, and More fonts, a sheet (`heading-font-sheet.svelte`) with a search, the five style filters and the whole
 catalogue 40 at a time. Each name is drawn in its own face. A family's face loads from
