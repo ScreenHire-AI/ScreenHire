@@ -38,7 +38,7 @@ sources:
   - resource: apps/api/Contracts/FormTemplateContracts.cs
   - resource: apps/dashboard/src/lib/form-library.ts
   - resource: apps/dashboard/src/lib/application-forms.ts
-  - resource: apps/dashboard/src/lib/components/new-form-dialog.svelte
+  - resource: apps/dashboard/src/lib/components/new-form-sheet.svelte
   - resource: apps/dashboard/src/lib/components/form-update-templates-dialog.svelte
   - resource: apps/dashboard/src/lib/components/candidate/application-tab.svelte
   - resource: apps/dashboard/src/lib/components/candidate/send-form-sheet.svelte
@@ -410,7 +410,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   steps, another trigger) is never rewritten: `sendingOf` says so and the line links to that automation. New form opens
   `add-form-sheet.svelte`: the library's published forms the workflow does not use, each with its question count; one
   whose question ids another form here already uses is disabled and says which question (`questionClashes`), and Build a
-  new form opens the library's new form dialog, whose editor offers Use it in the template once it is published (the
+  new form opens the library's new form sheet, whose editor offers Use it in the template once it is published (the
   template page then adds it from `?addForm=`). A library form's questions read here (`question-list.svelte`) with
   Edit in the library, and Use version N when the library has a newer version (`useLibraryVersion`, which keeps the
   form's id, so what sends it and what reads its answers still do). `removeForm` takes a form with the automations that
@@ -635,7 +635,10 @@ The data model and API from the jobs and templates task, and the engine that run
   `ScreenHire:Forms:EqualityMonitoring:Enabled` is on (default off, pending a legal review): every question is an
   optional SingleChoice, MultiChoice or YesNo with no knockout; no condition may read an equality question's
   `answers.{id}`, and no `QuestionnaireCompleted` trigger may name the form. Sending one is allowed. Its answers never
-  leave as answers (section 8): they only count toward totals in Reports.
+  leave as answers (section 8): they only count toward totals in Reports. The setting gates making such a form and
+  reading the totals, not sending: turned off after forms exist, their automations and Send a form still send them and
+  answers are still kept, unseen until it is on again. The legal review also covers the totals' differencing limit
+  ([reports](reports.md#7-equality-monitoring)).
 - **AI use.** A definition has no AI-use policy. ScreenHire asks the question on every application, and the policy is
   `VerificationSettings.DefaultAiUse` (Verification, Checks), which a job may override (`PUT /v1/jobs/{id}/ai-use`, in the
   job's own settings and not in its workflow). `AiUsePolicies.Effective` is the one place that decides: the job's override, else

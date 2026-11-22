@@ -177,11 +177,17 @@ several templates and jobs is counted once across them.
   the person cannot see adds nothing. A request counts by when it was answered. It reads through EF, so the tenant
   filter and the job access filter narrow it as row-level security does.
 - **Small counts are hidden** (`SmallCounts.Suppress`): every count under 5, zero included, is null, and when only one
-  count of a question would be hidden the next smallest is hidden with it, so the shown counts and the number of
-  responses never give the hidden one away. A form fewer than 5 candidates answered in the range shows only that.
+  count of a question would be hidden the next smallest is hidden with it, so a lone hidden count cannot be worked out
+  from the shown counts and the number of responses. Where two or more are hidden, their sum still can be for a single
+  choice or yes/no question; each one stays unknown. A form fewer than 5 candidates answered in the range shows only that.
 - **Nothing names a candidate.** The response carries the forms, questions and answers and their counts, never an id of
   an application or a person. Labels come from every published version, the newest winning.
 - **The page.** `equality-report-panel.svelte`, after the other panels, a panel per form and a table per question, with
   "Fewer than 5" where a count is hidden, for someone who may see it where the deployment offers equality forms.
-- **Known limit.** Two overlapping ranges, or a range and a job filter, can still be compared to narrow a count down.
-  The legal review the setting waits on decides whether that needs more than the rule above.
+- **Known limit: differencing.** Hiding small counts protects each response on its own, not two responses compared.
+  Someone who may see the totals can still narrow a count down to one candidate in three ways: two ranges that differ by
+  a few minutes (the application's timeline shows when each candidate answered); one job's totals against all jobs'; and
+  the sum of two or more hidden counts, as above. Snapping the range to whole days or setting a minimum length would not
+  close the first: a range one day longer still shows a lone answer from that day. Closing it takes fixed reporting
+  periods or added noise, which is the legal review's call, along with whether the "Answered" time may show on the
+  candidate's page. The setting stays off until then.
