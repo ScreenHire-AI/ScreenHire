@@ -8,6 +8,7 @@ import { preferences } from '../preferences.svelte.js';
 import { activityPanel } from '../activity-feed.svelte.js';
 import { setupPanel } from '../setup-panel.svelte.js';
 import NotificationBell from './notification-bell.svelte';
+import { pressTab } from '../../test-support/keyboard.js';
 
 const id = (n: number) => `01a157d4-0000-7000-8000-0000000004${n.toString().padStart(2, '0')}`;
 const unreadItem = {
@@ -137,6 +138,7 @@ describe('notification bell', () => {
     stub([], 0);
     renderBell();
 
+    await pressTab();
     await fireEvent.focus(await screen.findByRole('button', { name: 'Notifications, 3 need attention' }));
 
     expect(await screen.findAllByText('Setup and notifications')).not.toHaveLength(0);

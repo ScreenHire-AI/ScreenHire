@@ -2,13 +2,14 @@
 // result beside its title.
 import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import { apiStub } from '../../../test-support/fixtures.js';
 import { inHiddenPane } from '../../../test-support/panes.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
 import { stubViewport } from '../../../test-support/viewport.js';
 import type { WorkflowTab } from '#lib/workflow-tabs.js';
+import { preferences } from '#lib/preferences.svelte.js';
 import WorkflowHarness from '../../../test-support/workflow-harness.svelte';
 import ValidationBadge from './validation-badge.svelte';
 
@@ -36,6 +37,12 @@ const workflow: HiringWorkflow = {
   ],
 };
 
+// The tab an automation opens on is remembered in this browser: each test starts from the default, Sentence.
+beforeEach(() => {
+  localStorage.removeItem('screenhire:automation-view');
+  preferences.automationView = 'sentence';
+});
+
 const renderViews = (mode: 'editor' | 'summary', tab: WorkflowTab = 'pipeline', errors: DefinitionError[] = [], flow: HiringWorkflow = workflow) =>
   render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: structuredClone(flow), errors, mode, tab } } });
 
@@ -50,7 +57,7 @@ async function chooseStageAction(stage: string, action: string) {
   await fireEvent.click(await screen.findByRole('menuitem', { name: action }));
 }
 
-// A stage's Add an automation opens the recipes; Write your own opens an empty automation as a sentence, and Edit as rules its
+// A stage's Add an automation opens the recipes; Write your own opens an empty automation as a sentence, and the Rules tab its
 // full form, which keeps the selects the form tests below read.
 async function writeOwn(stage: string): Promise<HTMLElement> {
   await chooseStageAction(stage, 'Add an automation');
@@ -61,7 +68,7 @@ async function writeOwn(stage: string): Promise<HTMLElement> {
 
 async function writeOwnAsRules(stage: string): Promise<HTMLElement> {
   const sheet = await writeOwn(stage);
-  await fireEvent.click(within(sheet).getByRole('button', { name: 'Edit as rules' }));
+  await fireEvent.click(within(sheet).getByRole('tab', { name: 'Rules' }));
   await within(sheet).findByRole('combobox', { name: 'Trigger' });
   return sheet;
 }
@@ -497,7 +504,7 @@ describe('workflow builder', () => {
     render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: withInterview, errors, mode: 'editor', tab: 'automations' } } });
     await fireEvent.click(within(screen.getByRole('tabpanel', { name: 'Automations' })).getByRole('button', { name: (name) => name.includes('Then action 1 in Tag screened') }));
     const sheet = await screen.findByRole('dialog', { name: 'Tag screened' });
-    await fireEvent.click(within(sheet).getByRole('button', { name: 'Edit as rules' }));
+    await fireEvent.click(within(sheet).getByRole('tab', { name: 'Rules' }));
 
     const days = within(sheet).getByRole('spinbutton', { name: 'Days to choose' });
     const described = (control: HTMLElement) => control.getAttribute('aria-describedby')?.split(' ').map((id) => document.getElementById(id)?.textContent?.trim());

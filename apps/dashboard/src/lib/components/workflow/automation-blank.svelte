@@ -8,6 +8,7 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import type { Blank } from '#lib/automation-sentence.js';
   import { cn } from '#lib/utils.js';
+  import { addChipClass } from './controls.js';
 
   // One blank of an automation's sentence (design system section 11, Automation sentence): a bordered chip with a chevron
   // that opens a short list of plain choices, grouped where the choices are many. A choice closes the list and fills the
@@ -44,13 +45,14 @@
   const headings = $derived([...new Set(shown.map((choice) => choice.group ?? ''))]);
   const shownText = $derived(blank.text || blank.placeholder || '');
   const chip = $derived(
-    cn(
-      'inline-flex max-w-full min-w-0 items-center gap-1 rounded-lg border bg-card px-2 py-0.5 align-middle text-left leading-6 font-semibold text-foreground shadow-surface',
-      'min-h-8 pointer-coarse:min-h-11 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-      invalid ? 'border-status-verify-mark' : 'border-input',
-      !blank.text && blank.kind === 'text' && 'text-muted-foreground',
-      blank.adds && 'border-dashed text-muted-foreground hover:text-foreground',
-    ),
+    blank.adds
+      ? cn(addChipClass, invalid && 'border-status-verify-mark')
+      : cn(
+          'inline-flex max-w-full min-w-0 items-center gap-1 rounded-lg border bg-card px-2 py-0.5 align-middle text-left leading-6 font-semibold text-foreground shadow-surface',
+          'min-h-8 pointer-coarse:min-h-11 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+          invalid ? 'border-status-verify-mark' : 'border-input',
+          !blank.text && blank.kind === 'text' && 'text-muted-foreground',
+        ),
   );
 
   function choose(id: string) {

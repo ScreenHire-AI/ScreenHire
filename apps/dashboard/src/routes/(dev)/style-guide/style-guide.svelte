@@ -957,6 +957,10 @@
         <GraphDemo />
       </Panel>
 
+      <Panel title="Automation sheet">
+        <div class="max-w-2xl"><AutomationDemo part="sheet" /></div>
+      </Panel>
+
       <Panel title="Automation sentence">
         <div class="max-w-form"><AutomationDemo part="sentence" /></div>
       </Panel>

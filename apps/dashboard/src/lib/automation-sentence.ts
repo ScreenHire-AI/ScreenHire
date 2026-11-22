@@ -2,7 +2,7 @@
 // [someone applies] and [their answer to Right to work] [is] [No], [ask] [the team] to review and [add the tag] [Not
 // eligible]". Every blank is a short list of plain choices. This module is the model behind it and nothing else: it turns an
 // automation into parts, and each blank's `apply` returns the automation with that one choice made. The definition stays the
-// one format, the validator (DefinitionValidator) stays the judge, and the full form is still one press away (Edit as rules).
+// one format, the validator (DefinitionValidator) stays the judge, and the full form is the sheet's other tab (Rules).
 //
 // The guardrail lives here too (workflow-engine.md section 2, guardrails 1 and 6): a check can only ask for a closer look,
 // a person decides. `violations` ports the validator's reasoning, including its one-remove rule (a tag a check adds, a stage
@@ -915,8 +915,8 @@ export const actionKindWords: Partial<Record<ActionType, string>> = {
 const probeTag = '\u0001probe';
 
 /**
- * The action kinds the sentence offers at step `step` (or a new step at the end). Never a rejection (a saved one stays
- * readable, adding one is Edit as rules), never RequestVerification (not available yet), and, for an automation a check
+ * The action kinds the sentence offers at step `step` (or a new step at the end). Never a rejection (a saved one opens on
+ * Rules, `sentenceLimit`, and reads as a sentence only in the list and on the map), never RequestVerification (not available yet), and, for an automation a check
  * drives, only what the validator allows after a check. Each kind is offered only if choosing it creates no refused step
  * anywhere in the workflow.
  */
@@ -1145,6 +1145,25 @@ export function sentenceOf(workflow: HiringWorkflow, index: number, ctx: Sentenc
   const automation = workflow.automations[index];
   if (!automation) return [];
   return [...triggerParts(automation, index, workflow), ...conditionParts(automation, index, workflow, ctx), ...actionParts(automation, index, workflow, ctx), text('.', true)];
+}
+
+/**
+ * Why an automation is too complex for a sentence, in one line, or null when a sentence says all of it. The sheet then
+ * opens it on Rules, and its Sentence tab shows this line. Two things qualify, both what the sentence cannot edit, never its
+ * length: a step that turns someone down (whether a person reviews first is a Rules choice the sentence has no words for),
+ * and a condition on something the trigger does not offer, which the sentence could only show by its stored name.
+ */
+export function sentenceLimit(workflow: HiringWorkflow, index: number): string | null {
+  const automation = workflow.automations[index];
+  if (!automation) return null;
+  if (automation.actions.some((action) => action.type === 'Reject')) {
+    return 'Too complex for a sentence: it turns someone down, and whether a person reviews first is set on Rules.';
+  }
+  const facts = factsFor(workflow, automation.trigger.type);
+  if ((automation.conditions?.rules ?? []).some((rule) => !facts.some((option) => option.fact === rule.fact))) {
+    return 'Too complex for a sentence: a condition checks something this trigger does not offer.';
+  }
+  return null;
 }
 
 /** Every blank of a sentence, in reading order. */
