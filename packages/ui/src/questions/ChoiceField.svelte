@@ -12,9 +12,21 @@
     required?: boolean;
     hint?: string | null;
     error?: string | null;
+    /** Its first choice takes the focus when the page loads: the first question of a careers page. Never in the preview. */
+    autofocus?: boolean;
   }
 
-  let { name, legend, options, selected = $bindable([]), multiple = false, required = false, hint = null, error = null }: Props = $props();
+  let {
+    name,
+    legend,
+    options,
+    selected = $bindable([]),
+    multiple = false,
+    required = false,
+    hint = null,
+    error = null,
+    autofocus = false,
+  }: Props = $props();
 
   const id = $derived(fieldId(name));
 
@@ -31,9 +43,11 @@
   </legend>
   {#if hint}<p id={`${id}-hint`} class="-mt-1 text-candidate-hint text-candidate-muted-foreground">{hint}</p>{/if}
   {#if error}<p id={`${id}-error`} class="text-candidate-body font-semibold text-destructive">{error}</p>{/if}
-  {#each options as option (option.value)}
+  {#each options as option, index (option.value)}
     <label class="choice">
+      <!-- svelte-ignore a11y_autofocus -- only the careers page sets it, for the first question of a page the candidate just moved to (apply-flow.md §7); the preview never does -->
       <input
+        autofocus={autofocus && index === 0}
         type={multiple ? 'checkbox' : 'radio'}
         {name}
         value={option.value}

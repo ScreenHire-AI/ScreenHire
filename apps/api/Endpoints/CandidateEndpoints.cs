@@ -43,7 +43,7 @@ internal static class CandidateEndpoints
 
         var applications = await db.Applications.AsNoTracking()
             .Where(a => a.CandidateId == candidateId)
-            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { ApplicationId = a.Id, JobId = j.Id, j.Title, j.Workflow })
+            .Join(db.Jobs, a => a.JobId, j => j.Id, (a, j) => new { ApplicationId = a.Id, JobId = j.Id, j.Title, j.Workflow, j.Former })
             .ToListAsync(cancellationToken);
         var ids = applications.Select(a => a.ApplicationId).ToList();
         var events = await db.ApplicationEvents.AsNoTracking()
@@ -68,7 +68,7 @@ internal static class CandidateEndpoints
                 e.Data.NoteId is { } noteId ? notes.GetValueOrDefault(noteId) : null,
                 e.Data.ApiKeyId is { } keyId ? keyNames.GetValueOrDefault(keyId) : null);
             // A reviewer with a scorecard still to give must not read others' (ADR-0013); the history never shows them.
-            string? NameOf(string? stageId) => stageId is null ? null : application.Workflow.FindStage(stageId)?.Name;
+            string? NameOf(string? stageId) => application.Former.StageName(application.Workflow, stageId);
             return new CandidateHistoryEntry(
                 e.ApplicationId, application.JobId, application.Title, entry with { ScorecardId = null, Recommendation = null },
                 NameOf(entry.FromStageId), NameOf(entry.ToStageId), NameOf(entry.StageId));

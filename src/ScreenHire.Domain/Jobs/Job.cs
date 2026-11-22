@@ -67,6 +67,15 @@ public sealed class Job : ITenantOwned
     /// <summary>This job's own copy of the hiring workflow. Template changes never reach it silently.</summary>
     public HiringWorkflow Workflow { get; private set; } = HiringWorkflow.Default;
 
+    /// <summary>
+    /// The stages and apply-form questions earlier versions of <see cref="Workflow"/> had and it no longer does, so
+    /// applications' timelines and answers still read in words after a change or a template switch.
+    /// </summary>
+    public FormerWorkflowParts Former { get; private set; } = FormerWorkflowParts.None;
+
+    /// <summary>A stage's name: the workflow's, else a former stage's, else null.</summary>
+    public string? StageName(string? stageId) => Former.StageName(Workflow, stageId);
+
     /// <summary>Applications record the workflow version they entered under (workflow-engine.md §3).</summary>
     public int WorkflowVersion { get; private set; } = 1;
 
@@ -237,9 +246,29 @@ public sealed class Job : ITenantOwned
             throw new InvalidOperationException("A closed job cannot be changed; create a new job instead.");
         }
 
+        Former = Former.Keep(Workflow, workflow);
         Workflow = workflow;
         WorkflowVersion++;
         UpdatedAt = now;
+    }
+
+    /// <summary>
+    /// Replaces the job's workflow with a published version of any template, the recruiter's "Switch template"
+    /// (workflow-engine.md section 7, Tailoring a job), and makes that template the job's source. It replaces the job's own
+    /// edits too. The caller moves the applications to the new stages in the same save.
+    /// </summary>
+    public void SwitchTemplate(HiringTemplateVersion version, DateTimeOffset now, IReadOnlyDictionary<string, Scorecard>? scorecards = null)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        if (version.Status != TemplateVersionStatus.Published)
+        {
+            throw new InvalidOperationException("Jobs take published template versions only.");
+        }
+
+        ReviseWorkflow(WithScorecards(version.Definition.Workflow, scorecards), now);
+        SourceTemplateId = version.TemplateId;
+        SourceTemplateVersionId = version.Id;
+        SourceTemplateVersion = version.Version;
     }
 
     /// <summary>

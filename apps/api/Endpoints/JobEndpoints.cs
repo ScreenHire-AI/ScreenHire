@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -74,6 +75,13 @@ internal static class JobEndpoints
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
         group.MapPost("/{jobId:guid}/workflow/apply-template-update", ApplyTemplateUpdate).WithName("ApplyJobTemplateUpdate").WithSummary("Update a job from its template")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditJobs)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/workflow/switch-template", GetJobTemplateSwitch).WithName("GetJobTemplateSwitch")
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{jobId:guid}/workflow/switch-template", SwitchJobTemplate).WithName("SwitchJobTemplate")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -800,6 +808,173 @@ internal static class JobEndpoints
         job.ApplyTemplateUpdate(version, time.GetUtcNow(),
             await ScorecardReferences.OwnAsync(db, version.Definition.Workflow.ScorecardTemplateIds(), cancellationToken));
         return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
+    }
+
+    // What a switch to the version would do: its stages, and each current stage that holds candidates with the stage they
+    // are preselected to. It changes nothing, so it reads for anyone who can see the job.
+    private static async Task<Results<Ok<JobTemplateSwitchPreview>, NotFound, ValidationProblem>> GetJobTemplateSwitch(
+        Guid jobId, Guid templateVersionId, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
+        if (job is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var (version, templateName, problem) = await SwitchableVersionAsync(db, templateVersionId, cancellationToken);
+        if (problem is not null)
+        {
+            return problem;
+        }
+
+        var to = version!.Definition.Workflow;
+        var counts = await db.Applications.AsNoTracking()
+            .Where(a => a.JobId == job.Id)
+            .GroupBy(a => a.CurrentStageId)
+            .Select(g => new { StageId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+        var occupied = counts
+            .Select(c => (Stage: CurrentStage(job, c.StageId), c.Count))
+            .Select(c => new OccupiedStage(c.Stage.Id, c.Stage.Name, c.Stage.Kind, c.Count, StageMapping.Suggest(job.Workflow, c.Stage, to).Id))
+            .OrderBy(s => StageOrder(job.Workflow, s.StageId))
+            .ThenBy(s => s.StageId, StringComparer.Ordinal)
+            .ToList();
+        return TypedResults.Ok(new JobTemplateSwitchPreview(
+            version.TemplateId, templateName!, version.Id, version.Version, job.WorkflowVersion,
+            [.. to.Stages.Select(s => new SwitchStage(s.Id, s.Name, s.Kind))], occupied));
+    }
+
+    // "Switch template": the job takes a published version of any template the organization can use, and every application
+    // moves to the stage the request maps its stage to, in the same save. The moves publish no ApplicationMoved, so no
+    // email goes and no automation runs; each gets a timeline entry naming the version (workflow-engine.md section 7).
+    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> SwitchJobTemplate(
+        Guid jobId,
+        SwitchJobTemplateRequest request,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        ITenantContext tenant,
+        ClaimsPrincipal user,
+        BoardRegistry boards,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        var job = await db.Jobs.SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
+        if (job is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (WorkflowConflict(job, request.ExpectedWorkflowVersion) is { } conflict)
+        {
+            return conflict;
+        }
+
+        var (version, _, problem) = await SwitchableVersionAsync(db, request.TemplateVersionId, cancellationToken);
+        if (problem is not null)
+        {
+            return problem;
+        }
+
+        var (copied, missing) = await ScorecardReferences.CopyAsync(db, version!.Definition.Workflow, "workflow", cancellationToken);
+        if (missing.ToProblems("") is { } missingProblems)
+        {
+            return TypedResults.ValidationProblem(missingProblems);
+        }
+
+        if ((await TemplateReferences.ValidateAsync(db, copied, cancellationToken)).ToProblems("workflow") is { } problems)
+        {
+            return TypedResults.ValidationProblem(problems);
+        }
+
+        var to = version.Definition.Workflow;
+        var mappings = request.StageMappings ?? [];
+        if (mappings.GroupBy(m => m.FromStageId, StringComparer.Ordinal).FirstOrDefault(g => g.Count() > 1) is { } twice)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                "stageMappings", $"The stage {job.StageName(twice.Key) ?? twice.Key} is mapped more than once."));
+        }
+
+        if (mappings.FirstOrDefault(m => to.FindStage(m.ToStageId) is null) is { } unknown)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem(
+                "stageMappings", $"The new pipeline has no stage with the id {unknown.ToStageId}."));
+        }
+
+        // Every application, saved and finished ones too, must land in a stage of the new pipeline: its mapped stage, or the
+        // stage with its stage's id when the new pipeline has one and the request maps none.
+        var targets = mappings.ToDictionary(m => m.FromStageId, m => to.FindStage(m.ToStageId)!.Id, StringComparer.Ordinal);
+        var applications = await db.Applications.Where(a => a.JobId == job.Id).ToListAsync(cancellationToken);
+        var unmapped = applications
+            .Where(a => !targets.ContainsKey(a.CurrentStageId) && to.FindStage(a.CurrentStageId) is null)
+            .GroupBy(a => a.CurrentStageId)
+            .OrderBy(g => StageOrder(job.Workflow, g.Key))
+            .Select(g => $"{job.StageName(g.Key) ?? g.Key} has {g.Count()} {(g.Count() == 1 ? "candidate" : "candidates")}. Choose a stage of the new pipeline for them.")
+            .ToArray();
+        if (unmapped.Length > 0)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["stageMappings"] = unmapped });
+        }
+
+        // Each application's stage as the old pipeline had it, read before the switch replaces the workflow: whether it had
+        // ended decides whether its stage clock (and so its retention clock) carries over.
+        var fromStages = applications.Select(a => a.CurrentStageId).Distinct(StringComparer.Ordinal)
+            .ToDictionary(id => id, id => CurrentStage(job, id), StringComparer.Ordinal);
+        var now = time.GetUtcNow();
+        job.SwitchTemplate(version, now, await ScorecardReferences.OwnAsync(db, to.ScorecardTemplateIds(), cancellationToken));
+        foreach (var application in applications)
+        {
+            // The job's own copy of the stage, scorecard included.
+            var target = job.Workflow.FindStage(targets.GetValueOrDefault(application.CurrentStageId) ?? application.CurrentStageId)!;
+            db.ApplicationEvents.Add(application.ChangePipeline(
+                fromStages[application.CurrentStageId], target, version.Id, now, tenant.UserId, user.ApiKeyId()));
+        }
+
+        return await SaveWorkflowAsync(outbox, boards, job, cancellationToken);
+    }
+
+    // A published version of a template the organization can use: its own or ScreenHire's, through the tenant filter, and
+    // not archived, as for a new job.
+    private static async Task<(HiringTemplateVersion? Version, string? TemplateName, ValidationProblem? Problem)> SwitchableVersionAsync(
+        ScreenHireDbContext db, Guid templateVersionId, CancellationToken cancellationToken)
+    {
+        var version = await db.HiringTemplateVersions.AsNoTracking()
+            .SingleOrDefaultAsync(v => v.Id == templateVersionId && v.Status == TemplateVersionStatus.Published, cancellationToken);
+        var template = version is null
+            ? null
+            : await db.HiringTemplates.AsNoTracking()
+                .Where(t => t.Id == version.TemplateId)
+                .Select(t => new { t.Name, t.ArchivedAt })
+                .SingleOrDefaultAsync(cancellationToken);
+        if (version is null || template is null)
+        {
+            return (null, null, TypedResults.ValidationProblem(
+                ValidationExtensions.Problem("templateVersionId", "No published template version has this id.")));
+        }
+
+        return template.ArchivedAt is not null
+            ? (null, null, TypedResults.ValidationProblem(
+                ValidationExtensions.Problem("templateVersionId", "The template is archived. Restore it, or choose another.")))
+            : (version, template.Name, null);
+    }
+
+    // The job's stage with this id, or the former one, so a stage the workflow lost still maps by its kind and name.
+    private static WorkflowStage CurrentStage(Job job, string stageId) =>
+        job.Workflow.FindStage(stageId)
+        ?? (job.Former.Stages.FirstOrDefault(s => s.Id == stageId) is { } former
+            ? new WorkflowStage(former.Id, former.Name, former.Kind)
+            : new WorkflowStage(stageId, stageId, StageKind.Custom));
+
+    private static int StageOrder(HiringWorkflow workflow, string stageId)
+    {
+        for (var i = 0; i < workflow.Stages.Count; i++)
+        {
+            if (workflow.Stages[i].Id == stageId)
+            {
+                return i;
+            }
+        }
+
+        return int.MaxValue;
     }
 
     private static ProblemHttpResult? WorkflowConflict(Job job, int expectedWorkflowVersion) =>

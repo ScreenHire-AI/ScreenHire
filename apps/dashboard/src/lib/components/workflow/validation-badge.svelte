@@ -7,7 +7,7 @@
   // fixes), and nothing when the workflow is fine. The region is busy while the check of the latest change is on its way,
   // so neither assistive technology nor the end-to-end tests read the previous result as the answer. The badge is status
   // only (principle 4: badges are never clickable); where the problems can be fixed, a Fix button beside it brings the
-  // focus to the first one. The Test tab shows its own notice with the fix inline, so the button is left out there.
+  // focus to the first one. The Try it tab shows its own notice with the fix inline, so the button is left out there.
   let {
     errors,
     checking = false,

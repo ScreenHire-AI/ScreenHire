@@ -96,7 +96,9 @@ public sealed record McpFollowUp(string Name, DateTimeOffset FirstSentAt, DateTi
 /// <summary>
 /// One entry of the application's activity. <c>actorUserId</c> is the member who did it, <c>actorApiKeyName</c> the API
 /// key, and <c>byAutomation</c> says an automation did; none of them means the candidate or ScreenHire. <c>note</c> is a
-/// note's text, a move's note or a task's note, written by the hiring team.
+/// note's text, a move's note or a task's note, written by the hiring team. <c>pipelineChanged</c> marks a
+/// <c>StageChanged</c> entry made when the job switched templates: nobody moved the candidate, and <c>fromStageId</c> may
+/// equal <c>toStageId</c>.
 /// </summary>
 public sealed record McpActivity(
     Guid Id,
@@ -108,7 +110,8 @@ public sealed record McpActivity(
     string? FromStageId,
     string? ToStageId,
     string? Note,
-    string? Tag);
+    string? Tag,
+    bool PipelineChanged = false);
 
 /// <summary>The application's tags after <c>add_tag</c> or <c>remove_tag</c>.</summary>
 public sealed record McpTags(Guid ApplicationId, IReadOnlyList<string> Tags);
@@ -222,9 +225,10 @@ internal static class McpMappings
             application.Tags, application.SubmittedAt);
 
     public static McpApplication ToMcp(
-        this ApplicationDetail application, HiringWorkflow workflow, IEnumerable<ApplicationTimelineEntry> timeline)
+        this ApplicationDetail application, HiringWorkflow workflow, FormerWorkflowParts former, IEnumerable<ApplicationTimelineEntry> timeline)
     {
-        var questions = ApplicationForm.QuestionsFor(workflow).ToDictionary(q => q.Id, StringComparer.Ordinal);
+        ArgumentNullException.ThrowIfNull(former);
+        var questions = former.WithQuestions(ApplicationForm.QuestionsFor(workflow)).ToDictionary(q => q.Id, StringComparer.Ordinal);
         var files = application.Files.ToDictionary(f => f.UploadId.ToString("D"), StringComparer.OrdinalIgnoreCase);
         return new(
             application.Id, application.JobId, application.JobTitle,
@@ -242,7 +246,7 @@ internal static class McpMappings
 
     public static McpActivity ToMcp(this ApplicationTimelineEntry entry) =>
         new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.ActorApiKeyName, entry.AutomationRunId is not null,
-            entry.FromStageId, entry.ToStageId, entry.Note, entry.Tag);
+            entry.FromStageId, entry.ToStageId, entry.Note, entry.Tag, entry.TemplateVersionId is not null);
 
     public static McpTask ToMcp(this ApplicationTaskEntry task) =>
         new(task.Id, task.ApplicationId, task.Note, task.AssigneeUserId, task.CreatedAt, task.CompletedAt);

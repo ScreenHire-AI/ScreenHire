@@ -98,7 +98,7 @@ internal sealed class HiringTools(
         var detail = await ApplicationReads.DetailAsync(tenant, db, boards, applicationId, cancellationToken) ?? throw new McpException(NoApplication);
         var timeline = await ApplicationReads.TimelineAsync(user, tenant, db, applicationId, cancellationToken) ?? [];
         var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == detail.JobId, cancellationToken);
-        return detail.ToMcp(job.Workflow, Enumerable.Reverse(timeline).Take(ActivityShown));
+        return detail.ToMcp(job.Workflow, job.Former, Enumerable.Reverse(timeline).Take(ActivityShown));
     }
 
     [McpServerTool(Name = "get_hiring_report", Title = "Read the hiring report", ReadOnly = true, OpenWorld = false, UseStructuredContent = true)]

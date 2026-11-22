@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { AiUsePolicy, Question, QuestionSection } from '@screenhire/api-client';
   import {
-    answeredCount,
     DEFAULT_QUESTIONS_PER_PAGE,
     formQuestions,
     PageProgress,
@@ -12,21 +11,24 @@
     type AnswerValue,
     type QuestionPage,
   } from '@screenhire/ui/questions';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
 
   // The candidate's form, rendered by the same components the careers pages render (packages/ui), in the candidate
   // theme. The apply form starts with the candidate's details and the resume and ends with the review step, which asks
   // about AI use; a follow-up questionnaire (`followUp`) is its questions alone, as its page shows them. The candidate
   // meets the questions a page at a time (apply-flow.md §7): each named section, or pages of the organization's
   // `questionsPerPage`. The preview pages the same way, one step at a time with Back and Next, each step opening with the
-  // step line the candidate sees. The answers are the recruiter's to try out; nothing is sent anywhere, so the last
-  // step's send button is off and says so.
+  // progress bar the candidate sees. The answers are the recruiter's to try out; nothing is sent anywhere, so the last
+  // step's send button is off and says so. Try it (`onsend`) turns it on: pressing it hands the answers back, still sending
+  // nothing, and `details` fills the candidate's details with its sample candidate.
   let {
     questions,
     sections = null,
     questionsPerPage = DEFAULT_QUESTIONS_PER_PAGE,
     followUp = false,
     aiUse,
+    details,
+    onsend,
   }: {
     questions: readonly Question[];
     sections?: readonly QuestionSection[] | null;
@@ -34,14 +36,18 @@
     followUp?: boolean;
     /** The apply form's last step asks whether AI tools were used, under this policy; undefined leaves it out. */
     aiUse?: AiUsePolicy;
+    /** The candidate's details to start from, so a try-out's name matches the rest of it. */
+    details?: { firstName: string; lastName: string; email: string };
+    /** Turns the last step's send button on: it hands the answers back. Nothing is sent anywhere. */
+    onsend?: (answers: Record<string, AnswerValue | undefined>) => void;
   } = $props();
 
   type Step = { kind: 'details' } | { kind: 'page'; page: QuestionPage; number: number } | { kind: 'review' };
 
   let answers = $state<Record<string, AnswerValue | undefined>>({});
-  let firstName = $state('');
-  let lastName = $state('');
-  let email = $state('');
+  let firstName = $state(untrack(() => details?.firstName ?? ''));
+  let lastName = $state(untrack(() => details?.lastName ?? ''));
+  let email = $state(untrack(() => details?.email ?? ''));
   let phone = $state('');
   let chosen = $state(0);
   let heading = $state<HTMLElement>();
@@ -59,7 +65,6 @@
   const at = $derived(Math.max(0, Math.min(chosen, steps.length - 1)));
   const step = $derived(steps[at]);
   const last = $derived(at === steps.length - 1);
-  const answered = $derived(answeredCount(shown, answers));
 
   // Moving between steps puts the focus on the new step's heading, as a new page would.
   async function go(to: number) {
@@ -82,7 +87,7 @@
 <div class="candidate-preview flex flex-col gap-6 rounded-lg bg-candidate-background p-4 text-candidate-body text-candidate-foreground">
   {#if step}
     <section aria-label={step.kind === 'page' && !step.page.name ? `Questions, page ${step.number}` : stepName(step)} class="flex flex-col gap-4" data-preview-step={step.kind} data-preview-page={step.kind === 'page' ? '' : undefined}>
-      {#if steps.length > 1}<PageProgress step={at + 1} steps={steps.length} {answered} total={shown.length} />{/if}
+      {#if steps.length > 1}<PageProgress step={at + 1} steps={steps.length} />{/if}
       <h3 bind:this={heading} tabindex="-1" class="font-display text-heading font-bold focus-visible:outline-none">{stepName(step)}</h3>
       {#if step.kind === 'details'}
         <TextField name="preview-firstName" label="First name" required autocomplete="off" bind:value={firstName} />
@@ -120,7 +125,9 @@
     {#if at > 0}
       <button type="button" class={secondary} onclick={() => go(at - 1)}>Back</button>
     {/if}
-    {#if last}
+    {#if last && onsend}
+      <button type="button" class={primary} onclick={() => onsend($state.snapshot(answers))}>{followUp ? 'Send answers' : 'Send application'}</button>
+    {:else if last}
       <button type="button" class={primary} disabled aria-describedby="preview-nothing-sent">{followUp ? 'Send answers' : 'Send application'}</button>
       <!-- Preview adds no sentence about itself (A8): the reason the button does nothing is for screen readers only. -->
       <p id="preview-nothing-sent" class="sr-only">Nothing is sent from a preview.</p>

@@ -14,9 +14,11 @@
     error?: string | null;
     /** For file questions: the largest file the form takes. */
     maxBytes?: number;
+    /** Takes the focus when the page loads (not file questions, whose island draws its own input). */
+    autofocus?: boolean;
   }
 
-  let { question, answer = $bindable(), error = null, maxBytes = DEFAULT_MAX_FILE_BYTES }: Props = $props();
+  let { question, answer = $bindable(), error = null, maxBytes = DEFAULT_MAX_FILE_BYTES, autofocus = false }: Props = $props();
 
   const name = $derived(fields.answer(question.id));
   const required = $derived(question.required ?? false);
@@ -46,6 +48,7 @@
     bind:selected={getSelected, setSelected}
     multiple={question.type === 'MultiChoice'}
     options={choicesFor(question)}
+    {autofocus}
   />
 {:else}
   <TextField
@@ -59,5 +62,6 @@
     inputmode={question.type === 'Number' ? 'decimal' : question.type === 'Url' ? 'url' : undefined}
     maxlength={question.maxLength}
     multiline={question.type === 'LongText'}
+    {autofocus}
   />
 {/if}

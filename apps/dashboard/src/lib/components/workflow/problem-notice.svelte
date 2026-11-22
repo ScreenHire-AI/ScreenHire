@@ -6,10 +6,10 @@
   import { removeAt } from '#lib/workflow.js';
   import { labelClass } from './controls.js';
 
-  // The Test tab's notice while a problem blocks it (design system section 11, Notice): what is wrong in the workflow's own
+  // The Try it tab's notice while a problem blocks it (design system section 11, Notice): what is wrong in the workflow's own
   // words, and the fix inline where it is a small one. Today that is an Add a tag step with no tag: type the tag, or remove
-  // the step. Any other problem has a Fix button that opens the place it is in (`onfix`). The samples run again by
-  // themselves once the workflow is valid.
+  // the step. Any other problem has a Fix button that opens the place it is in (`onfix`). Try it comes back by itself once
+  // the workflow is valid.
   let {
     workflow = $bindable(),
     errors,
@@ -46,7 +46,7 @@
 
 <div role="status" data-slot="notice" class="flex flex-col gap-3 rounded-panel bg-status-verify-soft px-3.5 py-3 text-status-verify">
   <p class="flex items-center gap-3 font-semibold"><ProblemIcon />Paused until {errors.length === 1 ? '1 thing is' : `${errors.length} things are`} fixed</p>
-  <p>{first?.message}{editable ? ' Testing and publishing resume after the fix.' : ' This version cannot be changed, so it cannot be tested.'}</p>
+  <p>{first?.message}{editable ? ' Try it and Publish work again once it is fixed.' : ' This version cannot be changed, so Try it cannot run.'}</p>
   {#if !editable}
     <!-- Read only: nothing to fix here. -->
   {:else if blankTag}

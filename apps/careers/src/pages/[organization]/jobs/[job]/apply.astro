@@ -32,7 +32,7 @@ import { HONEYPOT_FIELD } from '../../../../lib/apply-server';
 import { fromDraft } from '../../../../lib/drafts';
 import { localeOf, longDate } from '../../../../lib/locale';
 import { isToken } from '../../../../lib/questionnaire';
-import { answeredCount, describeSize, TextField } from '@screenhire/ui/questions';
+import { describeSize, TextField } from '@screenhire/ui/questions';
 import { isOrigin, useEmbedding, withEmbed } from '../../../../lib/embed';
 import { withSource } from '../../../../lib/source';
 import { basePath } from '../../../../lib/host';
@@ -89,7 +89,6 @@ const started: ApplyState = posted
 const state: ApplyState = { ...started, pageShownAt: new Date().toISOString() };
 const page = pages.find((p) => p.step === step);
 const shownQuestions = questionsOn(step, shape);
-const answered = answeredCount(questions, state.answers, state.files);
 const errors = data?.errors ?? {};
 const formError =
   data?.formError ??
@@ -98,6 +97,9 @@ const formError =
       ? 'That was too much to send at once. Upload files of 10 MB or less.'
       : 'Something went wrong on our side. Try again in a moment.'
     : undefined);
+// A page of questions opens with the focus on its first question, so the candidate can start typing (apply-flow.md §7).
+// Not the details step, where the notice comes first, and not when the error summary is shown, which takes the focus.
+const focusFirst = Boolean(page) && Object.keys(errors).length === 0 && !formError;
 
 if (form) {
   // The upload island sends files straight to storage; the API told us where that is.
@@ -170,7 +172,7 @@ const answerText = (questionId: string): string => {
       <div class="flex flex-col gap-3">
         <h1 class="font-display text-candidate-title">{job.title}</h1>
         <JobFacts job={job} />
-        <StepIndicator step={steps.indexOf(step) + 1} steps={steps.length} answered={answered} total={questions.length} />
+        <StepIndicator step={steps.indexOf(step) + 1} steps={steps.length} />
       </div>
 
       <meta slot="head" name="referrer" content="no-referrer" />
@@ -181,7 +183,7 @@ const answerText = (questionId: string): string => {
         enctype="multipart/form-data"
         novalidate
         aria-labelledby="step-heading"
-        class="mt-5 flex flex-col gap-4"
+        class="apply-step mt-5 flex flex-col gap-4"
         data-telemetry-token={telemetry ? state.telemetrySession : undefined}
         data-telemetry-endpoint={telemetry ? `${base}/telemetry?job=${job.id}` : undefined}
         data-telemetry-acknowledged={telemetry && step !== 'details' ? '' : undefined}
@@ -192,6 +194,15 @@ const answerText = (questionId: string): string => {
         <input type="hidden" name="step" value={step} />
         <input type="hidden" name="state" value={JSON.stringify(state)} />
         <input type="hidden" name="pageQuestions" value={shownQuestions.map((q) => q.id).join(',')} />
+        {/* Enter moves on from a field on the details and question pages, where Continue is the first submit button. On
+            the review it must never send, nor press a panel's Change (the first submit there). Enter presses the form's
+            first submit button even when it is not shown, so the review's first is a hidden one that stays on the review
+            with what was typed; only Send sends. (A disabled one does not work: Chromium skips it for the next.) */}
+        {step === 'review' && (
+          <button type="submit" name="intent" value="go:review" hidden>
+            Stay on the review
+          </button>
+        )}
 
         {/* Every step names itself, so "Step 2 of 3" is never the only clue to where the candidate is. */}
         <div class="flex flex-col gap-1">
@@ -244,7 +255,7 @@ const answerText = (questionId: string): string => {
               </label>
             )}
             {aiIntro && <p class="text-candidate-hint text-candidate-muted-foreground">{aiIntro}</p>}
-            <TextField name="firstName" label="First name" value={state.firstName} error={errors.firstName} required autocomplete="given-name" maxlength={MAX_NAME} />
+            <TextField name="firstName" label="First name" value={state.firstName} error={errors.firstName} required autocomplete="given-name" maxlength={MAX_NAME} check="Enter your first name." />
             <TextField name="lastName" label="Last name" value={state.lastName} error={errors.lastName} autocomplete="family-name" maxlength={MAX_NAME} />
             <TextField name="email" label="Email" type="email" inputmode="email" value={state.email} error={errors.email} required autocomplete="email" maxlength={MAX_EMAIL} />
             <TextField name="phone" label="Phone" type="tel" inputmode="tel" value={state.phone} error={errors.phone} autocomplete="tel" maxlength={MAX_PHONE} />
@@ -255,8 +266,16 @@ const answerText = (questionId: string): string => {
         )}
 
         {page &&
-          shownQuestions.map((question) => (
-            <QuestionField question={question} state={state} errors={errors} organization={employer.slug} jobId={job.id} maxBytes={form.uploads.maxBytes} />
+          shownQuestions.map((question, i) => (
+            <QuestionField
+              question={question}
+              state={state}
+              errors={errors}
+              organization={employer.slug}
+              jobId={job.id}
+              maxBytes={form.uploads.maxBytes}
+              autofocus={focusFirst && i === 0}
+            />
           ))}
 
         {step === 'review' && (

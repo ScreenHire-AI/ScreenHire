@@ -6,6 +6,7 @@
  */
 import type { DefinitionError } from './definitionError.ts';
 import type { EmploymentType } from './employmentType.ts';
+import type { FormerWorkflowParts } from './formerWorkflowParts.ts';
 import type { HiringWorkflow } from './hiringWorkflow.ts';
 import type { JobAiUse } from './jobAiUse.ts';
 import type { JobLocation } from './jobLocation.ts';
@@ -53,4 +54,5 @@ export interface JobDetail {
   lastUpdated: LastUpdate;
   workflowProblems: DefinitionError[];
   aiUse: JobAiUse;
+  former: FormerWorkflowParts;
 }

@@ -92,6 +92,8 @@ its own that opens in place to list those candidates, and drops out of the stage
 
 **Moving it back is the undo.** `MoveTo` on a saved application clears `KeptInMindAt` and records a `StageChanged`, even
 to the stage it was in, and the API takes the candidate out of the saved candidates. That is how a rejection is undone too.
+Switching the job to another template is not a move: `ChangePipeline` puts the saved application in a stage of the new
+pipeline and leaves it saved ([workflow-engine.md](workflow-engine.md) section 7).
 
 Where people save someone (`POST /v1/talent-pool`, Move candidates, up to 200 applications, one note):
 

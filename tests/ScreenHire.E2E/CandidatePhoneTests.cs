@@ -75,12 +75,17 @@ public sealed class CandidatePhoneTests(E2EFixture fixture) : ProofWalk(fixture)
             }
         }
 
-        // The notice leads with why applications are checked, never how thorough the checks are (an honest applicant reads
-        // this first), and it sits above the first field.
+        // Browsing collects nothing, so the job page carries one line on why applications are checked, never how thorough
+        // the checks are, and the link to what is collected; the full notice waits on the form, above its first field.
         await GoToAsync("careers", $"/{organization.Slug}/jobs/engineer");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "How we review applications" })).ToHaveCountAsync(0);
+        var checks = Page.Locator("[data-checks-line]");
+        await Expect(checks).ToContainTextAsync("We look out for bots and borrowed identities, so genuine applicants get a fair look.");
+        await Expect(checks).Not.ToContainTextAsync("thorough");
+        await Expect(checks.GetByRole(AriaRole.Link, new() { Name = "What we collect and why" })).ToBeVisibleAsync();
+        await GoToAsync("careers", $"/{organization.Slug}/jobs/engineer/apply");
         var notice = Page.GetByRole(AriaRole.Region, new() { Name = "How we review applications" });
         await Expect(notice).ToContainTextAsync("so real applicants are not crowded out");
-        await Expect(notice).Not.ToContainTextAsync("thorough");
 
         foreach (var dead in DeadLinks)
         {

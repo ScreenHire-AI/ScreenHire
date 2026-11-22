@@ -1,5 +1,6 @@
 using FluentValidation;
 using ScreenHire.Application.Distribution;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Content;
@@ -14,7 +15,8 @@ namespace ScreenHire.Api.Contracts;
 /// card shows under the title: the one the team wrote, or the description's first sentence. <c>updatedAt</c> is the last change to
 /// the posting content, for sitemaps' <c>lastmod</c>. For a closed job (410 Gone), <c>validThrough</c> is when it closed,
 /// so the page's JSON-LD tells Google it has expired. <c>url</c> is the job's careers page, from the deployment's
-/// domain configuration: the canonical URL that feeds, boards and Google all use.
+/// domain configuration: the canonical URL that feeds, boards and Google all use. <c>applyMinutes</c> is about how long
+/// applying takes, from the job's questions (<c>ApplicationForm.EstimatedMinutes</c>).
 /// </remarks>
 public sealed record PublicJob(
     Guid Id,
@@ -35,7 +37,8 @@ public sealed record PublicJob(
     SalaryPeriod? SalaryPeriod,
     DateTimeOffset? ValidThrough,
     DateTimeOffset? UpdatedAt,
-    string Url);
+    string Url,
+    int ApplyMinutes);
 
 /// <summary>
 /// The public careers listing for one organization. <c>url</c> is the board's careers page; <c>branding</c> is its
@@ -70,6 +73,8 @@ public sealed record JobSummary(
 /// <c>postings</c> is the job on each board it was published to, with each board's state and estimate.
 /// <c>workflowProblems</c> lists what stops the workflow from being tested or the job from opening (empty when it is
 /// ready); a draft job's workflow saves with them.
+/// <c>former</c> holds the stages and apply-form questions earlier versions of the workflow had and this one does not, so
+/// a timeline entry or an answer that names one still reads in words; a current stage or question with the same id wins.
 /// </remarks>
 public sealed record JobDetail(
     Guid Id,
@@ -99,7 +104,8 @@ public sealed record JobDetail(
     IReadOnlyList<JobPostingStatus> Postings,
     LastUpdate LastUpdated,
     IReadOnlyList<DefinitionError> WorkflowProblems,
-    JobAiUse AiUse);
+    JobAiUse AiUse,
+    FormerWorkflowParts Former);
 
 /// <summary>
 /// The AI-use policy the apply form asks under for one job. The organization sets <c>organizationDefault</c> once
@@ -176,6 +182,40 @@ public sealed record UpdateJobWorkflowRequest(HiringWorkflow Workflow, int Expec
 /// </summary>
 public sealed record ApplyTemplateUpdateRequest(Guid TemplateVersionId, int ExpectedWorkflowVersion);
 
+/// <summary>
+/// Switches a job to a published version of another template (or of its own): the job's pipeline becomes that version's,
+/// its own edits included, and the template becomes its source. <c>stageMappings</c> says where the candidates in each
+/// current stage go; every stage that holds candidates and is not in the new pipeline needs one, and a stage that is in
+/// it may have one. <c>GET /v1/jobs/{jobId}/workflow/switch-template</c> suggests them. Each application of the job gets a
+/// timeline entry saying the pipeline changed; the moves send no email and run no automation. <c>expectedWorkflowVersion</c>
+/// works as in <see cref="UpdateJobWorkflowRequest"/>, and a closed job is refused (409).
+/// </summary>
+public sealed record SwitchJobTemplateRequest(Guid TemplateVersionId, int ExpectedWorkflowVersion, IReadOnlyList<StageMappingRequest>? StageMappings = null);
+
+/// <summary>Candidates in the job's stage <c>fromStageId</c> go to <c>toStageId</c>, a stage of the new pipeline.</summary>
+public sealed record StageMappingRequest(string FromStageId, string ToStageId);
+
+/// <summary>
+/// What switching a job to a template version would do, before it happens: the version, its stages in order, and each of
+/// the job's current stages that holds candidates, with how many (saved and finished candidates included) and the stage
+/// they are preselected to, by kind first and then by name. <c>expectedWorkflowVersion</c> is the job's workflow version
+/// the preview read, to send back with the switch.
+/// </summary>
+public sealed record JobTemplateSwitchPreview(
+    Guid TemplateId,
+    string TemplateName,
+    Guid TemplateVersionId,
+    int Version,
+    int ExpectedWorkflowVersion,
+    IReadOnlyList<SwitchStage> Stages,
+    IReadOnlyList<OccupiedStage> Occupied);
+
+/// <summary>One stage of the pipeline a job would switch to.</summary>
+public sealed record SwitchStage(string Id, string Name, StageKind Kind);
+
+/// <summary>One of the job's current stages that holds candidates: how many, and the new stage they are preselected to.</summary>
+public sealed record OccupiedStage(string StageId, string Name, StageKind Kind, int Candidates, string SuggestedStageId);
+
 /// <summary>A pay range. Currency and period may come from the template's posting defaults on create.</summary>
 public sealed record SalaryRequest(decimal? Min, decimal? Max, string? Currency = null, SalaryPeriod? Period = null);
 
@@ -218,7 +258,8 @@ internal static class JobMappings
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.EmploymentType,
             job.SalaryMin, job.SalaryMax, job.SalaryCurrency, job.PublishedAt, job.Description, job.EffectiveSummary, job.Department,
             job.Locations, job.ApplicantLocationRequirements, job.Salary?.Period,
-            job.Status == JobStatus.Closed ? job.ClosedAt : job.ValidThrough, job.UpdatedAt ?? job.PublishedAt, url);
+            job.Status == JobStatus.Closed ? job.ClosedAt : job.ValidThrough, job.UpdatedAt ?? job.PublishedAt, url,
+            ApplicationForm.EstimatedMinutes(ApplicationForm.QuestionsFor(job.Workflow)));
 
     public static JobSummary ToSummary(this Job job, ChangeStamp? lastChange, int? latestTemplateVersion = null) =>
         new(job.Id, job.Title, job.Slug, job.LocationLabel(), job.WorkplaceType, job.Status, job.CreatedAt, job.PublishedAt,
@@ -243,7 +284,8 @@ internal static class JobMappings
             DefinitionValidator.Validate(job.Workflow),
             new JobAiUse(
                 AiUsePolicies.Effective(job.AiUseOverride, organizationDefault), job.AiUseOverride,
-                organizationDefault ?? AiUsePolicies.Fallback));
+                organizationDefault ?? AiUsePolicies.Fallback),
+            job.Former);
 
     private static JobTemplateSource? ToTemplateSource(this Job job, string? templateName, int? latestTemplateVersion) =>
         job is { SourceTemplateId: { } templateId, SourceTemplateVersionId: { } versionId, SourceTemplateVersion: { } version }

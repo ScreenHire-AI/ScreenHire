@@ -178,7 +178,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(page.GetByRole(AriaRole.Heading)).ToHaveTextAsync("About you");
         await next.ClickAsync();
         await Expect(page.GetByRole(AriaRole.Heading)).ToHaveTextAsync("Eligibility");
-        await Expect(page).ToContainTextAsync("Step 3 of 4");
+        await Expect(page).ToContainTextAsync("60% done");
         await preview.GetByRole(AriaRole.Button, new() { Name = "Back" }).ClickAsync();
         await Expect(page.GetByRole(AriaRole.Heading)).ToHaveTextAsync("About you");
         await ExpectNoAccessibilityViolationsAsync();
@@ -192,7 +192,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByLabel("Email").FillAsync("casey.morgan@example.com");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
         await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("About you");
-        await Expect(Page.Locator("[data-page-progress]")).ToContainTextAsync("Step 2 of 4");
+        await Expect(Page.Locator("[data-page-progress]")).ToHaveTextAsync("40% done");
         await Expect(Page.GetByRole(AriaRole.Group, new() { Name = RightToWork })).ToHaveCountAsync(0);
     }
 

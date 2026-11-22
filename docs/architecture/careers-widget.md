@@ -104,7 +104,9 @@ an hour). It:
 
 Inside the frame, `EmbedFrame.astro` (rendered only in embed mode, so the careers site ships no script for it) posts
 that message to the embedding site's origin only: once on load and from a `ResizeObserver` on `<html>`. It also focuses
-the error summary, because a browser ignores `autofocus` in a frame from another site.
+what carries `autofocus` (the error summary, or the first question of a page), because a browser ignores `autofocus` in a
+frame from another site. The steps' view transitions ([apply flow](apply-flow.md) section 7) run inside the frame too, with
+no script, since each step is a same-origin page load within it.
 
 ## 5. Embed mode
 

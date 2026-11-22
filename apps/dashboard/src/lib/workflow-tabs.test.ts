@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest';
 import { defaultWorkflowTab, tabFrom, tabHref, workflowTabs } from './workflow-tabs.js';
 
 describe('workflowTabs', () => {
-  it('are Pipeline, Forms, Automations and Test, in that order', () => {
+  it('are Pipeline, Forms, Automations and Try it, in that order', () => {
     expect(workflowTabs.map((tab) => [tab.value, tab.label])).toEqual([
       ['pipeline', 'Pipeline'],
       ['forms', 'Forms'],
       ['automations', 'Automations'],
-      ['test', 'Test'],
+      ['test', 'Try it'],
     ]);
     expect(defaultWorkflowTab).toBe('pipeline');
   });

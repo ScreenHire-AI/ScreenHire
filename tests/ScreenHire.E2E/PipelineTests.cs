@@ -444,7 +444,74 @@ public sealed class PipelineTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
     }
 
+    [Fact]
+    public async Task Switching_a_job_with_candidates_to_another_template_maps_its_stages_and_moves_them()
+    {
+        var scene = await SceneAsync(publish: true);
+        await KitchenTemplateAsync(scene, screen: "Sam Taylor");
+        await Page.SetViewportSizeAsync(DesignWidth, DesignHeight);
+        await SignInAsync(Page, scene.Email);
+        await GoToJobAsync(Page, scene.JobId);
+
+        await Page.Locator("[data-slot='header-band']").GetByRole(AriaRole.Button, new() { Name = "More actions" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Switch template" }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Switch template" });
+        await sheet.GetByLabel("Template").SelectOptionAsync(new SelectOptionValue { Label = "Kitchen (v1)" });
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Next" }).ClickAsync();
+
+        // Each stage that holds candidates, preselected by kind; the person sends the screened candidate to the trial shift.
+        await Expect(sheet.GetByRole(AriaRole.Heading, new() { Name = "Where do the candidates go?" })).ToBeFocusedAsync();
+        await Expect(sheet.GetByLabel("Applied (4 candidates)")).ToHaveValueAsync("new");
+        await Expect(sheet.GetByLabel("Screening (1 candidate)")).ToHaveValueAsync("call");
+        await sheet.GetByLabel("Screening (1 candidate)").SelectOptionAsync(new SelectOptionValue { Label = "Trial shift" });
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Next" }).ClickAsync();
+
+        await Expect(sheet).ToContainTextAsync("4 candidates in Applied move to New");
+        await Expect(sheet).ToContainTextAsync("1 candidate in Screening moves to Trial shift");
+        await Expect(sheet).ToContainTextAsync("This replaces the job's pipeline, including changes made to this job alone.");
+        await ExpectNoAccessibilityViolationsAsync();
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "Switch template" }).ClickAsync();
+
+        await Expect(Page.Locator("[data-switched]")).ToHaveTextAsync("Switched to Kitchen. 5 candidates are in the new stages.");
+        await Expect(await StageCellOfAsync(Page, "Sam Taylor")).ToHaveTextAsync("Trial shift");
+        await Expect(await StageCellOfAsync(Page, "Casey Morgan")).ToHaveTextAsync("New");
+
+        // The timeline says the pipeline changed, and still names the stage the new pipeline does not have.
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Sam Taylor", Exact = true }).First.ClickAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new("^Activity") }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("The pipeline changed: from Screening to Trial shift");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity" })).ToContainTextAsync("Moved from Applied to Screening");
+    }
+
     private sealed record Scene(string Email, string Slug, Guid JobId, string Title);
+
+    // A published template "Kitchen" whose stages differ from the default pipeline's, and one candidate moved to Screening,
+    // as the scene's owner.
+    private async Task KitchenTemplateAsync(Scene scene, string screen)
+    {
+        using var session = new ApiSession(Fixture);
+        await session.SignInWithDevSsoAsync(scene.Email, Ct);
+        var template = await ReadAsync(await session.PostAsync("/v1/templates", new { name = "Kitchen" }, Ct), HttpStatusCode.Created);
+        var templateId = template.GetProperty("id").GetGuid();
+        var draft = await ReadAsync(await session.Client.GetAsync($"/v1/templates/{templateId}/versions/1", Ct), HttpStatusCode.OK);
+        var definition = System.Text.Json.Nodes.JsonNode.Parse(draft.GetProperty("definition").GetRawText())!.AsObject();
+        definition["workflow"]!["stages"] = System.Text.Json.Nodes.JsonNode.Parse("""
+            [
+              { "id": "new", "name": "New", "kind": "Applied" },
+              { "id": "call", "name": "Phone call", "kind": "Screening" },
+              { "id": "trial", "name": "Trial shift", "kind": "Interview" },
+              { "id": "hired", "name": "Hired", "kind": "Hired" },
+              { "id": "no", "name": "Not this time", "kind": "Rejected" },
+              { "id": "withdrawn", "name": "Withdrawn", "kind": "Withdrawn" }
+            ]
+            """);
+        await ReadAsync(await session.PutAsync($"/v1/templates/{templateId}/versions/1", new { definition }, Ct), HttpStatusCode.OK);
+        await ReadAsync(await session.PostAsync($"/v1/templates/{templateId}/versions/1/publish", new { }, Ct), HttpStatusCode.OK);
+
+        var applications = await ReadAsync(await session.Client.GetAsync($"/v1/jobs/{scene.JobId}/applications", Ct), HttpStatusCode.OK);
+        var screened = applications.EnumerateArray().Single(a => a.GetProperty("candidateName").GetString() == screen).GetProperty("id").GetGuid();
+        await ReadAsync(await session.PostAsync($"/v1/applications/{screened}/move", new { toStageId = "screening" }, Ct), HttpStatusCode.OK);
+    }
 
     // A new person and organization with one job (published or a draft) and an application per name in Candidates,
     // created through the API as that person, so the browser signs in to exactly this data.

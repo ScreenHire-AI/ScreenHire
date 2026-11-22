@@ -432,6 +432,15 @@ two consecutive full runs (about 90 s each). Run a subset with
 `pnpm --filter @screenhire/marketing lighthouse / /pricing/`; in Git Bash set `MSYS_NO_PATHCONV=1` first, or the
 paths are rewritten into Windows paths.
 
+Given only absolute `http(s)` addresses, the script measures those pages as some other server serves them, with no
+build check and no preview server, and reports against the same budgets. That is how a change to the careers pages
+gets a Lighthouse report: build the frontends with `NODE_ENV` unset (`env -u NODE_ENV pnpm -r build`), start a stack
+that serves those builds (`dotnet aspire start --isolated -- --ScreenHire:Frontends=Built --ScreenHire:Demo=true
+--ScreenHire:PersistData=false`), pass the careers addresses `dotnet aspire describe` names, and stop it with
+`dotnet aspire stop`. Never measure the `pnpm dev` or `/preview` stack: its careers pages come from the dev server, whose
+numbers mean nothing. The 15 KB script budget is the marketing site's, so on the apply page, which carries the upload
+island and telemetry (about 22 KB, `ApplyTests`), it reads as a report.
+
 ### Why Lighthouse runs once, and one at a time
 
 Lighthouse used to be the last step of `pnpm verify`. On 2026-10-21 five gates ran it at once on one machine:

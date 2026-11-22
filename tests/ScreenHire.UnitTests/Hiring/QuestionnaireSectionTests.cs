@@ -83,7 +83,7 @@ public sealed class QuestionnaireSectionTests
     {
         var organization = new Organization { Name = "Acme", Slug = "acme", HomeRegion = "eu" };
 
-        organization.QuestionsPerPage.Should().Be(8);
+        organization.QuestionsPerPage.Should().Be(4);
         organization.Invoking(o => o.SetQuestionsPerPage(value)).Should().Throw<ArgumentOutOfRangeException>();
         organization.SetQuestionsPerPage(12);
         organization.QuestionsPerPage.Should().Be(12);
@@ -203,7 +203,7 @@ public sealed class QuestionnaireSectionTests
         var organization = new Organization { Name = "Acme", Slug = "acme", HomeRegion = "eu" };
         var changed = new Organization { Name = "Acme", Slug = "acme", HomeRegion = "eu" };
         changed.SetQuestionsPerPage(10);
-        SettingsChanges.Name(organization, changed).Select(Text).Should().Equal("changed questions per page from 8 to 10");
+        SettingsChanges.Name(organization, changed).Select(Text).Should().Equal("changed questions per page from 4 to 10");
     }
 
     private static string Text(ChangeLine line) => line.Sentence();

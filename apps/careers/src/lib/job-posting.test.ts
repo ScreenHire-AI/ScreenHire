@@ -28,6 +28,7 @@ const job = (overrides: Partial<PublicJob> = {}): PublicJob => ({
   validThrough: '2026-11-01T00:00:00+00:00',
   updatedAt: '2026-10-02T09:00:00+00:00',
   url: 'https://careers.example.com/harbour/jobs/engineer',
+  applyMinutes: 3,
   ...overrides,
 });
 

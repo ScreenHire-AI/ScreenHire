@@ -13,8 +13,8 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261122102757_AddTaskCompletedByApiKey")]
-    partial class AddTaskCompletedByApiKey
+    [Migration("20261122102507_DefaultFourQuestionsPerPage")]
+    partial class DefaultFourQuestionsPerPage
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1003,10 +1003,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
-
-                    b.Property<Guid?>("CompletedByApiKeyId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("completed_by_api_key_id");
 
                     b.Property<Guid?>("CompletedByUserId")
                         .HasColumnType("uuid")

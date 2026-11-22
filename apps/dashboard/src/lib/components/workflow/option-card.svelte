@@ -1,7 +1,7 @@
 <script lang="ts">
   import ArrowRightIcon from '~icons/lucide/arrow-right';
 
-  // One answer in a guided step (design system section 11, Guided test): a bordered card with its name and one muted line,
+  // One answer in a guided step (design system section 11, Try it): a bordered card with its name and one muted line,
   // and the whole card is the button. Pressing it chooses and moves on, so it is a button, not a radio (A5, A6). The
   // answer chosen earlier keeps the `primary` edge and `accent` fill, with `aria-current`, when the step is shown again.
   let {

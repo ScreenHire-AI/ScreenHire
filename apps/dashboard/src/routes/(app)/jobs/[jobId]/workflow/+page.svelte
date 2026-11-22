@@ -230,10 +230,10 @@
           <WorkflowEditor
             bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
             errors={draft.errors}
-            checking={draft.checking}
             bind:tab={workflowTab.value}
             hrefOf={(tab) => workflowTab.href(tab)}
             {aiUse}
+            finish={draft.dirty ? { label: 'Looks good, save', run: saveWorkflow, disabled: save.isPending } : undefined}
           />
         {/if}
       </div>
@@ -265,7 +265,10 @@
 {/snippet}
 
 {#snippet saveButton()}
-  <Button size="lg" onclick={saveWorkflow} disabled={save.isPending}><SaveIcon aria-hidden="true" />Save pipeline</Button>
+  <!-- Try it has its own primary button, Move Jordan on (design system section 11), so Save pipeline is outline there (A1). -->
+  <Button size="lg" variant={workflowTab.value === 'test' ? 'outline' : 'default'} onclick={saveWorkflow} disabled={save.isPending}
+    ><SaveIcon aria-hidden="true" />Save pipeline</Button
+  >
 {/snippet}
 
 {#if detail?.template?.updateAvailable && !readonly}

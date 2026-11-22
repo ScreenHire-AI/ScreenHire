@@ -56,6 +56,26 @@ public static class ApplicationForm
         return [resume, .. questions.Where(q => q.Id != ResumeQuestionId)];
     }
 
+    /// <summary>
+    /// About how long applying takes, in whole minutes, for the job page's "Takes about 4 minutes" (apply-flow.md §7). A
+    /// minute for the details (name, email, phone and the resume), then each other question by what it asks for: 10
+    /// seconds to pick yes or no, a choice or a number, 20 to type a line or a link, 90 to write a few sentences and 30 to
+    /// attach a file. Rounded up, and never under 2, so the page never promises less than it takes.
+    /// </summary>
+    public static int EstimatedMinutes(IReadOnlyList<Question> questions)
+    {
+        ArgumentNullException.ThrowIfNull(questions);
+        var seconds = 60 + questions.Where(q => q.Id != ResumeQuestionId).Sum(q => q.Type switch
+        {
+            QuestionType.YesNo or QuestionType.SingleChoice or QuestionType.MultiChoice or QuestionType.Number => 10,
+            QuestionType.ShortText or QuestionType.Url => 20,
+            QuestionType.LongText => 90,
+            QuestionType.File => 30,
+            _ => 20,
+        });
+        return Math.Max(2, (seconds + 59) / 60);
+    }
+
     /// <summary>The longest text a question accepts.</summary>
     public static int MaxLengthOf(Question question)
     {

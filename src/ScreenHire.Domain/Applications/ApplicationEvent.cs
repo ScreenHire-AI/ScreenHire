@@ -132,6 +132,8 @@ public enum ApplicationEventType
 /// <c>interviewId</c>, <c>startsAt</c>, <c>endsAt</c>: For the four Interview types, the interview request
 /// (<see cref="Scheduling.InterviewRequest"/>) and its time as UTC instants: the new time for a booking or a reschedule,
 /// the time it had for a cancellation of a booked interview, and none for an invitation.
+/// <c>templateVersionId</c>: For a <see cref="ApplicationEventType.StageChanged"/> entry, the template version the job switched
+/// to when the entry came from that switch rather than a move; <c>fromStageId</c> and <c>toStageId</c> may then be equal.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -158,4 +160,5 @@ public sealed record ApplicationEventData(
     Guid? OtherApplicationId = null,
     Guid? InterviewId = null,
     DateTimeOffset? StartsAt = null,
-    DateTimeOffset? EndsAt = null);
+    DateTimeOffset? EndsAt = null,
+    Guid? TemplateVersionId = null);
