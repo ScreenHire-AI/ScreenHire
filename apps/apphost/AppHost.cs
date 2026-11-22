@@ -64,6 +64,11 @@
 //                               Data Processing Agreement (DpaUrl), forwarded to the API (its LegalOptions). The sign-in page's
 //                               agreement line links to each one that is set and names only those; none are set here, so
 //                               the line is left out (docs/architecture/sign-in-and-tenancy.md).
+//   Fonts:*                     heading fonts (the API's FontsOptions, docs/architecture/branding.md section 3, ADR-0031),
+//                               forwarded to the API: Sandbox:Enabled=true is the local catalogue of a dozen bundled fonts
+//                               (appsettings.Development.json and the test stacks turn it on, so nothing needs the
+//                               internet); otherwise the API lists Google Fonts through Fontsource, which needs no key.
+//                               Container (heading-fonts), CatalogueLifetime and PreviewsPerMinute tune it.
 //   CareersEmbedding:*          the sites allowed to embed the careers pages (the API's CareersEmbeddingOptions,
 //                               docs/architecture/careers-widget.md), forwarded to the API: AllowLoopback
 //                               (appsettings.Development.json and the test stacks turn it on, so a site on this machine,
@@ -339,6 +344,15 @@ foreach (var (key, value) in settings.GetSection("Legal").AsEnumerable(makePaths
     if (value is not null)
     {
         api.WithEnvironment($"ScreenHire__Legal__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+    }
+}
+
+// Heading fonts: plain settings, read by the API, which lists, downloads and serves them.
+foreach (var (key, value) in settings.GetSection("Fonts").AsEnumerable(makePathsRelative: true))
+{
+    if (value is not null)
+    {
+        api.WithEnvironment($"ScreenHire__Fonts__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
     }
 }
 

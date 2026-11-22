@@ -24,13 +24,24 @@ const logo: BrandingImage = {
 const saved: OrganizationBranding = {
   brandColor: '#1f4e5a',
   secondColor: null,
-  headingFont: 'Fraunces',
+  headingFont: { id: 'fraunces', family: 'Fraunces' },
   logo,
   favicon: null,
   sharingImage: null,
   lastUpdated: { at: null, by: 'ScreenHire' },
 };
 const unset: OrganizationBranding = { ...saved, brandColor: null, headingFont: null, logo: null };
+
+// The catalogue as GET /v1/heading-fonts sends it: two of the six bundled fonts and two Google Fonts families.
+const catalogue = {
+  complete: true,
+  fonts: [
+    { id: 'fraunces', family: 'Fraunces', styles: ['Serif'], license: 'Ofl', bundled: true },
+    { id: 'inter', family: 'Inter', styles: ['Sans'], license: 'Ofl', bundled: true },
+    { id: 'lora', family: 'Lora', styles: ['Serif'], license: 'Ofl', bundled: false },
+    { id: 'roboto-slab', family: 'Roboto Slab', styles: ['Serif', 'Slab'], license: 'Apache', bundled: false },
+  ],
+};
 
 const organization: OrganizationProfile = {
   id: '01a157d4-0000-7000-8000-0000000000bb',
@@ -190,7 +201,7 @@ describe('branding page', () => {
 
     await waitFor(() =>
       expect(bodies).toEqual([
-        { brandColor: '#2a6f7b', secondColor: '#e9dcc4', headingFont: 'Inter', logoId: logo.id, faviconId: null, sharingImageId: null },
+        { brandColor: '#2a6f7b', secondColor: '#e9dcc4', headingFont: 'inter', logoId: logo.id, faviconId: null, sharingImageId: null },
       ]),
     );
     expect(await screen.findByText('Saved.')).toBeInTheDocument();
@@ -202,7 +213,7 @@ describe('branding page', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'Remove logo' }));
     await fireEvent.click(await save());
 
-    await waitFor(() => expect(bodies[0]).toMatchObject({ logoId: null, headingFont: 'Fraunces' }));
+    await waitFor(() => expect(bodies[0]).toMatchObject({ logoId: null, headingFont: 'fraunces' }));
   });
 
   it('uploads an image straight to storage and waits for its scan before Save', async () => {
@@ -429,6 +440,49 @@ describe('branding page', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(await brandField()).toHaveValue('2A6F7B');
     expect(screen.getByRole('radio', { name: 'Inter' })).toBeChecked();
+  });
+
+  it('picks a font from the whole catalogue in More fonts, by name and style, and saves its id', async () => {
+    const { bodies } = renderPage(saved, { 'GET /v1/heading-fonts': () => Response.json(catalogue) });
+    await waitFor(async () => expect(await brandField()).toHaveValue('#1f4e5a'));
+
+    await fireEvent.click(screen.getByRole('button', { name: 'More fonts' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Heading fonts' });
+    expect(await within(sheet).findByText('4 fonts')).toBeInTheDocument();
+    expect(within(sheet).getByRole('radio', { name: /^Fraunces/ })).toBeChecked();
+
+    await fireEvent.click(within(sheet).getByRole('radio', { name: 'Slab' }));
+    expect(within(sheet).getByText('1 font')).toBeInTheDocument();
+    expect(within(sheet).queryByRole('radio', { name: /^Lora/ })).toBeNull();
+    await fireEvent.click(within(sheet).getByRole('radio', { name: 'All' }));
+    await fireEvent.input(within(sheet).getByLabelText('Search fonts'), { target: { value: 'robo' } });
+    expect(within(sheet).getByText('1 font')).toBeInTheDocument();
+
+    await fireEvent.click(within(sheet).getByRole('radio', { name: /^Roboto Slab/ }));
+    await fireEvent.click(within(sheet).getByRole('button', { name: 'Use Roboto Slab' }));
+
+    // The pick joins the panel's choices, checked, beside the six; Save sends its id and the API hosts it.
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Heading fonts' })).toBeNull());
+    expect(screen.getByRole('radio', { name: /^Roboto Slab/ })).toBeChecked();
+    await fireEvent.click(await save());
+    await waitFor(() => expect(bodies[0]).toMatchObject({ headingFont: 'roboto-slab' }));
+  });
+
+  it('shows a saved catalogue font as a choice of its own, and says why a font could not be saved', async () => {
+    renderPage(
+      { ...saved, headingFont: { id: 'roboto-slab', family: 'Roboto Slab' } },
+      {
+        'PUT /v1/organization/branding': () =>
+          Response.json(
+            { title: 'One or more validation errors occurred.', status: 400, errors: { headingFont: ['We could not download this font just now.'] } },
+            { status: 400 },
+          ),
+      },
+    );
+
+    expect(await screen.findByRole('radio', { name: /^Roboto Slab/ })).toBeChecked();
+    await fireEvent.click(await save());
+    expect(await screen.findByText('We could not download this font just now.')).toBeInTheDocument();
   });
 
   it('says why the branding could not load, with a retry', async () => {

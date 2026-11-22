@@ -72,7 +72,7 @@
       organizationName: 'Brightwater Studio',
       brand: { color: shade },
       header: null,
-      headingFont: 'Fraunces',
+      headingFont: { id: 'fraunces', serif: true },
       logo: null,
       favicon: null,
       sharingImage: null,

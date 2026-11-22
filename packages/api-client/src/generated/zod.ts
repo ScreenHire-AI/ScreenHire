@@ -82,6 +82,14 @@ export const ListSandboxListingsResponseItem = zod.object({
 export const ListSandboxListingsResponse = zod.array(ListSandboxListingsResponseItem)
 
 
+export const GetPublicHeadingFontFileParams = zod.object({
+  "fontId": zod.string(),
+  "fileName": zod.string()
+})
+
+export const GetPublicHeadingFontFileResponse = zod.unknown()
+
+
 export const GetUserPhotoParams = zod.object({
   "userId": zod.uuid()
 })
@@ -379,7 +387,18 @@ export const GetPublicOrganizationResponse = zod.object({
   "background": zod.string(),
   "foreground": zod.string()
 }).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
-  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "headingFont": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "family": zod.string(),
+  "category": zod.string(),
+  "bundled": zod.boolean(),
+  "files": zod.array(zod.object({
+  "fileName": zod.string(),
+  "subset": zod.string(),
+  "weight": zod.string(),
+  "unicodeRange": zod.string()
+}).describe('One file of a hosted heading font.'))
+}).describe('The heading font as the careers pages load it. A bundled font comes from the careers bundle by its id and has no\nfiles. A hosted one lists its files, each served on the careers origin at\n`brand/fonts/{id}/{fileName}`: its subset, its weight and the unicode range the subset covers, for an\n`@font-face` rule each. `category` picks the fallback (serif or sans-serif).')]),
   "logo": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "contentType": zod.string(),
@@ -401,7 +420,7 @@ export const GetPublicOrganizationResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; `headingFont` is a bundled font or a hosted one with its files; image `url`s\nare absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
 }).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).')
 
@@ -450,7 +469,18 @@ export const ListPublicJobsResponse = zod.object({
   "background": zod.string(),
   "foreground": zod.string()
 }).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
-  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "headingFont": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "family": zod.string(),
+  "category": zod.string(),
+  "bundled": zod.boolean(),
+  "files": zod.array(zod.object({
+  "fileName": zod.string(),
+  "subset": zod.string(),
+  "weight": zod.string(),
+  "unicodeRange": zod.string()
+}).describe('One file of a hosted heading font.'))
+}).describe('The heading font as the careers pages load it. A bundled font comes from the careers bundle by its id and has no\nfiles. A hosted one lists its files, each served on the careers origin at\n`brand/fonts/{id}/{fileName}`: its subset, its weight and the unicode range the subset covers, for an\n`@font-face` rule each. `category` picks the fallback (serif or sans-serif).')]),
   "logo": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "contentType": zod.string(),
@@ -472,7 +502,7 @@ export const ListPublicJobsResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; `headingFont` is a bundled font or a hosted one with its files; image `url`s\nare absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
 }).describe('The public careers listing for one organization. `url` is the board\'s careers page; `branding` is its\nbranding, each part null for ScreenHire\'s; `embedOrigins` are the sites allowed to show it in a frame.')
 
@@ -529,7 +559,18 @@ export const GetPublicApplicationFormResponse = zod.object({
   "background": zod.string(),
   "foreground": zod.string()
 }).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
-  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "headingFont": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "family": zod.string(),
+  "category": zod.string(),
+  "bundled": zod.boolean(),
+  "files": zod.array(zod.object({
+  "fileName": zod.string(),
+  "subset": zod.string(),
+  "weight": zod.string(),
+  "unicodeRange": zod.string()
+}).describe('One file of a hosted heading font.'))
+}).describe('The heading font as the careers pages load it. A bundled font comes from the careers bundle by its id and has no\nfiles. A hosted one lists its files, each served on the careers origin at\n`brand/fonts/{id}/{fileName}`: its subset, its weight and the unicode range the subset covers, for an\n`@font-face` rule each. `category` picks the fallback (serif or sans-serif).')]),
   "logo": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "contentType": zod.string(),
@@ -551,7 +592,7 @@ export const GetPublicApplicationFormResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; `headingFont` is a bundled font or a hosted one with its files; image `url`s\nare absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
 }).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "job": zod.object({
@@ -805,7 +846,18 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "background": zod.string(),
   "foreground": zod.string()
 }).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
-  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "headingFont": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "family": zod.string(),
+  "category": zod.string(),
+  "bundled": zod.boolean(),
+  "files": zod.array(zod.object({
+  "fileName": zod.string(),
+  "subset": zod.string(),
+  "weight": zod.string(),
+  "unicodeRange": zod.string()
+}).describe('One file of a hosted heading font.'))
+}).describe('The heading font as the careers pages load it. A bundled font comes from the careers bundle by its id and has no\nfiles. A hosted one lists its files, each served on the careers origin at\n`brand/fonts/{id}/{fileName}`: its subset, its weight and the unicode range the subset covers, for an\n`@font-face` rule each. `category` picks the fallback (serif or sans-serif).')]),
   "logo": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "contentType": zod.string(),
@@ -827,7 +879,7 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; `headingFont` is a bundled font or a hosted one with its files; image `url`s\nare absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
 }).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "jobTitle": zod.string(),
@@ -918,7 +970,18 @@ export const GetPublicInterviewResponse = zod.object({
   "background": zod.string(),
   "foreground": zod.string()
 }).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
-  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "headingFont": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "family": zod.string(),
+  "category": zod.string(),
+  "bundled": zod.boolean(),
+  "files": zod.array(zod.object({
+  "fileName": zod.string(),
+  "subset": zod.string(),
+  "weight": zod.string(),
+  "unicodeRange": zod.string()
+}).describe('One file of a hosted heading font.'))
+}).describe('The heading font as the careers pages load it. A bundled font comes from the careers bundle by its id and has no\nfiles. A hosted one lists its files, each served on the careers origin at\n`brand/fonts/{id}/{fileName}`: its subset, its weight and the unicode range the subset covers, for an\n`@font-face` rule each. `category` picks the fallback (serif or sans-serif).')]),
   "logo": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "contentType": zod.string(),
@@ -940,7 +1003,7 @@ export const GetPublicInterviewResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; `headingFont` is a bundled font or a hosted one with its files; image `url`s\nare absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
 }).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "jobTitle": zod.string(),
@@ -1011,7 +1074,18 @@ export const GetPublicTalentPoolStatusResponse = zod.object({
   "background": zod.string(),
   "foreground": zod.string()
 }).describe('The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`.')]),
-  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "headingFont": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "family": zod.string(),
+  "category": zod.string(),
+  "bundled": zod.boolean(),
+  "files": zod.array(zod.object({
+  "fileName": zod.string(),
+  "subset": zod.string(),
+  "weight": zod.string(),
+  "unicodeRange": zod.string()
+}).describe('One file of a hosted heading font.'))
+}).describe('The heading font as the careers pages load it. A bundled font comes from the careers bundle by its id and has no\nfiles. A hosted one lists its files, each served on the careers origin at\n`brand/fonts/{id}/{fileName}`: its subset, its weight and the unicode range the subset covers, for an\n`@font-face` rule each. `category` picks the fallback (serif or sans-serif).')]),
   "logo": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "contentType": zod.string(),
@@ -1033,7 +1107,7 @@ export const GetPublicTalentPoolStatusResponse = zod.object({
   "height": zod.int(),
   "url": zod.string()
 }).describe('A brand image as a public page links it: `url` is the same for every page, email and person.')])
-}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board.'),
+}).describe('An organization\'s branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire\'s default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; `headingFont` is a bundled font or a hosted one with its files; image `url`s\nare absolute addresses on the careers board.'),
   "embedOrigins": zod.array(zod.string())
 }).describe('An organization as its careers pages show it, with its branding (each part null for ScreenHire\'s) and\n`embedOrigins`, the sites allowed to show the careers pages in a frame, which the pages send in their\n`frame-ancestors` header (empty: none but the careers pages themselves).'),
   "kept": zod.boolean()
@@ -7216,7 +7290,10 @@ export const getOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
 export const GetOrganizationBrandingResponse = zod.object({
   "brandColor": zod.string().nullable(),
   "secondColor": zod.string().nullable(),
-  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "headingFont": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "family": zod.string()
+}).describe('The organization\'s heading font: its id and the family name people know it by.')]),
   "logo": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -7263,18 +7340,21 @@ export const GetOrganizationBrandingResponse = zod.object({
 export const UpdateOrganizationBrandingBody = zod.object({
   "brandColor": zod.string().nullable(),
   "secondColor": zod.string().nullish(),
-  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]).optional(),
+  "headingFont": zod.string().nullish(),
   "logoId": zod.uuid().nullish(),
   "faviconId": zod.uuid().nullish(),
   "sharingImageId": zod.uuid().nullish()
-}).describe('Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\n(`/branding/contrast`); each image id is one of the organization\'s uploads of that kind that passed its scan.\nNull is ScreenHire\'s default, or no image.')
+}).describe('Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\n(`/branding/contrast`); `headingFont` is a font id from `/v1/heading-fonts`, which the save downloads\nfirst if no organization has used it yet; each image id is one of the organization\'s uploads of that kind that\npassed its scan. Null is ScreenHire\'s default, or no image.')
 
 export const updateOrganizationBrandingResponseLastUpdatedCreatedDefault = false;
 
 export const UpdateOrganizationBrandingResponse = zod.object({
   "brandColor": zod.string().nullable(),
   "secondColor": zod.string().nullable(),
-  "headingFont": zod.union([zod.null(),zod.union([zod.literal('Inter'),zod.literal('Montserrat'),zod.literal('Nunito'),zod.literal('Fraunces'),zod.literal('PlayfairDisplay'),zod.literal(null)])]),
+  "headingFont": zod.union([zod.null(),zod.object({
+  "id": zod.string(),
+  "family": zod.string()
+}).describe('The organization\'s heading font: its id and the family name people know it by.')]),
   "logo": zod.union([zod.null(),zod.object({
   "id": zod.uuid(),
   "kind": zod.enum(['Logo', 'Favicon', 'SharingImage']).describe('What a brand image is for, which decides its limits (BrandImageRules).'),
@@ -7625,6 +7705,25 @@ export const TestVerificationModelResponse = zod.object({
   "ok": zod.boolean(),
   "problem": zod.union([zod.null(),zod.union([zod.literal('InvalidKey'),zod.literal('ModelNotFound'),zod.literal('Unreachable'),zod.literal('AddressNotAllowed'),zod.literal('Other'),zod.literal(null)])])
 }).describe('Whether the endpoint answered a tiny request with the key and model. `problem` is a word, never the provider\'s text.')
+
+
+export const ListHeadingFontsResponse = zod.object({
+  "fonts": zod.array(zod.object({
+  "id": zod.string(),
+  "family": zod.string(),
+  "styles": zod.array(zod.enum(['Sans', 'Serif', 'Display', 'Rounded', 'Slab']).describe('The picker\'s style filters.')),
+  "license": zod.enum(['Ofl', 'Apache']).describe('The licences a hosted font may be under. Any other licence is refused (ADR-0031).'),
+  "bundled": zod.boolean()
+}).describe('One family: `id` is what the branding saves, `styles` are the picker\'s filters it falls under, and\n`bundled` is whether ScreenHire ships it (no download, and no preview route: the dashboard has it).')),
+  "complete": zod.boolean()
+}).describe('The heading fonts a person may pick (docs/architecture/branding.md section 3), sorted by name. `complete` is\nfalse while the font catalogue cannot be reached: then only the six bundled fonts and the ones already hosted are\nlisted.')
+
+
+export const GetHeadingFontPreviewParams = zod.object({
+  "fontId": zod.string()
+})
+
+export const GetHeadingFontPreviewResponse = zod.unknown()
 
 
 export const listTeamMembersResponseLastUpdatedTwoCreatedDefault = false;

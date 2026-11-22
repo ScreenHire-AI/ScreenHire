@@ -103,6 +103,7 @@ import type {
   GetSuggestedTeamParams,
   GetTeamHistoryParams,
   GetWebhookEndpointHistoryParams,
+  HeadingFontCatalogueResponse,
   HiringReport,
   HiringTeamMember,
   HiringTeamRequest,
@@ -468,6 +469,48 @@ export const getListSandboxListingsUrl = (organizationSlug: string,) => {
 export const listSandboxListings = async (organizationSlug: string, options?: Parameters<typeof apiFetch>[1]): Promise<listSandboxListingsResponse> => {
 
   return apiFetch<listSandboxListingsResponse>(getListSandboxListingsUrl(organizationSlug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getPublicHeadingFontFileResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getPublicHeadingFontFileResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getPublicHeadingFontFileResponseSuccess = (getPublicHeadingFontFileResponse200) & {
+  headers: Headers;
+};
+export type getPublicHeadingFontFileResponseError = (getPublicHeadingFontFileResponse404) & {
+  headers: Headers;
+};
+
+export type getPublicHeadingFontFileResponse = (getPublicHeadingFontFileResponseSuccess | getPublicHeadingFontFileResponseError)
+
+export const getGetPublicHeadingFontFileUrl = (fontId: string,
+    fileName: string,) => {
+
+
+
+
+  return `/v1/public/heading-fonts/${fontId}/${fileName}`
+}
+
+export const getPublicHeadingFontFile = async (fontId: string,
+    fileName: string, options?: Parameters<typeof apiFetch>[1]): Promise<getPublicHeadingFontFileResponse> => {
+
+  return apiFetch<getPublicHeadingFontFileResponse>(getGetPublicHeadingFontFileUrl(fontId,fileName),
   {
     ...options,
     method: 'GET'
@@ -8481,6 +8524,91 @@ return apiFetch<testVerificationModelResponse>(getTestVerificationModelUrl(),
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(verificationModelRequest)
+  }
+);}
+
+
+
+export type listHeadingFontsResponse200 = {
+  data: HeadingFontCatalogueResponse
+  status: 200
+}
+
+export type listHeadingFontsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type listHeadingFontsResponseSuccess = (listHeadingFontsResponse200) & {
+  headers: Headers;
+};
+export type listHeadingFontsResponseError = (listHeadingFontsResponse401) & {
+  headers: Headers;
+};
+
+export type listHeadingFontsResponse = (listHeadingFontsResponseSuccess | listHeadingFontsResponseError)
+
+export const getListHeadingFontsUrl = () => {
+
+
+
+
+  return `/v1/heading-fonts`
+}
+
+export const listHeadingFonts = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listHeadingFontsResponse> => {
+
+  return apiFetch<listHeadingFontsResponse>(getListHeadingFontsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+export type getHeadingFontPreviewResponse200 = {
+  data: void
+  status: 200
+}
+
+export type getHeadingFontPreviewResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getHeadingFontPreviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getHeadingFontPreviewResponseSuccess = (getHeadingFontPreviewResponse200) & {
+  headers: Headers;
+};
+export type getHeadingFontPreviewResponseError = (getHeadingFontPreviewResponse401 | getHeadingFontPreviewResponse404) & {
+  headers: Headers;
+};
+
+export type getHeadingFontPreviewResponse = (getHeadingFontPreviewResponseSuccess | getHeadingFontPreviewResponseError)
+
+export const getGetHeadingFontPreviewUrl = (fontId: string,) => {
+
+
+
+
+  return `/v1/heading-fonts/${fontId}/preview`
+}
+
+export const getHeadingFontPreview = async (fontId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getHeadingFontPreviewResponse> => {
+
+  return apiFetch<getHeadingFontPreviewResponse>(getGetHeadingFontPreviewUrl(fontId),
+  {
+    ...options,
+    method: 'GET'
+
+
   }
 );}
 

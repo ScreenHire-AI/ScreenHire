@@ -4,8 +4,8 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { BrandingHeadingFont } from './brandingHeadingFont.ts';
 import type { BrandingImage } from './brandingImage.ts';
-import type { HeadingFont } from './headingFont.ts';
 import type { LastUpdate } from './lastUpdate.ts';
 
 /**
@@ -19,7 +19,7 @@ export interface OrganizationBranding {
   brandColor: string | null;
   /** @nullable */
   secondColor: string | null;
-  headingFont: null | HeadingFont;
+  headingFont: null | BrandingHeadingFont;
   logo: null | BrandingImage;
   favicon: null | BrandingImage;
   sharingImage: null | BrandingImage;

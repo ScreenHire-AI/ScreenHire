@@ -127,7 +127,7 @@ brackets.
   embedded disposable-domain list from time to time (#13).
 - **Database firewall.** The Azure definition lets every Azure address reach PostgreSQL, so its passwords are the only barrier. Before real
   candidates apply, choose between accepting that and a virtual network, which costs more ([deploy](operations/deploy.md), ADR-0007).
-- **Storage and scanning.** The Azure definition creates the private containers (`applicant-uploads`, `brand-images`,
+- **Storage and scanning.** The Azure definition creates the private containers (`applicant-uploads`, `brand-images`, `heading-fonts`,
   `email-attachments`, `data-exports`) and the CORS rule. Do not add a one-day storage lifecycle rule for unclaimed uploads: it would delete submitted
   resumes, because only the database knows which files are claimed. The worker's daily sweep does it instead
   ([apply flow](architecture/apply-flow.md), section 3). Wire a real malware scanner behind

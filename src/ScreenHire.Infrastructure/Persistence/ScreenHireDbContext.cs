@@ -130,6 +130,9 @@ public sealed class ScreenHireDbContext
 
     public DbSet<BrandImage> BrandImages => Set<BrandImage>();
 
+    /// <summary>The heading fonts ScreenHire downloaded and serves itself (ADR-0031); one row per family, not tenant-owned.</summary>
+    public DbSet<HostedFont> HostedFonts => Set<HostedFont>();
+
     public DbSet<AutomationRun> AutomationRuns => Set<AutomationRun>();
 
     public DbSet<AutomationActionRun> AutomationActionRuns => Set<AutomationActionRun>();
