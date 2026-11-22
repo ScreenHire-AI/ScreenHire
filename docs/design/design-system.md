@@ -650,7 +650,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - The board's heading is "Open roles", because the header already names the employer, over a lede of one sentence.
 - A message about what just happened is `Notice`: an icon, the message, and one quieter line for what to do next. A page
   never builds its own bordered block for it.
-- Every step of a form names itself in a visible heading, so "Step 2 of 3" is never the only clue. The review step says
+- Every step of a form names itself in a visible heading, so the progress line ("40% done") is never the only clue. The review step says
   who receives the answers and when.
 - A page that cannot open (an unknown, expired or closed link) says what happened in one sentence and who to contact:
   the hiring team at the employer, by the address they write from. "Open it again" is never the only advice.
