@@ -3,6 +3,7 @@ import ListFilterIcon from '~icons/lucide/list-filter';
 import UsersIcon from '~icons/lucide/users';
 import { savedViews as builtInViews } from '#lib/saved-views.js';
 import type { LucideIcon } from '#lib/shell.js';
+import { statuses } from '#lib/status.js';
 
 /** One row of the sidebar's Views list: a built-in view, or one that a person saved. */
 export interface SidebarView {
@@ -13,7 +14,11 @@ export interface SidebarView {
   builtIn: boolean;
   /** The saved view behind a row that is not built in. */
   saved?: SavedViewSummary;
-  /** A plain icon, never a status icon (design system I2). */
+  /**
+   * Each built-in view's own icon, so the icon rail tells them apart: a view of a status shows that status's mark (To review the
+   * eye, To verify the id card, Overdue the clock), any other its own plain icon. A saved view has list-filter (users when a
+   * teammate shared it), and the rail draws its first letter instead (design system I2, section 21).
+   */
   icon: LucideIcon;
   /** The job's title, for a view of one job's table. */
   jobTitle?: string;
@@ -42,7 +47,7 @@ export function sidebarViews(input: {
       label: view.label,
       href: `/candidates?view=${view.id}`,
       builtIn: true,
-      icon: view.icon ?? ListFilterIcon,
+      icon: view.status ? statuses[view.status].icon : view.icon,
     }),
   );
   const rank = new Map(input.sidebarOrder.map((id, index) => [id, index]));

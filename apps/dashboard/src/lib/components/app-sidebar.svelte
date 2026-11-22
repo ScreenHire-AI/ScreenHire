@@ -11,6 +11,7 @@
   import Trash2Icon from '~icons/lucide/trash-2';
   import UsersIcon from '~icons/lucide/users';
   import UserRoundSearchIcon from '~icons/lucide/user-round-search';
+  import { mergeProps } from 'bits-ui';
   import type { Attachment } from 'svelte/attachments';
   import { SvelteSet } from 'svelte/reactivity';
   import { goto } from '$app/navigation';
@@ -151,14 +152,28 @@
     };
   }
   const tooltipFor = (key: string) => ({ hidden: !rail && !cut.has(key) });
+  // The first letter of a saved view's name, for its square in the rail: a whole character, so an accent or emoji is not split.
+  const viewLetter = (name: string) => (Array.from(name.trim())[0] ?? '').toLocaleUpperCase();
 </script>
 
 <Sidebar.Root collapsible="icon">
   <Sidebar.Header>
-    <a href="/" onclick={closeSheet} class="flex h-10 items-center gap-2.5 px-1.5 pointer-coarse:h-11 text-foreground no-underline group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-      <LogoMark />
-      <span class="font-display text-heading font-bold group-data-[collapsible=icon]:sr-only">ScreenHire</span>
-    </a>
+    <!-- Every rail item has a tooltip with its name, the home link's included (the owner's walk-through, 2026-11-21). -->
+    <Tooltip.Root>
+      <Tooltip.Trigger>
+        {#snippet child({ props })}
+          <a
+            {...mergeProps(props, { onclick: closeSheet })}
+            href="/"
+            class="flex h-10 items-center gap-2.5 px-1.5 pointer-coarse:h-11 text-foreground no-underline group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          >
+            <LogoMark />
+            <span class="font-display text-heading font-bold group-data-[collapsible=icon]:sr-only">ScreenHire</span>
+          </a>
+        {/snippet}
+      </Tooltip.Trigger>
+      <Tooltip.Content side="right" hidden={!rail}>ScreenHire</Tooltip.Content>
+    </Tooltip.Root>
 
     {#if user?.organization}
       {@const organization = user.organization}
@@ -237,6 +252,12 @@
           {/each}
         </Sidebar.Menu>
       </Sidebar.Group>
+
+      {#if rail}
+        <!-- The Views heading hides in the rail, so a hairline sets the views apart from the main areas above them (the
+             owner's walk-through, 2026-11-21). -->
+        <Sidebar.Separator decorative data-testid="rail-views-divider" />
+      {/if}
 
       <Sidebar.Group>
         <Sidebar.GroupLabel>
@@ -422,7 +443,13 @@
     >
       {#snippet child({ props })}
         <a href={view.href} {...props}>
-          {#if view.icon}
+          {#if rail && !view.builtIn}
+            <!-- A saved view's icon is the same list-filter as its neighbours', so the rail draws the first letter of its name
+                 in a small rounded square instead; the tooltip names it (the owner's walk-through, 2026-11-21). -->
+            <span aria-hidden="true" data-view-letter class="grid size-5 shrink-0 place-items-center rounded-sm bg-secondary text-caption font-semibold text-secondary-foreground"
+              >{viewLetter(view.label)}</span
+            >
+          {:else}
             {@const Icon = view.icon}
             <Icon aria-hidden="true" />
           {/if}

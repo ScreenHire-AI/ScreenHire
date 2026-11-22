@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { jobId, savedView } from '../test-support/fixtures.js';
 import { sidebarViews, viewHref } from './sidebar-views.js';
+import { statuses } from './status.js';
 
 const input = { saved: [], hiddenBuiltIns: [], sidebarOrder: [], jobTitles: {} };
 
@@ -36,9 +37,14 @@ describe('the sidebar views', () => {
     for (const view of [...visible, ...hidden]) expect(view).not.toHaveProperty('count');
   });
 
-  it('gives every view a plain icon and never a status icon (I2)', () => {
+  it("gives every built-in view its own icon, a status view its status's mark, so the icon rail tells them apart (I2)", () => {
     const { visible } = sidebarViews({ ...input, saved: [savedView()] });
+    const builtIn = visible.filter((view) => view.builtIn);
 
+    expect(new Set(builtIn.map((view) => view.icon)).size).toBe(builtIn.length);
+    expect(builtIn.find((view) => view.key === 'needs-review')?.icon).toBe(statuses.review.icon);
+    expect(builtIn.find((view) => view.key === 'verification-recommended')?.icon).toBe(statuses.verification.icon);
+    expect(builtIn.find((view) => view.key === 'overdue')?.icon).toBe(statuses.overdue.icon);
     for (const view of visible) {
       expect(view.icon).toBeDefined();
       expect(view).not.toHaveProperty('status');

@@ -31,8 +31,9 @@ sources:
 # Views
 
 The sidebar's Views list holds two kinds of view. The built-in ones (To review, To verify, Overdue, New today, Not
-screened, Interviewing) are code: `savedViews` in `apps/dashboard/src/lib/saved-views.ts`, each a name, a plain icon
-(never a status icon) and a `matches` function over the rows. To review holds Review and To verify holds Verify, each not
+screened, Interviewing) are code: `savedViews` in `apps/dashboard/src/lib/saved-views.ts`, each a name, its own icon
+(a status view's is its status's: To review `eye`, To verify `id-card`, Overdue `clock-alert`; design system I2) and a
+`matches` function over the rows. No two share an icon, so the tablet's icon rail tells them apart. To review holds Review and To verify holds Verify, each not
 dismissed, so the two never overlap. Each of those two is a verification level too (`authenticity` on the view): opening it puts
 the level in the Candidates filter row ("Verification: Review"), `verificationOf` in `view-filters.ts` reads it for a saved view
 built on one, and choosing another level, or Any state, leaves the view for the Candidates page with that filter. Two more, New this week and Interviews this week (`overviewViews`), open from the Jobs
@@ -145,11 +146,13 @@ There is no toast or bell line when a teammate shares a view; the sheet's New ma
 - **Save view.** A Save view button is always in the filter row, disabled with the reason in its tooltip until the filters or sort differ from the view the table is on (`differsFromView`). It ends
   the filter row, outside the part that scrolls, so it is in view at any width. Its dialog asks for a name and Share with the
   team, off by default. The new view opens.
-- **No counts.** A sidebar view carries no count and no status icon (design system I2): it only filters, and the layout no longer loads the applications list for it. `viewMatcher` still picks the rows a table shows.
+- **No counts.** A sidebar view carries no count (design system T4): it only filters, and the layout no longer loads the applications list for it. `viewMatcher` still picks the rows a table shows.
 - **Menu.** Each row has a button that shows on hover and on focus: Rename, Share with the team or Make private, and Delete
   view for a view the person may change; Hide for a built-in one; Remove from sidebar for a teammate's view they added,
   first in the menu (the view stays shared). All of them are menu items, so the keyboard reaches them. A
-  tablet's icon rail has no room for the menus, so its top bar has a button that opens the full sidebar.
+  tablet's icon rail has no room for the menus, so its top bar has a button that opens the full sidebar. In the rail a
+  saved view shows the first letter of its name in a small rounded square, with its name in the tooltip, and a divider
+  sets the views apart from the sections above them.
 
 - **Browse team views.** An item in the Views heading's menu (Views options), so the list holds only views, or in the icon rail an icon button with a tooltip in the
   fixed group above Settings (outside the list that scrolls, so it stays in reach at 700 px tall), opens `TeamViewsSheet`: the shared
@@ -170,7 +173,7 @@ There is no toast or bell line when a teammate shares a view; the sheet's New ma
 | `ViewsTests` (integration) | private until shared, 403 and 404 for others, Admin may edit, Undo restores the same row, a job view and a view that picks jobs follow job access, two saves of one name leave one view, another organization sees nothing, validation, hidden built-ins, no API key |
 | `ViewSharingTests` (integration) | sharing adds to nobody else's sidebar, add and remove per person and safe to repeat, the owner always has the view, job scope on browse and add, making private clears every sidebar and a delete keeps them for Undo, a removed member's rows go, the migration's backfill keeps today's sidebars, another organization sees and adds nothing, the visit date |
 | `ViewsRealtimeTests` (integration) | `ViewsChanged` reaches its own organization with an id only |
-| `view-filters.test.ts`, `sidebar-views.test.ts` (Vitest) | what a view holds, when a table differs from it, the rows it picks and the sidebar's names, plain icons and order |
+| `view-filters.test.ts`, `sidebar-views.test.ts` (Vitest) | what a view holds, when a table differs from it, the rows it picks and the sidebar's names, distinct icons and order |
 | `team-views-sheet.test.ts`, `views.svelte.test.ts` (Vitest) | the sheet's rows, New mark, Preview, Add and Remove, its count and empty state; the sidebar actions |
 | `ViewSharingTests` (end-to-end) | a teammate does not see a shared view in the sidebar, browses it with a New mark, previews, adds and removes it |
 | `app-sidebar.test.ts`, `candidates-page.test.ts`, `job-pipeline.test.ts`, `undo-notice.test.ts` (Vitest) | the menu and its keyboard path, the Save view button and dialog, opening a view, what a saved view keeps of the verification guardrails, the Undo notice |

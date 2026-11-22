@@ -9,8 +9,9 @@ import { isOverdue } from '#lib/sla.js';
 import type { StatusName } from '#lib/status.js';
 
 /**
- * A ready-made filter on the candidates table, listed in the sidebar with its count. A view of a status (a verification
- * level, Overdue) shows that status's icon; any other view shows an ordinary icon (design system I2). A status view picks rows by
+ * A ready-made filter on the candidates table, listed in the sidebar. A view of a status (a verification level, Overdue)
+ * shows that status's icon; any other view shows its own plain icon, so no two built-in views share one and the icon rail
+ * tells them apart (design system I2, the owner's walk-through, 2026-11-21). A status view picks rows by
  * something that must never drive a decision against a candidate, so the candidates page offers no bulk email on it.
  */
 export type SavedView = {
