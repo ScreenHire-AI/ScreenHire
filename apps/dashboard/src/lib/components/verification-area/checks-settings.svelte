@@ -6,7 +6,6 @@
   import { defaults, superForm } from 'sveltekit-superforms';
   import { zod4 } from 'sveltekit-superforms/adapters';
   import { z } from 'zod';
-  import AlertGrid, { type AlertRow } from '#lib/components/alert-grid.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import InfoButton from '#lib/components/info-button.svelte';
   import Panel from '#lib/components/panel.svelte';
@@ -35,7 +34,8 @@
   // The Checks tab (verification-engine.md 10.11): every switch that decides what runs, one section per group of checks, with
   // what the group looks at, an example of what it catches, what turning it off costs and how often it found something this
   // month, and the settings that tune that group inside it: the AI-use policy and the consistency check in Answers, trusted
-  // networks in Network, trusted email domains and the device check in Duplicates. Then the Verification suggested alert.
+  // networks in Network, trusted email domains and the device check in Duplicates. The Verification suggested alert's
+  // organization default is in Settings > Notification defaults, and each person's own choice in Your account > Notifications.
   // Whoever can see verification reads it all as text; Edit settings gets the controls and one Save (A3). A group that is off
   // records that it did not run, so nobody reads a missing check as clean. The Signal Network has no control: it stays off
   // until legal review, and a switch that cannot be turned on would be a disabled control.
@@ -71,14 +71,6 @@
   const deviceChoices = Object.keys(deviceCheckLabels) as DeviceCheckChoice[];
   const deviceChoiceOf = (): DeviceCheckChoice => detail.deviceCheck ?? 'ByRegion';
 
-  const suggestedRow: AlertRow<'suggestedEmail' | 'suggestedSlack'> = {
-    label: 'Verification suggested',
-    about: 'Tells the reviewers who see the job when an application reaches Verify. It names the job, never the candidate or why.',
-    inApp: 'The candidate joins To verify, and the sidebar counts them.',
-    email: 'suggestedEmail',
-    slack: 'suggestedSlack',
-  };
-
   const schema = z.object({
     checks: z.object({ network: z.boolean(), contact: z.boolean(), documents: z.boolean(), answers: z.boolean(), duplicates: z.boolean(), formUse: z.boolean() }),
     llmConsistencyCheck: z.boolean(),
@@ -86,7 +78,6 @@
     deviceCheck: z.enum(['ByRegion', 'Notice', 'Consent', 'Off']),
     trustedDomains: z.array(z.string()),
     trustedNetworks: z.array(z.string()),
-    alerts: z.object({ suggestedEmail: z.boolean(), suggestedSlack: z.boolean() }),
   });
 
   const save = createVerificationSettingsSave();
@@ -109,7 +100,6 @@
         deviceCheck: deviceChoiceOf(),
         trustedDomains: [...detail.trustedDomains],
         trustedNetworks: [...detail.trustedNetworks],
-        alerts: { suggestedEmail: detail.alerts.suggestedEmail ?? false, suggestedSlack: detail.alerts.suggestedSlack ?? false },
       })),
       zod4(schema),
     ),
@@ -128,7 +118,7 @@
         if (!submitted.valid) return;
         const data = submitted.data;
         try {
-          // The AI usage alert is saved on the AI use tab: it is laid over as saved, never reset from here.
+          // The alerts and the AI model are saved on their own pages: they are laid over as saved, never reset from here.
           await save(detail, {
             checks: data.checks,
             llmConsistencyCheck: data.llmConsistencyCheck,
@@ -136,12 +126,6 @@
             deviceCheck: data.deviceCheck === 'ByRegion' ? null : data.deviceCheck,
             trustedDomains: data.trustedDomains,
             trustedNetworks: data.trustedNetworks,
-            alerts: {
-              suggestedEmail: data.alerts.suggestedEmail,
-              suggestedSlack: data.alerts.suggestedSlack,
-              budgetEmail: detail.alerts.budgetEmail ?? false,
-              budgetSlack: detail.alerts.budgetSlack ?? false,
-            },
           });
           saved = savedMessage;
         } catch (error) {
@@ -235,7 +219,7 @@
         <Field.Label for="consistency-check">Compare each application's sources</Field.Label>
         <InfoButton
           label="About comparing each application's sources"
-          text={`The consistency check. It sends the resume, the answers and any uploaded LinkedIn export to ${detail.modelSource === 'OwnKey' ? 'your AI provider' : "ScreenHire's AI provider"}, and finds details that contradict each other. Whose key runs it is on the AI use tab.`}
+          text={`The consistency check. It sends the resume, the answers and any uploaded LinkedIn export to ${detail.modelSource === 'OwnKey' ? 'your AI provider' : "ScreenHire's AI provider"}, and finds details that contradict each other. Whose key runs it is in Settings, AI model.`}
         />
       </div>
       <Switch id="consistency-check" bind:checked={$form.llmConsistencyCheck} class="mt-1" />
@@ -328,15 +312,6 @@
   <form method="POST" use:enhance novalidate aria-label="Checks settings" class="flex flex-col gap-5">
     <Panel title="Checks" flush>
       {@render sections()}
-    </Panel>
-    <Panel title="Notifications" flush>
-      <AlertGrid
-        rows={[suggestedRow]}
-        bind:values={$form.alerts}
-        emailAvailable={detail.emailAvailable}
-        slackConnected={detail.slackConnected}
-        label="Verification alerts"
-      />
     </Panel>
     <!-- One Save for the whole tab, held at the bottom of the window so a switch near the top never needs a long scroll to keep. -->
     <div class="sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 rounded-panel border border-border bg-card px-4.5 py-3 shadow-surface max-md:px-4" data-save-bar>

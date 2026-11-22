@@ -1,5 +1,8 @@
 import { moveTab } from '../tab-guard.js';
 import type { PageLoad } from './$types';
 
-// This tab merged into another (movedTabs in #lib/verification-area.ts); old links land on the tab that holds its settings now.
-export const load: PageLoad = ({ url }) => moveTab('/verification/policy', url);
+// This tab merged into Checks (movedTabs in #lib/verification-area.ts); old links land there.
+export const load: PageLoad = async ({ url, parent }) => {
+  const { user } = await parent();
+  moveTab('/verification/policy', url, user);
+};

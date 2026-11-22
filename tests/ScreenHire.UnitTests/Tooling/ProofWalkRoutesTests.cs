@@ -24,15 +24,15 @@ public sealed partial class ProofWalkRoutesTests
     [Fact]
     public void The_check_reads_the_real_files()
     {
-        TabAddresses(Read(TabsPath)).Should().Contain(["/verification", "/verification/activity", "/verification/ai-use"])
-            .And.HaveCountGreaterThanOrEqualTo(4, "the area has four tabs");
+        TabAddresses(Read(TabsPath)).Should().Contain(["/verification", "/verification/activity", "/verification/checks"])
+            .And.HaveCountGreaterThanOrEqualTo(3, "the area has three tabs");
         WalkedRoutes(Read(WalkPath)).Should().Contain(["/", "/candidates", "/verification", "/settings/team"])
             .And.HaveCountGreaterThan(30, "the route table holds every dashboard page");
     }
 
     [Theory]
     // A new tab with no row in the walk's table.
-    [InlineData(TabsPath, "href: '/verification/ai-use'", "href: '/verification/spend'", "/verification/spend")]
+    [InlineData(TabsPath, "href: '/verification/checks'", "href: '/verification/spend'", "/verification/spend")]
     // A row taken out of the table while its tab stays.
     [InlineData(WalkPath, "        (\"verification\", _ => \"/verification/checks\"),\n", "", "/verification/checks")]
     public void A_tab_the_walk_would_not_open_is_reported(string path, string needle, string replacement, string expected)

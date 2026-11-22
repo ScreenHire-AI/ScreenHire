@@ -8,7 +8,7 @@
 /**
  * Calls, tokens and cost over a range. `cost` is in US dollars and counts only calls with a known cost. Each call counts at the
  * one amount a customer sees for it: on ScreenHire's key what it is billed, on an own key the provider's price, an estimate. So
- * `cost` here sums both keys; `byKeySource` keeps them apart, which is how the AI use tab shows them.
+ * `cost` here sums both keys; `byKeySource` keeps them apart, which is how Billing's AI use section shows them.
  */
 export interface AiUsageTotals {
   calls: number;

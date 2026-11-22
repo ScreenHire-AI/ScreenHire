@@ -7,7 +7,7 @@
 
 /**
  * One day of use, by the date in the requested time zone (`yyyy-MM-dd`). The built-in and own-key fields split the day's
- * tokens (in and out) and cost by whose key paid, so the AI use tab can chart the two side by side.
+ * tokens (in and out) and cost by whose key paid, so Billing's AI use section can chart the two side by side.
  */
 export interface AiUsageDay {
   date: string;

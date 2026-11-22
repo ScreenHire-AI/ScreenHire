@@ -21,17 +21,18 @@ sources:
   - resource: apps/dashboard/src/lib/activity-log.ts
   - resource: apps/dashboard/src/lib/verification-settings-save.ts
   - resource: apps/dashboard/src/lib/verification-settings.ts
-  - resource: apps/dashboard/src/lib/components/verification-area/ai-model-form.svelte
+  - resource: apps/dashboard/src/lib/components/ai-model-form.svelte
+  - resource: apps/dashboard/src/routes/(app)/settings/ai-model/+page.svelte
   - resource: apps/dashboard/src/lib/components/verification-area/checks-settings.svelte
   - resource: apps/dashboard/src/lib/components/verification-area/trusted-list.svelte
-  - resource: apps/dashboard/src/lib/components/verification-area/ai-usage-alert-form.svelte
+  - resource: apps/dashboard/src/lib/components/notification-defaults-form.svelte
   - resource: apps/dashboard/src/lib/components/alert-grid.svelte
   - resource: apps/dashboard/src/lib/components/verification-area/settings-tab.svelte
   - resource: apps/dashboard/src/lib/components/verification-area/activity-rows.svelte
   - resource: apps/dashboard/src/routes/(app)/verification/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/verification/activity/+page.svelte
   - resource: apps/dashboard/src/routes/(app)/verification/checks/+page.svelte
-  - resource: apps/dashboard/src/routes/(app)/verification/ai-use/+page.svelte
+  - resource: apps/dashboard/src/routes/(app)/verification/ai-use/+page.ts
   - resource: apps/dashboard/src/routes/(app)/verification/policy/+page.ts
   - resource: apps/dashboard/src/routes/(app)/verification/tab-guard.ts
   - resource: src/ScreenHire.Domain/Verification/DeviceCheckBasis.cs
@@ -807,26 +808,31 @@ and the organization boundary. `AiUsageTests` covers the ledger.
 
 ### 10.11 What an organization controls
 
-The Verification area (`/verification`, a sidebar item) has four tabs, each at its own path: Overview, Activity log, Checks and AI use
-([design-system.md](../design/design-system.md), section 16), grouped by what a setting affects (the owner's walk-through,
-2026-11-21). Checks holds every switch that decides what runs and the settings that tune each group; AI use holds who pays and how
-much. Each form saves only its own part with `PUT /v1/organization/verification-settings` (Edit settings): it sends what is saved
-with its part laid over it, the API key `null` (keep) and the connection unchanged, so the provider is not asked again, and the
-alert it does not hold as saved. Everyone who can see verification reads Checks as plain text; Edit settings changes it. AI use is for
-View AI usage with All jobs (what the checks used) or Edit settings (the key and the AI usage alert), and each part checks its own
-permission; the budget and cap are an Owner's to set (Manage billing). A tab a role cannot use is left out of the strip and its
-address returns to the Overview. The old tabs' addresses redirect with their query string (`movedTabs` in
-`apps/dashboard/src/lib/verification-area.ts`): Policy and Notifications to Checks, Usage and AI model to AI use. Every change is a History line (`SettingsChanges.Verification`, seen through `VerificationSettingsFacts`).
+The Verification area (`/verification`, a sidebar item) has three tabs, each at its own path: Overview, Activity log and Checks
+([design-system.md](../design/design-system.md), section 16). Checks holds every switch that decides what runs and the settings that
+tune each group. What else an organization controls lives where convention puts it (the owner's walk-through, 2026-11-22): what the
+checks used and cost and the monthly limits in Billing's AI use section ([ai-usage.md](ai-usage.md#who-sees-it)), whose key runs the
+AI check in Settings > Integrations > AI model (`/settings/ai-model`, Edit settings), and the alerts' organization defaults in
+Settings > Organization > Notification defaults (`/settings/notification-defaults`, Edit settings), with each person's own choice in
+Your account > Notifications. Each form saves only its own part with `PUT /v1/organization/verification-settings` (Edit settings):
+it sends what is saved with its part laid over it, the API key `null` (keep) and the connection unchanged, so the provider is not
+asked again, and the alerts it does not hold as saved. Everyone who can see verification reads Checks as plain text; Edit settings
+changes it. The old tabs' addresses redirect by role with their query string, a target's hash after it (`movedTabs` in
+`apps/dashboard/src/lib/verification-area.ts`): Policy to Checks; Notifications to Notification defaults for Edit settings, else
+Your account > Notifications; AI use and Usage to Billing's AI use section for who can see usage, else the AI model for Edit
+settings, else the Overview; AI model to the AI model for Edit settings, else as AI use. Every change is a History line
+(`SettingsChanges.Verification`, seen through `VerificationSettingsFacts`), which the AI model and Notification defaults pages
+show too.
 Settings apply from the next application: an analysis already recorded is not redone.
 
-**Whose key runs the AI check (AI use tab).** The consistency check runs on ScreenHire's key, billed at the provider's price plus a margin
+**Whose key runs the AI check (Settings > Integrations > AI model).** The consistency check runs on ScreenHire's key, billed at the provider's price plus a margin
 (`ScreenHire:Billing:Ai:Margin`, [billing.md](billing.md)), or on the organization's own key, which costs it nothing extra. The own
 key is one of six provider presets (`ModelPresets`): Anthropic, OpenAI, OpenRouter, Azure OpenAI, Google Gemini, and Other (any
 OpenAI-compatible address). A preset fills in the address and the way the key is sent; Azure OpenAI and Other take an address the
 organization types. One model id serves both steps of the check. The page lists the provider's own models through
 `.../llm/models` (Anthropic `/v1/models`, the others `/models`) and takes a typed id when the provider offers no list (Azure lists
 base models, not the deployments a key calls); no model name is kept in the code. The own key's prices are optional and only
-make the AI use tab show costs. Every call is in the usage ledger either way, and the provider handles
+make Billing's AI use section show costs. Every call is in the usage ledger either way, and the provider handles
 the data under the organization's own terms rather than ScreenHire's (docs/research/legal.md). The candidate privacy page says the
 model comes from ScreenHire's provider or one the employer chose, and that the no-training promise covers only the first.
 
@@ -849,7 +855,7 @@ of what it catches, what turning it off costs (`checkGroupCopy` in `apps/dashboa
 something in 4 of 14 applications this month": the Overview's count for the group against the month's applications checked, a count
 and never a score. The settings that tune a group sit inside it: the AI-use policy and "Compare each application's sources" (the
 consistency check, `llmConsistencyCheck`) in Answers, trusted networks in Network, trusted email domains and the device check in
-Duplicates. The Verification suggested alert follows the groups. One Save keeps the tab. A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
+Duplicates. One Save keeps the tab. A group that is off is not run: the pipeline writes the analyzer's run with no signals and the
 note "<Group> checks are turned off in this organization's settings", the consistency check is recorded as off so no source
 is sent to a model, and `checksNotRun` shows the reviewer which groups did not look. A re-check never runs a group that is off.
 Turning Form activity off stops the apply page collecting form telemetry: the form is issued no session token, ingest keeps nothing
@@ -870,18 +876,18 @@ raise no network signal and a shared device from them is not counted as a duplic
 still counts. The run's note says what was left out. A network no wider than /16 (IPv4) or /48 (IPv6) is accepted, and each
 list holds 50 entries at most.
 
-**Alerts.** Each of two alerts is a row of an alert grid: In the app (always, a fixed tick), Email where this deployment can send it,
-and Slack once Slack is connected; each row's long sentence is in its info button. Verification suggested is on the Checks tab, and
-"in the app" for it is the To verify view and its sidebar count (it raises no bell notification: the bell's audience is a permission
-across the organization, and this alert goes only to the job's reviewers). The AI usage alert is on the AI use tab, and the bell
-always gets it. Verification suggested goes once, when an application first
+**Alerts.** The organization's default for each of two alerts is a row of the alert grid on Settings > Notification defaults: In the
+app (always, a fixed tick), Email where this deployment can send it, and Slack once Slack is connected; each row's long sentence is
+in its info button. Each person's own choice is their row in Your account > Notifications, which wins. "In the app" for
+Verification suggested is the To verify view and its sidebar count (it raises no bell notification: the bell's audience is a
+permission across the organization, and this alert goes only to the job's reviewers). The bell always gets the AI usage alert. Verification suggested goes once, when an application first
 reaches that level (not at each later stage of evidence, and not again if the level falls and returns), to members who hold Review verification and see the job. The AI usage
 alerts (50%, 80% and 100% of the budget, the cap, and a spike) go once each to members who see AI usage, as a notification in the
-bell and by email or Slack when the organization chose them ([ai-usage.md](ai-usage.md)). Slack gets a direct message to a member who linked Slack, never
+bell and by email or Slack as each person chose ([ai-usage.md](ai-usage.md)). Slack gets a direct message to a member who linked Slack, never
 a channel post, because a channel skips permission and job scoping. Neither carries a level, reason, evidence or candidate name:
 the email and the Slack message both name the job, say the application needs a closer look and link to it. The AI usage alerts
-link to the AI use tab (`/verification/ai-use`). The Owner's monthly budget and cap sit on that tab, as a form for an Owner and as
-facts for an Admin; they apply whichever key runs the checks ([ai-usage.md](ai-usage.md)).
+link to Billing's AI use section (`/settings/billing#ai-use`). The Owner's monthly budget and cap sit in that section, as a form for
+an Owner and as facts for an Admin; they apply whichever key runs the checks ([ai-usage.md](ai-usage.md)).
 
 **Signal Network.** There is no control for it on any tab. It stays off until legal review (section 6), and a switch that cannot be turned
 on would be a disabled control. When it can be, it joins the Checks tab.

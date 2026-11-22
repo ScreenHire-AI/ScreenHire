@@ -136,7 +136,7 @@ describe('settings layout', () => {
     expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
   });
 
-  // Billing is the Owner's, and exists only where a payment provider is set up (A3).
+  // Billing's plan is the Owner's, only where a payment provider is set up; its AI use section opens it for who sees AI usage (A3).
   describe('Billing', () => {
     const renderBilling = (features: { billing?: boolean }, signedIn: CurrentUser = userAs('Owner')) => {
       state.url = new URL('http://dashboard.test/settings/billing');
@@ -149,8 +149,15 @@ describe('settings layout', () => {
       expect(screen.getByText('Settings page content')).toBeInTheDocument();
     });
 
-    it('tells an Admin that only an owner can change billing, not to ask an owner or admin', async () => {
+    it('opens for an Admin, who sees AI usage, for its AI use section', () => {
       renderBilling({ billing: true }, userAs('Admin'));
+
+      expect(screen.getByText('Settings page content')).toBeInTheDocument();
+    });
+
+    it('tells someone who sees neither the plan nor AI usage that only an owner can change billing, not to ask an owner or admin', async () => {
+      const ownJobs: CurrentUser = { ...userAs('Admin'), organization: { ...userAs('Admin').organization!, seesAllJobs: false } };
+      renderBilling({ billing: true }, ownJobs);
 
       expect(screen.getByText('Not in your role')).toBeInTheDocument();
       expect(screen.getByText('Only an owner of your organization can change billing.')).toBeInTheDocument();
@@ -159,14 +166,25 @@ describe('settings layout', () => {
       await expectNoAxeViolations();
     });
 
-    it('sends an Owner away where there is no payment provider, and waits until the shell has heard', () => {
+    it('opens for an Owner with no payment provider, without waiting for the shell, for the AI use section', () => {
       renderBilling({});
+      expect(screen.getByText('Settings page content')).toBeInTheDocument();
+      cleanup();
+
+      renderBilling({ billing: false });
+      expect(screen.getByText('Settings page content')).toBeInTheDocument();
+      expect(navigation.goto).not.toHaveBeenCalled();
+    });
+
+    it('sends someone with the plan but not AI usage away where there is no payment provider, and waits until the shell has heard', () => {
+      const billingOnly: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageBilling'] } };
+      renderBilling({}, billingOnly);
       expect(navigation.goto).not.toHaveBeenCalled();
       expect(screen.queryByText('Settings page content')).not.toBeInTheDocument();
       cleanup();
 
-      renderBilling({ billing: false });
-      expect(navigation.goto).toHaveBeenCalledWith('/settings/organization', { replaceState: true });
+      renderBilling({ billing: false }, billingOnly);
+      expect(navigation.goto).toHaveBeenCalledWith('/', { replaceState: true });
       expect(screen.queryByText('Not in your role')).not.toBeInTheDocument();
     });
   });

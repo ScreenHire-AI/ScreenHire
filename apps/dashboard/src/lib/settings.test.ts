@@ -115,8 +115,9 @@ describe('visibleSettingsSections', () => {
 
   it('shows Owners and Admins every page, with email templates on the Templates page and Verification in the sidebar instead', () => {
     const withSlack = (user: CurrentUser) => visibleSettingsSections(user, { slack: true });
-    expect(withSlack(userAs('Owner'))).toHaveLength(12);
-    expect(withSlack(userAs('Admin'))).toHaveLength(12);
+    // Billing opens for both, who see AI usage: its AI use section is theirs, its plan the Owner's.
+    expect(withSlack(userAs('Owner'))).toHaveLength(15);
+    expect(withSlack(userAs('Admin'))).toHaveLength(15);
     expect(labels(userAs('Owner'))).not.toContain('Email templates');
     expect(labels(userAs('Owner'))).not.toContain('Verification');
   });
@@ -125,7 +126,7 @@ describe('visibleSettingsSections', () => {
     const owner = userAs('Owner');
 
     expect(labels(owner)).not.toContain('Slack');
-    expect(labels(owner)).toHaveLength(11);
+    expect(labels(owner)).toHaveLength(14);
     expect(visibleSettingsSections(owner, { slack: false }).map((section) => section.label)).not.toContain('Slack');
     expect(visibleSettingsSections(owner, { slack: true }).map((section) => section.label)).toContain('Slack');
   });
@@ -166,9 +167,9 @@ describe('settings groups', () => {
 
   it('gives an Owner three groups, with Email domain under Organization and Branding under Careers site', () => {
     expect(groups(userAs('Owner'))).toEqual([
-      ['Organization', ['General', 'Team', 'Roles', 'Tags', 'Email domain', 'Data requests']],
+      ['Organization', ['General', 'Team', 'Roles', 'Tags', 'Notification defaults', 'Email domain', 'Data requests', 'Billing']],
       ['Careers site', ['Careers page', 'Branding']],
-      ['Integrations', ['Slack', 'MCP server', 'Webhooks', 'API keys']],
+      ['Integrations', ['AI model', 'Slack', 'MCP server', 'Webhooks', 'API keys']],
     ]);
   });
 
@@ -176,17 +177,18 @@ describe('settings groups', () => {
     expect(groups(holding('ManageWebhooks'))).toEqual([['Integrations', ['Webhooks']]]);
     expect(groups(holding('ManageTeam'))).toEqual([['Organization', ['Team', 'Roles']]]);
     expect(groups(holding('EditSettings'))).toEqual([
-      ['Organization', ['General', 'Tags', 'Email domain']],
+      ['Organization', ['General', 'Tags', 'Notification defaults', 'Email domain']],
       ['Careers site', ['Careers page', 'Branding']],
+      ['Integrations', ['AI model']],
     ]);
     expect(groups(userAs('Recruiter'))).toEqual([]);
     expect(groups(null)).toEqual([]);
   });
 
-  it('leaves Integrations out of a role that sees only its own jobs, whose integrations all reach every job', () => {
+  it('leaves a role that sees only its own jobs only the AI model of the integrations, the one that reaches no job', () => {
     const own: CurrentUser = { ...userAs('Owner'), organization: { ...userAs('Owner').organization!, seesAllJobs: false } };
 
-    expect(groups(own).map(([group]) => group)).not.toContain('Integrations');
+    expect(groups(own).find(([group]) => group === 'Integrations')).toEqual(['Integrations', ['AI model']]);
   });
 
   it('puts a path in its group, and /settings itself in none', () => {
@@ -223,7 +225,10 @@ describe('Settings search', () => {
 
   it('finds a setting by its one line and by its group', () => {
     expect(find('erase')).toContain('Data requests');
-    expect(find('integrations')).toEqual(['Slack', 'MCP server', 'Webhooks', 'API keys']);
+    expect(find('integrations')).toEqual(['AI model', 'Slack', 'MCP server', 'Webhooks', 'API keys']);
+    expect(find('alerts')).toEqual(['Notification defaults']);
+    expect(find('openai')).toEqual(['AI model']);
+    expect(find('budget')).toContain('Billing');
     expect(find('careers site')).toContain('Careers page');
   });
 
@@ -299,7 +304,7 @@ describe('job access', () => {
     const scoped: CurrentUser = { ...owner, organization: { ...owner.organization!, seesAllJobs: false } };
     const organization = (user: CurrentUser) => visibleSettingsSections(user).filter((section) => section.group === 'Organization').map((section) => section.label);
 
-    expect(organization(owner)).toEqual(['General', 'Team', 'Roles', 'Tags', 'Email domain', 'Data requests']);
+    expect(organization(owner)).toEqual(['General', 'Team', 'Roles', 'Tags', 'Notification defaults', 'Email domain', 'Data requests', 'Billing']);
     expect(organization(userAs('Admin'))).toContain('Data requests');
     expect(organization(scoped)).not.toContain('Data requests');
     expect(organization(scoped)).not.toContain('Tags');
@@ -309,21 +314,30 @@ describe('job access', () => {
   });
 });
 
-// Billing is the Owner's (ManageBilling) and exists only where a payment provider is set up (A3).
+// Billing's plan and payments are the Owner's (ManageBilling), only where a payment provider is set up; its AI use section is for
+// whoever can see AI usage, so the page opens for them whatever the provider (A3).
 describe('Billing', () => {
   const organization = (user: CurrentUser, features = {}) =>
     visibleSettingsSections(user, features).filter((section) => section.group === 'Organization').map((section) => section.label);
 
-  it('ends the Organization pages for an Owner once the shell has heard that billing is set up, and for no one else', () => {
-    expect(organization(userAs('Owner'), { billing: true })).toEqual(['General', 'Team', 'Roles', 'Tags', 'Email domain', 'Data requests', 'Billing']);
-    expect(organization(userAs('Admin'), { billing: true })).not.toContain('Billing');
+  it('ends the Organization pages for an Owner and an Admin, who see AI usage, and for no one else', () => {
+    expect(organization(userAs('Owner'), { billing: true })).toEqual(['General', 'Team', 'Roles', 'Tags', 'Notification defaults', 'Email domain', 'Data requests', 'Billing']);
+    expect(organization(userAs('Admin'), { billing: true })).toContain('Billing');
     expect(organization(userAs('Recruiter'), { billing: true })).toEqual([]);
     expect(settingsSectionOf('/settings/billing')).toMatchObject({ label: 'Billing', permission: 'ManageBilling', group: 'Organization', feature: 'billing' });
   });
 
-  it('hides it until the shell has heard, and where there is no payment provider', () => {
-    expect(organization(userAs('Owner'))).not.toContain('Billing');
-    expect(organization(userAs('Owner'), { billing: false })).not.toContain('Billing');
+  it('opens for who sees AI usage whatever the shell has heard about a payment provider, and for no one else without one', () => {
+    expect(organization(userAs('Owner'))).toContain('Billing');
+    expect(organization(userAs('Owner'), { billing: false })).toContain('Billing');
+    // Manage billing without AI usage (a custom role cannot hold it, but the rule is the page's): the provider decides.
+    const billingOnly: CurrentUser = { ...interviewer, organization: { ...interviewer.organization!, permissions: ['ViewHiring', 'ManageBilling'] } };
+    expect(organization(billingOnly)).not.toContain('Billing');
+    expect(organization(billingOnly, { billing: false })).not.toContain('Billing');
+    expect(organization(billingOnly, { billing: true })).toEqual(['Billing']);
+    // An Admin on only their own jobs cannot see usage, which covers every job.
+    const ownJobs: CurrentUser = { ...userAs('Admin'), organization: { ...userAs('Admin').organization!, seesAllJobs: false } };
+    expect(organization(ownJobs, { billing: true })).not.toContain('Billing');
     expect(featureWaits({}, 'billing')).toBe(true);
     expect(featureOn({}, 'billing')).toBe(false);
   });

@@ -27,7 +27,7 @@
   // a row per kind of thing, and a column per way to hear of it. In the app switches the toast or card in the tray (the bell
   // keeps what is addressed to the person either way); Email is now, in the daily digest or never; Slack shows once the
   // person's Slack account is linked, on the rows ScreenHire sends a Slack message for. A cell with no such channel is a
-  // dash, never a disabled control (A3). Verification and AI use start from the organization's alert settings. One Save
+  // dash, never a disabled control (A3). Verification and AI use start from Settings > Notification defaults. One Save
   // sends the whole grid; the draft fills once, so a refetch while someone is choosing leaves their choices alone.
   const path = '/v1/account/notifications';
   const queryClient = useQueryClient();
