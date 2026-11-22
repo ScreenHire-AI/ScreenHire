@@ -10,7 +10,7 @@ sources:
   - resource: apps/careers/src/styles/global.css
   - resource: packages/ui/src/questions.css
   - resource: packages/ui/src/questions/TextField.svelte
-  - resource: src/ScreenHire.Infrastructure/Persistence/Migrations/20261122095137_DefaultFourQuestionsPerPage.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Migrations/20261122102507_DefaultFourQuestionsPerPage.cs
   - resource: apps/careers/src/pages/404.astro
   - resource: apps/careers/src/pages/[organization]/uploads.ts
   - resource: apps/careers/src/lib/apply.ts
@@ -61,7 +61,7 @@ never calls the API.
 |---|---|
 | `/jobs/{job}` | The job, an Apply link with "Takes about 4 minutes" under it (§7), and one line on the checks: "We look out for bots and borrowed identities, so genuine applicants get a fair look." with the "What we collect and why" link. Nothing is collected while browsing, so the full notice is on the form, not here. 410 once the job closes, 404 if unknown. An unknown organization is a 404 on every page here, drawn as one neutral "We could not find this page" (`src/pages/404.astro`): no organization name, branding or link, the same page for any address with no page, so it never says whether an organization exists. |
 | `/jobs/{job}/apply` | The form: **details** (notice, assistive-technology switch, first name, last name (optional), email, phone, resume), one **page** per section of the job's questionnaire (none when it has no questions beyond the resume; §7), **review** (summary, AI-use declaration, the optional "Keep my details for future roles" box, send). `?draft={token}` fills it from a saved draft. |
-| `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET: a check mark, "Application sent", and "What happens next" as three steps led by when they happen: Now (the employer has the application), Next (the employer contacts the candidate by email about next steps; the checks never reject anyone) and Any time (the candidate's own page). It names no date and no reader, because the employer sets neither. The same page whether the application is new or the email had already applied, so the form never reveals who applied. It links to `/my-applications`, where the candidate asks for the link to their own page ([candidate portal](candidate-portal.md)). |
+| `/jobs/{job}/applied` | The confirmation, after a POST-redirect-GET: a check mark, "Application sent", one line of thanks, and "What happens next" as two steps led by when they happen: Next (the employer contacts the candidate by email about next steps; the checks never reject anyone) and Any time (the candidate's own page). It names no date and no reader, because the employer sets neither. The same page whether the application is new or the email had already applied, so the form never reveals who applied. It links to `/my-applications`, where the candidate asks for the link to their own page ([candidate portal](candidate-portal.md)). |
 | `/privacy` | "What we collect and why", the full notice. Its version (`NOTICE_VERSION` in `src/lib/apply.ts`) is recorded on every application. |
 | `/brand/{hash}.css` | The employer's brand stylesheet (section 5). |
 | `/uploads` | JSON endpoint for the upload island (section 3). |
@@ -280,12 +280,15 @@ file, rounded up to whole minutes and never under 2.
 
 - Every careers page opts in to cross-document view transitions in `src/styles/global.css` (`@view-transition {
   navigation: auto; }`), so the form (`apply-step`) slides in from the right as the last step leaves, the header holds
-  still and the bar (`apply-progress`) cross-fades. The rule sits inside `prefers-reduced-motion: no-preference`, so
-  reduced motion gets a plain page load, as does a browser without view transitions. The follow-up page and the step
+  still and the bar (`apply-progress`) cross-fades. The rule sits inside `prefers-reduced-motion: no-preference` and
+  `scripting: enabled`, so reduced motion gets a plain page load, as does a browser without view transitions. JavaScript
+  off gets one too: Chromium with scripting off starts a cross-document transition and never ends it, which leaves every
+  click on the new page caught by the transition's layer. The transition itself runs no script. The follow-up page and the step
   after Send use the same names.
 - A page of questions opens with the focus on its first question (`autofocus`, through the shared fields' `autofocus`
   prop, which the dashboard's preview never sets). The details step does not, because the notice comes first, and a step
-  with errors gives the focus to the error summary.
+  with errors gives the focus to the error summary. A page whose first question is a file leaves the focus where the
+  browser puts it: the upload island draws its own input and takes no `autofocus`.
 - Enter in a line moves on: Continue is the first submit button on the details step and on every page, so the browser's
   implicit submission presses it. A text area keeps Enter for a new line. On the review, and on a follow-up's last page,
   the first submit button is a hidden one that posts `go:` the same step, so Enter keeps the candidate where they are with

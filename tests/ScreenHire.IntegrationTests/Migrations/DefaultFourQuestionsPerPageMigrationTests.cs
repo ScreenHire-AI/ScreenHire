@@ -7,7 +7,7 @@ namespace ScreenHire.IntegrationTests.Migrations;
 /// </summary>
 public sealed class DefaultFourQuestionsPerPageMigrationTests(AppHostFixture fixture)
 {
-    private const string Before = "AddFormLibrary";
+    private const string Before = "AddSchedulingOptions";
     private const string After = "DefaultFourQuestionsPerPage";
 
     [Fact]

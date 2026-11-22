@@ -13,7 +13,7 @@ using ScreenHire.Infrastructure.Persistence;
 namespace ScreenHire.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ScreenHireDbContext))]
-    [Migration("20261122095137_DefaultFourQuestionsPerPage")]
+    [Migration("20261122102507_DefaultFourQuestionsPerPage")]
     partial class DefaultFourQuestionsPerPage
     {
         /// <inheritdoc />
@@ -3791,6 +3791,10 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("interview_id");
 
+                    b.Property<int?>("InvitedRevision")
+                        .HasColumnType("integer")
+                        .HasColumnName("invited_revision");
+
                     b.Property<bool>("IsOrganizer")
                         .HasColumnType("boolean")
                         .HasColumnName("is_organizer");
@@ -3848,12 +3852,82 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("interview_attendees", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Scheduling.InterviewHours", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("BufferMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("buffer_minutes");
+
+                    b.Property<string>("FeedSecret")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("feed_secret");
+
+                    b.Property<int?>("MaxPerDay")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_per_day");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("member_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("time_zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Weekly")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("weekly");
+
+                    b.HasKey("Id")
+                        .HasName("pk_interview_hours");
+
+                    b.HasIndex("MemberId")
+                        .HasDatabaseName("ix_interview_hours_member_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_interview_hours_user_id");
+
+                    b.HasIndex("OrganizationId", "MemberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_interview_hours_organization_id_member_id");
+
+                    b.HasIndex("OrganizationId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_interview_hours_organization_id_user_id");
+
+                    b.ToTable("interview_hours", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Scheduling.InterviewRequest", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AnotherTimeAskedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("another_time_asked_at");
 
                     b.Property<Guid>("ApplicationId")
                         .HasColumnType("uuid")
@@ -3866,6 +3940,20 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<bool>("CancelledByCandidate")
                         .HasColumnType("boolean")
                         .HasColumnName("cancelled_by_candidate");
+
+                    b.Property<string>("CandidateNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("candidate_note");
+
+                    b.Property<string>("CandidateTimes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("candidate_times");
+
+                    b.Property<DateTimeOffset?>("CandidateTimesAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("candidate_times_at");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -3890,6 +3978,15 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("EndsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("ends_at");
+
+                    b.Property<string>("ExtraTimes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("extra_times");
+
+                    b.Property<string>("Hours")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("hours");
 
                     b.Property<Guid>("JobId")
                         .HasColumnType("uuid")
@@ -3917,9 +4014,24 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("new_times_offered_at");
 
+                    b.Property<string>("Option")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("option");
+
+                    b.Property<DateTimeOffset?>("OptionChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("option_changed_at");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
+
+                    b.Property<string>("ProposedTimes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("proposed_times");
 
                     b.Property<int>("Revision")
                         .HasColumnType("integer")
@@ -3940,11 +4052,20 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
+                    b.Property<string>("TeamNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("team_note");
+
                     b.Property<string>("TimeZone")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("time_zone");
+
+                    b.Property<bool>("UseBlocks")
+                        .HasColumnType("boolean")
+                        .HasColumnName("use_blocks");
 
                     b.Property<DateTimeOffset>("WindowEnd")
                         .HasColumnType("timestamp with time zone")
@@ -6545,6 +6666,30 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_interview_attendees_interview_requests_organization_id_inte");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Scheduling.InterviewHours", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.OrganizationMember", null)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_interview_hours_organization_members_member_id");
+
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_interview_hours_organizations_organization_id");
+
+                    b.HasOne("ScreenHire.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_interview_hours_users_user_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Scheduling.InterviewRequest", b =>
