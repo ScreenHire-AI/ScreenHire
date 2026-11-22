@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using ScreenHire.Domain.Organizations;
@@ -17,13 +16,8 @@ namespace ScreenHire.Api.Fonts;
 internal sealed partial class HeadingFontHosting(
     IFontSource source, HeadingFontCatalogue catalogue, HeadingFontStore store, TimeProvider time, ILogger<HeadingFontHosting> logger)
 {
-    /// <summary>The weights the careers pages' titles use: 600, 650 (which a browser draws with 700), 700 and 800.</summary>
+    /// <summary>The weights the careers pages' titles use: 600, 700 and 800 (a title set at 650 is drawn with the 700 file).</summary>
     private static readonly int[] TitleWeights = [600, 700, 800];
-
-    /// <summary>A latin subset of one weight is well under this; anything larger is not what we asked for.</summary>
-    private const int MaxFileBytes = 2 * 1024 * 1024;
-
-    private static ReadOnlySpan<byte> Woff2Signature => "wOF2"u8;
 
     private static readonly string[] Subsets = ["latin", "latin-ext"];
 
@@ -58,8 +52,7 @@ internal sealed partial class HeadingFontHosting(
         {
             return await HostAsync(id, db, cancellationToken);
         }
-        catch (Exception exception) when ((exception is HttpRequestException or TaskCanceledException or JsonException)
-            && !cancellationToken.IsCancellationRequested)
+        catch (Exception exception) when (FontDownloads.IsUnreachable(exception) && !cancellationToken.IsCancellationRequested)
         {
             DownloadFailed(logger, exception, id);
             return HostingResult.Refused(Unreachable);
@@ -94,7 +87,7 @@ internal sealed partial class HeadingFontHosting(
         foreach (var file in files)
         {
             var bytes = await source.DownloadAsync(font, file, cancellationToken);
-            if (bytes.Length is 0 or > MaxFileBytes || !bytes.AsSpan().StartsWith(Woff2Signature))
+            if (!FontDownloads.IsWoff2(bytes))
             {
                 NotWoff2(logger, id);
                 return HostingResult.Refused(Unreachable);

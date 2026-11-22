@@ -16,11 +16,17 @@ export const GET: APIRoute = async ({ url }) => {
     return new Response(null, { status: 404 });
   }
 
-  // The generated client reads JSON; a font's bytes are fetched from its generated address.
-  const response = await fetch(`${apiBaseUrl}${getGetPublicHeadingFontFileUrl(file.id, file.fileName)}`);
+  // The generated client reads JSON; a font's bytes are fetched from its generated address. A failed answer is never
+  // cached, so a moment's outage does not stick to a file that will be there.
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${getGetPublicHeadingFontFileUrl(file.id, file.fileName)}`);
+  } catch {
+    return new Response(null, { status: 502, headers: { 'Cache-Control': 'no-store' } });
+  }
   const type = response.headers.get('content-type')?.split(';')[0].trim();
   if (response.status !== 200 || type !== 'font/woff2') {
-    return new Response(null, { status: 404 });
+    return new Response(null, { status: response.status >= 500 ? 502 : 404, headers: { 'Cache-Control': 'no-store' } });
   }
 
   return new Response(response.body, {

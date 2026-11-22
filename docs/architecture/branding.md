@@ -13,6 +13,7 @@ sources:
   - resource: apps/api/Fonts/HeadingFontHosting.cs
   - resource: apps/api/Fonts/HeadingFontPreviews.cs
   - resource: apps/api/Fonts/FontsourceSource.cs
+  - resource: apps/api/Fonts/FontDownloads.cs
   - resource: apps/api/Fonts/SandboxFontSource.cs
   - resource: apps/api/Fonts/FontsOptions.cs
   - resource: apps/api/Endpoints/HeadingFontEndpoints.cs
@@ -117,8 +118,8 @@ families.
 nothing. Any other family must be in the catalogue, so a crafted id never makes the server fetch anything. The save then
 downloads it, once, for every organization:
 
-- the weights the careers titles use, 600, 650 and 700 (a browser draws 650 with 700) and 800, as the nearest each of
-  600, 700 and 800 the family has (`PickWeights`: 100 to 900 gives 600, 700 and 800; 400 and 700 gives 700; 400 alone
+- the weights the careers titles use, 600, 700 and 800 (a title set at 650 is drawn with the 700 file), as the nearest
+  each of 600, 700 and 800 the family has (`PickWeights`: 100 to 900 gives 600, 700 and 800; 400 and 700 gives 700; 400 alone
   gives 400);
 - in latin and, where the family has it, latin-ext, upright only;
 - each file checked to start with the WOFF2 signature and kept under 2 MB, at an address under
@@ -150,7 +151,9 @@ picked, and More fonts, a sheet (`heading-font-sheet.svelte`) with a search, the
 catalogue 40 at a time. Each name is drawn in its own face. A family's face loads from
 `GET /v1/heading-fonts/{id}/preview` only when its row scrolls into view (`heading-font-faces.svelte.ts`): its latin file
 nearest 700, downloaded the first time anyone opens it, kept in storage as `previews/{id}.woff2` and rate-limited per
-person (`PreviewsPerMinute`, 120 a minute, which keeps browsing well inside jsDelivr's terms; ADR-0031). A bundled font has no preview route, because the dashboard ships it. The Branding preview
+person (`PreviewsPerMinute`, 120 a minute, which keeps browsing well inside jsDelivr's terms; ADR-0031). A preview gets
+the same WOFF2 and 2 MB check as a hosted file, and a kept one is never fetched again, even after a new release of the
+family: it only draws the name. A bundled font has no preview route, because the dashboard ships it. The Branding preview
 draws a catalogue font in the same face. Nothing reaches candidates until Save.
 
 ## 4. Brand images

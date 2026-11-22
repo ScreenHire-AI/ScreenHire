@@ -38,7 +38,7 @@ internal sealed partial class HeadingFontCatalogue(IFontSource source, IMemoryCa
         {
             listed = await source.ListAsync(cancellationToken);
         }
-        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or JsonException)
+        catch (Exception exception) when (FontDownloads.IsUnreachable(exception) && !cancellationToken.IsCancellationRequested)
         {
             CatalogueUnreachable(logger, exception);
             var hosted = await db.HostedFonts.AsNoTracking().ToListAsync(cancellationToken);

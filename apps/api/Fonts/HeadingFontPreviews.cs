@@ -1,4 +1,4 @@
-using System.Text.Json;
+using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Api.Fonts;
@@ -6,17 +6,17 @@ namespace ScreenHire.Api.Fonts;
 /// <summary>
 /// The file the font picker draws a family's name in (docs/architecture/branding.md section 3): its latin subset at
 /// the weight nearest 700, downloaded the first time anyone opens it and kept in storage, so the dashboard only ever
-/// asks the API. A bundled font has no preview here: the dashboard ships it.
+/// asks the API. A bundled font has no preview here: the dashboard ships it. A kept preview is never fetched again,
+/// even when the family has a newer release: it only draws the family's name in the picker, and the careers pages
+/// use the hosted files.
 /// </summary>
 internal sealed partial class HeadingFontPreviews(
     IFontSource source, HeadingFontCatalogue catalogue, HeadingFontStore store, ILogger<HeadingFontPreviews> logger)
 {
-    private static ReadOnlySpan<byte> Woff2Signature => "wOF2"u8;
-
     /// <summary>The preview of <paramref name="id"/>, or null for a font that has none (not in the catalogue, or bundled).</summary>
     public async Task<Stream?> OpenAsync(string id, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
-        if (!Domain.Organizations.HeadingFonts.IsValidId(id) || Domain.Organizations.HeadingFonts.IsBundled(id))
+        if (!HeadingFonts.IsValidId(id) || HeadingFonts.IsBundled(id))
         {
             return null;
         }
@@ -42,7 +42,7 @@ internal sealed partial class HeadingFontPreviews(
             }
 
             var bytes = await source.DownloadAsync(font, file, cancellationToken);
-            if (!bytes.AsSpan().StartsWith(Woff2Signature))
+            if (!FontDownloads.IsWoff2(bytes))
             {
                 return null;
             }
@@ -50,8 +50,7 @@ internal sealed partial class HeadingFontPreviews(
             await store.WriteAsync(HeadingFontStore.PreviewBlob(id), bytes, "font/woff2", cancellationToken);
             return new MemoryStream(bytes, writable: false);
         }
-        catch (Exception exception) when ((exception is HttpRequestException or TaskCanceledException or JsonException)
-            && !cancellationToken.IsCancellationRequested)
+        catch (Exception exception) when (FontDownloads.IsUnreachable(exception) && !cancellationToken.IsCancellationRequested)
         {
             // The picker draws the name in the page's own font instead.
             PreviewFailed(logger, exception, id);
