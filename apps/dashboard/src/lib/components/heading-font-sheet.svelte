@@ -109,7 +109,6 @@
         variant="outline"
         spacing={0}
         aria-label="Style"
-        class="max-w-full overflow-x-auto"
         bind:value={() => style, (next) => ((style = (next || 'All') as HeadingFontStyle | 'All'), (shown = pageSize))}
       >
         {#each styleFilters as filter (filter.value)}
