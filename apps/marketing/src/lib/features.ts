@@ -17,19 +17,25 @@ import { aiMarginPercent, credits } from '@screenhire/plans';
 const billed = `Use of our AI key is billed at the provider's price plus ${aiMarginPercent}%.`;
 const ownKey = 'Bring your own AI key and we charge nothing for it.';
 const smallestCredit = Math.min(...credits.amounts);
-const prepaid = `AI use is prepaid: buy credits from $${smallestCredit}, and turn on auto-reload if you want it.`;
+// Two forms: the market answers say no price (market.test.ts), so the one that names the smallest amount is for the pricing page alone.
+const prepaid = 'AI use is prepaid: buy credits in advance, and turn on auto-reload if you want it.';
+const prepaidFrom = `AI use is prepaid: buy credits from $${smallestCredit}, and turn on auto-reload if you want it.`;
 
 export const aiCost = {
   /** The margin as a whole percentage, from the catalogue. */
   marginPercent: aiMarginPercent,
   billed,
   ownKey,
-  /** How AI use is paid for: credits bought in advance, from the smallest amount on offer. */
+  /** How AI use is paid for: credits bought in advance. Names no amount. */
   prepaid,
+  /** The same, from the smallest amount on offer: for the pricing page, which states prices. */
+  prepaidFrom,
   /** The smallest credit purchase, in US dollars, from the catalogue. */
   smallestCredit,
-  /** The three sentences, for a place with room for them. */
+  /** The three sentences, for a place with room for them. Names no amount. */
   both: `${billed} ${prepaid} ${ownKey}`,
+  /** The three sentences with the smallest credit amount, for the pricing page. */
+  bothFrom: `${billed} ${prepaidFrom} ${ownKey}`,
 };
 
 export interface Source {

@@ -88,10 +88,13 @@ describe('what the AI costs', () => {
     expect(aiCost.both).toContain(aiCost.ownKey);
   });
 
-  it('says AI use is prepaid from the smallest credit amount in the catalogue, never a retyped one', () => {
+  it('says AI use is prepaid from the smallest credit amount in the catalogue, never a retyped one, and only where prices are stated', () => {
     expect(aiCost.smallestCredit).toBe(Math.min(...credits.amounts));
-    expect(aiCost.prepaid).toContain(`from $${Math.min(...credits.amounts)},`);
+    expect(aiCost.prepaidFrom).toContain(`from $${Math.min(...credits.amounts)},`);
+    expect(aiCost.bothFrom).toBe(`${aiCost.billed} ${aiCost.prepaidFrom} ${aiCost.ownKey}`);
+    // The market answers name no price (market.test.ts), so the shared sentence has no amount in it.
     expect(aiCost.both).toBe(`${aiCost.billed} ${aiCost.prepaid} ${aiCost.ownKey}`);
+    expect(aiCost.both).not.toMatch(/[$£€] ?[0-9]/);
   });
 
   it('says on what every plan includes that the AI check is billed on our key and costs nothing extra on your own', () => {

@@ -545,7 +545,8 @@ Five tenant-owned tables, each with the `tenant_isolation` row-level security po
 - `billing_events`, one row per provider event applied (unique on `organization_id` and `event_id`), with no payload.
 - `credit_entries`, the AI credit ledger (see AI credits): `kind`, `micros`, `at`, `expires_at`, `source_key` (unique per organization),
   and the purchase, ledger call, consistency check, application or grant a row is about. Insert-only for the application role: no UPDATE and no
-  DELETE, and no retention purge, because the balance needs every row.
+  DELETE, and no retention purge, because the balance needs every row. Like `ai_usage_calls`, it has no `job_scope` policy: `application_id` is
+  a plain id for tracing a deduction, the ledger is organization-level, and the balance must sum every row whatever job scope the reader has.
 - `credit_purchases`, one row per attempt to buy (`source` `Checkout` or `AutoReload`, `amount`, `status` `Pending`, `Paid` or `Failed`, the
   provider's payment id and refusal code). A partial unique index allows one `Pending` auto-reload per organization.
 - `credit_settings`, one per organization: the low-balance alert, auto-reload's switch and amounts, and the saved card. Apart from
