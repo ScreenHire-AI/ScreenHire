@@ -90,6 +90,7 @@ describe('the Checks tab', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
     for (const group of groupOrder) expect(section(group)).toHaveTextContent('For example:');
+    expect(document.body).not.toHaveTextContent(/%|score/i);
     await expectNoAxeViolations();
     await fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }));
     await waitFor(() => expect(document.body).not.toHaveTextContent('For example:'));
