@@ -75,6 +75,14 @@ internal static class BillingWebhookEndpoints
             return Results.Unauthorized();
         }
 
+        // A credit purchase confirmed as paid (ADR-0032): the worker grants it.
+        if (webhook.Credit is { } credit)
+        {
+            return await CreditPaymentApplier.ApplyAsync(outbox, tenant, credit, time.GetUtcNow(), cancellationToken) == BillingApply.Conflict
+                ? Results.Conflict()
+                : Results.Ok();
+        }
+
         // A conflict is a race with another delivery for the same account: answer 409 so Stripe sends this one again.
         return webhook.Event is { } providerEvent
             && await BillingEventApplier.ApplyAsync(outbox, tenant, billing, providerEvent, cancellationToken) == BillingApply.Conflict
@@ -137,7 +145,51 @@ internal static class BillingEventApplier
     }
 }
 
+/// <summary>
+/// Turns a confirmed credit payment into <see cref="GrantAiCredits"/> for the worker, from a route with no signed-in user (the Stripe
+/// webhook, the sandbox's credit Checkout). The event id is recorded in <c>billing_events</c> in the same save, so a redelivery publishes
+/// nothing, and the worker's handler is deduplicated on the purchase besides. The customer the payment made is kept on the account when it
+/// has none, without counting as a subscription event: <see cref="BillingAccount.AdoptCustomer"/> leaves <c>LastEventAt</c> alone.
+/// </summary>
+internal static class CreditPaymentApplier
+{
+    public static async Task<BillingApply> ApplyAsync(
+        IDbContextOutbox<ScreenHireDbContext> outbox, TenantContext tenant, CreditPaymentEvent payment, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        tenant.SetPublicOrganization(payment.OrganizationId);
+        var db = outbox.DbContext;
+        if (!await db.Organizations.AsNoTracking().AnyAsync(o => o.Id == payment.OrganizationId, cancellationToken)
+            || await db.BillingEvents.AsNoTracking().AnyAsync(e => e.EventId == payment.EventId, cancellationToken))
+        {
+            return BillingApply.Ignored;
+        }
+
+        db.BillingEvents.Add(new BillingEventRecord { OrganizationId = payment.OrganizationId, EventId = payment.EventId, ReceivedAt = now });
+        if (payment.CustomerId is { } customer && await db.BillingAccounts.SingleOrDefaultAsync(cancellationToken) is { } account)
+        {
+            account.AdoptCustomer(customer, now);
+        }
+
+        await outbox.PublishAsync(new GrantAiCredits(payment.OrganizationId, payment.PurchaseId, payment.ProviderPaymentId, payment.PaymentIntentId));
+        try
+        {
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+            return BillingApply.Applied;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return BillingApply.Conflict;
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            // The same event delivered twice at once: the other delivery published the grant.
+            return BillingApply.Ignored;
+        }
+    }
+}
+
 internal enum BillingApply
+
 {
     Applied,
     Ignored,

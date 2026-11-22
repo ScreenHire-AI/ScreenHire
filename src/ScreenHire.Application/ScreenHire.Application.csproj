@@ -17,6 +17,7 @@
     <EmbeddedResource Include="..\..\packages\plans\plans.json" LogicalName="plans.json" />
     <EmbeddedResource Include="..\..\packages\plans\trial.json" LogicalName="trial.json" />
     <EmbeddedResource Include="..\..\packages\plans\ai.json" LogicalName="ai.json" />
+    <EmbeddedResource Include="..\..\packages\plans\credits.json" LogicalName="credits.json" />
   </ItemGroup>
 
   <ItemGroup>

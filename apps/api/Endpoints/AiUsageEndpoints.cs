@@ -21,8 +21,8 @@ namespace ScreenHire.Api.Endpoints;
 
 /// <summary>
 /// The organization's AI usage (docs/architecture/ai-usage.md): a summary by day, model and key, the call list with the
-/// provider's request ids, a CSV of it, and the monthly budget and cap. Reading is for who holds <c>ViewAiUsage</c> (Owners
-/// and Admins), setting the limits for Owners (<c>ManageBilling</c>). Signed-in people only: an API key gets nothing here.
+/// provider's request ids and a CSV of it, for who holds <c>ViewAiUsage</c> (Owners and Admins). What the checks may spend is the
+/// prepaid AI credits, under Billing (<c>AiCreditEndpoints</c>). Signed-in people only: an API key gets nothing here.
 /// </summary>
 internal static class AiUsageEndpoints
 {
@@ -39,10 +39,6 @@ internal static class AiUsageEndpoints
             .RequirePermission(Permission.ViewAiUsage)
             .Produces<string>(StatusCodes.Status200OK, "text/csv")
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/limits", AiUsageHandlers.UpdateLimits).WithName("UpdateAiUsageLimits")
-            .RequireAntiforgeryToken()
-            .RequirePermission(Permission.ManageBilling)
-            .Produces(StatusCodes.Status401Unauthorized);
         return app;
     }
 }
@@ -58,22 +54,6 @@ internal static class AiUsageHandlers
 
     /// <summary>The longest range a summary or export covers.</summary>
     public static readonly TimeSpan MaxRange = TimeSpan.FromDays(400);
-
-    /// <summary>
-    /// The month's limits in force, with what has been used against each, in billed dollars (or tokens where the key has no price).
-    /// Shared by the summary, the settings page and the limits route, and worked out as the worker enforces them.
-    /// </summary>
-    public static async Task<AiUsageLimitsView> LimitsAsync(
-        ScreenHireDbContext db, VerificationSettings? settings, LlmOptions llm, decimal margin, DateTimeOffset now, CancellationToken cancellationToken)
-    {
-        var (budget, cap) = await AiUsageLimitsInForce.ResolveAsync(db, settings, llm, margin, now, cancellationToken);
-        return new AiUsageLimitsView(
-            settings?.BudgetUnit ?? UsageUnit.Money, settings?.MonthlyBudget, settings?.MonthlyCap, ToView(budget), ToView(cap),
-            AiUsageMix.BilledPerMillion(settings, llm.ConfiguredPrice(), margin) is not null);
-    }
-
-    private static AiUsageLimitView? ToView(AiLimitInForce? limit) =>
-        limit is null ? null : new AiUsageLimitView(limit.Amount, limit.Unit, limit.IsDefault, limit.Used, limit.Percent);
 
     public static async Task<Results<Ok<AiUsageSummary>, ValidationProblem>> Summary(
         ScreenHireDbContext db, IOptions<VerificationOptions> verification, IOptions<BillingOptions> billing, TimeProvider time,
@@ -146,11 +126,9 @@ internal static class AiUsageHandlers
             groups.Sum(g => g.Calls), groups.Sum(g => g.Input), groups.Sum(g => g.Output), groups.Sum(g => g.Cost),
             groups.Sum(g => g.Unknown), groups.Sum(g => g.Failed));
 
-        var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        var limits = await LimitsAsync(db, settings, verification.Value.Llm, margin, now, cancellationToken);
         // The newest call whatever the range: how recent the numbers are (design system T7), never when the page loaded.
         var lastCallAt = await db.AiUsageCalls.AsNoTracking().MaxAsync(c => (DateTimeOffset?)c.OccurredAt, cancellationToken);
-        return TypedResults.Ok(new AiUsageSummary(start, end, totals, byDay, byModel, byKey, limits, lastCallAt));
+        return TypedResults.Ok(new AiUsageSummary(start, end, totals, byDay, byModel, byKey, lastCallAt));
     }
 
     public static async Task<Results<Ok<AiUsageCallPage>, ValidationProblem>> Calls(
@@ -226,110 +204,6 @@ internal static class AiUsageHandlers
 
         var name = $"ai-usage-{time.GetUtcNow():yyyyMMdd}.csv";
         return TypedResults.File(csv.ToBytes(), "text/csv; charset=utf-8", name);
-    }
-
-    public static async Task<Results<Ok<AiUsageLimitsView>, ValidationProblem>> UpdateLimits(
-        UpdateAiUsageLimitsRequest request,
-        IDbContextOutbox<ScreenHireDbContext> outbox,
-        ITenantContext tenant,
-        IOptions<VerificationOptions> verification,
-        IOptions<BillingOptions> billing,
-        TimeProvider time,
-        CancellationToken cancellationToken)
-    {
-        var db = outbox.DbContext;
-        var settings = await db.VerificationSettings.SingleOrDefaultAsync(cancellationToken);
-        var margin = billing.Value.AiMarginInForce;
-        var problems = LimitProblems(request, settings, AiUsageMix.BilledPerMillion(settings, verification.Value.Llm.ConfiguredPrice(), margin) is not null);
-        if (problems.Count > 0)
-        {
-            return TypedResults.ValidationProblem(problems);
-        }
-
-        var now = time.GetUtcNow();
-        var organizationId = tenant.OrganizationId!.Value;
-        if (settings is null)
-        {
-            settings = new VerificationSettings { OrganizationId = organizationId };
-            db.VerificationSettings.Add(settings);
-        }
-
-        // Limits are set in dollars only. A limit stored in tokens before that is shown converted, and the form sends it back in
-        // dollars, so saving moves both limits to dollars (ai-usage.md, "Budget, alerts and the cap"). Only a limit that was set in
-        // tokens changes with the unit: a row left on the column's default unit with no limits keeps the month's alerts when saved.
-        var inTokens = settings.BudgetUnit != UsageUnit.Money;
-        var capChanged = settings.MonthlyCap != request.Cap || inTokens && settings.MonthlyCap is not null;
-        var budgetChanged = settings.MonthlyBudget != request.Budget || inTokens && settings.MonthlyBudget is not null;
-        settings.BudgetUnit = UsageUnit.Money;
-        settings.MonthlyBudget = request.Budget;
-        settings.MonthlyCap = request.Cap;
-        settings.UpdatedAt = now;
-
-        // A new budget or cap is a new decision: the month's alerts for it may go out again, measured against the new amount.
-        // The claims are removed through the change tracker, so they go in the same save as the settings and the messages.
-        var month = AiUsageQueries.Month(now);
-        var cleared = new List<string>();
-        if (budgetChanged)
-        {
-            cleared.AddRange(AiUsageLimits.BudgetThresholds.Select(percent => AiUsageAlertKeys.Budget(month, percent)));
-        }
-
-        if (capChanged)
-        {
-            cleared.Add(AiUsageAlertKeys.Cap(month));
-        }
-
-        if (cleared.Count > 0)
-        {
-            db.AiUsageAlerts.RemoveRange(await db.AiUsageAlerts.Where(a => cleared.Contains(a.Key)).ToListAsync(cancellationToken));
-        }
-
-        if (budgetChanged)
-        {
-            foreach (var percent in AiUsageLimits.BudgetThresholds)
-            {
-                await outbox.PublishAsync(new ClearNotification(organizationId, NotificationKinds.AiUsageBudget, AiUsageAlertKeys.Budget(month, percent)));
-            }
-        }
-
-        if (capChanged)
-        {
-            // The AI checks the old cap paused are asked again (they stay paused if the new cap still holds).
-            await outbox.PublishAsync(new ClearNotification(organizationId, NotificationKinds.AiUsageCap, AiUsageAlertKeys.Cap(month)));
-            await outbox.PublishAsync(new ResumeOrganizationAiChecks(organizationId, $"limits-{now.UtcTicks}"));
-        }
-
-        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
-        return TypedResults.Ok(await LimitsAsync(db, settings, verification.Value.Llm, margin, now, cancellationToken));
-    }
-
-    /// <summary>
-    /// What is wrong with a request to set the limits, by field. Both are dollars to the cent. A limit counts billed dollars, so it
-    /// needs a price for the key in use (<paramref name="priced"/>): an own key's two prices, or the deployment's price for its model.
-    /// Removing both is always allowed.
-    /// </summary>
-    public static Dictionary<string, string[]> LimitProblems(UpdateAiUsageLimitsRequest request, VerificationSettings? settings, bool priced)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        var problems = new Dictionary<string, string[]>();
-        AddAmountProblem(problems, "budget", request.Budget);
-        AddAmountProblem(problems, "cap", request.Cap);
-        if (problems.Count == 0 && !priced && (request.Budget is not null || request.Cap is not null))
-        {
-            problems[request.Budget is not null ? "budget" : "cap"] = [settings is { UsesOwnKey: true }
-                ? "A limit counts dollars, so your own key needs its prices: enter them in the AI model settings first."
-                : "A limit counts dollars, and ScreenHire's AI model has no price set here yet."];
-        }
-
-        return problems;
-    }
-
-    private static void AddAmountProblem(Dictionary<string, string[]> problems, string field, decimal? amount)
-    {
-        if (amount is { } value && (value < 0.01m || value > VerificationSettings.MaxMonthlyMoney || value != decimal.Round(value, 2)))
-        {
-            problems[field] = [$"Enter an amount in dollars from 0.01 to {VerificationSettings.MaxMonthlyMoney.ToString("N0", CultureInfo.InvariantCulture)}, to the cent."];
-        }
     }
 
     internal static Dictionary<string, string[]> RangeProblems(DateTimeOffset? from, DateTimeOffset? to)

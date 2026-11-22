@@ -264,9 +264,6 @@ internal sealed class VerificationSettingsConfiguration : IEntityTypeConfigurati
         builder.PrimitiveCollection(s => s.TrustedDomains).HasColumnType("text[]").HasDefaultValueSql("'{}'");
         builder.PrimitiveCollection(s => s.TrustedNetworks).HasColumnType("text[]").HasDefaultValueSql("'{}'");
         // Tokens are whole numbers and dollars have cents, so one decimal column holds either; the unit says which.
-        builder.Property(s => s.BudgetUnit).HasConversion<string>().HasMaxLength(10).HasDefaultValue(UsageUnit.Tokens);
-        builder.Property(s => s.MonthlyBudget).HasPrecision(18, 2);
-        builder.Property(s => s.MonthlyCap).HasPrecision(18, 2);
         builder.Property(s => s.OwnKeyInputPrice).HasPrecision(12, 4);
         builder.Property(s => s.OwnKeyOutputPrice).HasPrecision(12, 4);
         builder.HasOne<Organization>().WithOne()

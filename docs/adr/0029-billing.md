@@ -93,6 +93,8 @@ about payment may reach it. A payment problem must not lock a team out of candid
     identifier and `ai_usage_charges` as the record. The plan includes the checks. The trial includes an allowance of AI use (5.00 US dollars
     by default) and the rest is on the first paid invoice, because a trial has no Stripe customer. USD only, enforced at start, because
     a subscription has one currency and the ledger prices in dollars. Detail: `docs/architecture/billing.md`, "AI usage".
+    Amended 2026-11-22 by ADR-0032: AI use is now prepaid credits on our own ledger. The meter, the metered price and the monthly
+    budget and cap are gone, and the trial's allowance is the starting credit.
 
 ## Consequences
 

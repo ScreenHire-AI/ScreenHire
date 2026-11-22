@@ -167,7 +167,7 @@ public static partial class CheckApplicationConsistencyHandler
             return [new AnalyzeApplicationVerification(message.OrganizationId, message.ApplicationId)];
         }
 
-        // A paused check is asked again: the cap may have been raised, or the month may have changed (ResumePausedAiChecks).
+        // A paused check is asked again: credits may have been added (GrantAiCredits, ResumePausedAiChecks).
         var resumed = check is { Status: ConsistencyCheckStatus.Paused };
         if (check is { Status: ConsistencyCheckStatus.Running } && now - check.StartedAt < staleAfter)
         {
@@ -196,7 +196,7 @@ public static partial class CheckApplicationConsistencyHandler
         // ScreenHire's model, or the organization's own key and model.
         var llm = models.AccessFor(settings, deployment, keys);
         var margin = billing.Value.AiMarginInForce;
-        var early = await EarlyOutcomeAsync(db, settings, sources, llm, options.Value.Llm, margin, now, cancellationToken);
+        var early = await EarlyOutcomeAsync(db, settings, sources, llm, billing.Value, message.OrganizationId, now, cancellationToken);
 
         if (check is null)
         {
@@ -238,6 +238,7 @@ public static partial class CheckApplicationConsistencyHandler
 #pragma warning restore CA1031
             {
                 db.AiUsageCalls.AddRange(recorder.Calls);
+                AddDebits(db, recorder.Calls, billing.Value, check, application.Id);
                 try
                 {
                     await db.SaveChangesAsync(CancellationToken.None);
@@ -253,14 +254,16 @@ public static partial class CheckApplicationConsistencyHandler
             }
 
             db.AiUsageCalls.AddRange(recorder.Calls);
+            AddDebits(db, recorder.Calls, billing.Value, check, application.Id);
             check.Complete(outcome, time.GetUtcNow());
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        // Budget shares passed and the cap reached since the last alert, from the ledger. Each message claims its own key.
-        if (early is null or { Status: ConsistencyCheckStatus.Paused })
+        // What the balance now calls for on ScreenHire's key: an auto-reload, a low-balance or an empty alert. Each message is keyed on the
+        // newest grant, so the checks that finish together send one.
+        if ((early is null or { Status: ConsistencyCheckStatus.Paused }) && settings is not { UsesOwnKey: true })
         {
-            messages.AddRange(await AiUsageAlertChecks.DueAsync(db, message.OrganizationId, settings, options.Value.Llm, margin, time.GetUtcNow(), cancellationToken));
+            messages.AddRange(await AiCreditChecks.DueAsync(db, message.OrganizationId, billing.Value, time.GetUtcNow(), cancellationToken));
         }
 
         if (resumed && check.Status != ConsistencyCheckStatus.Paused)
@@ -306,10 +309,20 @@ public static partial class CheckApplicationConsistencyHandler
         return sources;
     }
 
+    // A debit from the AI credits for each call on ScreenHire's key, in the save that records the calls (ADR-0032). Nothing while credits
+    // are off, and nothing for an own key's calls.
+    private static void AddDebits(ScreenHireDbContext db, IEnumerable<AiUsageCall> calls, BillingOptions billing, ConsistencyCheck check, Guid applicationId)
+    {
+        if (billing.CreditsEnabled)
+        {
+            db.CreditEntries.AddRange(AiCreditLedger.UsageEntries(calls, billing.AiMarginInForce, check.Id, applicationId));
+        }
+    }
+
     // The outcome when the model is not asked at all, or null when it should be.
     private static async Task<ConsistencyCheckOutcome?> EarlyOutcomeAsync(
-        ScreenHireDbContext db, VerificationSettings? settings, IReadOnlyList<ConsistencySourceText> sources, LlmAccess llm, LlmOptions options,
-        decimal margin, DateTimeOffset now, CancellationToken cancellationToken)
+        ScreenHireDbContext db, VerificationSettings? settings, IReadOnlyList<ConsistencySourceText> sources, LlmAccess llm, BillingOptions billing,
+        Guid organizationId, DateTimeOffset now, CancellationToken cancellationToken)
     {
         if (settings is not { LlmConsistencyCheckEnabled: true })
         {
@@ -332,13 +345,13 @@ public static partial class CheckApplicationConsistencyHandler
             return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Unavailable, llm.UnavailableReason);
         }
 
-        // The cap: an Owner's own, else the deployment's safety net for ScreenHire's key. The AI checks pause; the rule-based checks
-        // keep running, and the note says the pause is no result about the candidate. An own key with no cap of its own has none.
-        var (_, cap) = await AiUsageLimitsInForce.ResolveAsync(db, settings, options, margin, now, cancellationToken);
-        if (cap is { Reached: true })
+        // No AI credits left on ScreenHire's key (ADR-0032): the AI checks pause until credits are added. The rule-based checks keep
+        // running, and the note says the pause is no result about the candidate. An own key never touches the balance.
+        if (await AiCreditLedger.PausesAsync(db, settings, billing, organizationId, now, cancellationToken))
         {
-            return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Paused, RunNotes.AiChecksPaused);
+            return new ConsistencyCheckOutcome(ConsistencyCheckStatus.Paused, RunNotes.AiCreditsPaused);
         }
+
 
         return null;
     }

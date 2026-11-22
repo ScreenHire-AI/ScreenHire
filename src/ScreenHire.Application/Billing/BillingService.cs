@@ -33,7 +33,7 @@ public sealed record BillingStatus(
     DateTimeOffset? TrialEndsAt,
     DateTimeOffset? CurrentPeriodEnd,
     bool CancelsAtPeriodEnd,
-    bool HasCustomer,
+    bool HasSubscription,
     int OpenJobs,
     int? Limit);
 
@@ -56,8 +56,32 @@ public sealed class BillingService(
         IsOn ? BillingAccount.StartTrial(organizationId, time.GetUtcNow(), options.Value.Trial.Days) : null;
 
     /// <summary>
-    /// The organization's account, starting its trial now when it has none (an organization older than billing). Null while
-    /// billing is off. The tenant must be the organization.
+    /// A new organization's starting credit (<c>Ai:TrialAllowance</c>, ADR-0032), not yet saved, to add in the save that creates it.
+    /// Null while billing is off or the starting credit is zero.
+    /// </summary>
+    public CreditEntry? StartingCredit(Guid organizationId)
+    {
+        var micros = AiCharge.ToMicros(options.Value.Ai.TrialAllowance);
+        if (!IsOn || micros <= 0)
+        {
+            return null;
+        }
+
+        var now = time.GetUtcNow();
+        return new CreditEntry
+        {
+            OrganizationId = organizationId,
+            Kind = CreditEntryKind.StartingCredit,
+            Micros = micros,
+            At = now,
+            ExpiresAt = options.Value.Credits.ExpiresAt(now),
+            SourceKey = CreditSourceKeys.Starting,
+        };
+    }
+
+    /// <summary>
+    /// The organization's account, starting its trial now when it has none (an organization older than billing), and its starting
+    /// credit with it. Null while billing is off. The tenant must be the organization.
     /// </summary>
     public async Task<BillingAccount?> AccountAsync(Guid organizationId, CancellationToken cancellationToken)
     {
@@ -87,6 +111,8 @@ public sealed class BillingService(
                 await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
             }
 
+            // Its own statement, which does nothing when the check already granted it: an organization older than credits.
+            await AiCreditLedger.EnsureStartingCreditAsync(db, organizationId, options.Value, time.GetUtcNow(), cancellationToken);
             return account;
         }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
@@ -115,7 +141,8 @@ public sealed class BillingService(
             onTrial ? account.TrialEndsAt : null,
             account.CurrentPeriodEnd,
             account.CancelsAtPeriodEnd,
-            !string.IsNullOrEmpty(account.ProviderCustomerId),
+            // A credit purchase can make a customer before any plan (ADR-0032): the plan's portal needs a subscription.
+            !string.IsNullOrEmpty(account.ProviderSubscriptionId),
             await counter.CountAsync(organizationId, null, cancellationToken),
             plan?.Limit);
     }

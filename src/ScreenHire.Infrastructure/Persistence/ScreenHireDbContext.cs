@@ -213,8 +213,14 @@ public sealed class ScreenHireDbContext
     /// <summary>The payment provider events already applied, so a redelivery changes nothing.</summary>
     public DbSet<BillingEventRecord> BillingEvents => Set<BillingEventRecord>();
 
-    /// <summary>Ledger calls billing has settled, reported to the meter or waived; one row per call, insert-only (docs/architecture/billing.md).</summary>
-    public DbSet<AiUsageCharge> AiUsageCharges => Set<AiUsageCharge>();
+    /// <summary>The AI credit ledger: grants and debits, append-only; the balance is the sum (ADR-0032, docs/architecture/billing.md).</summary>
+    public DbSet<CreditEntry> CreditEntries => Set<CreditEntry>();
+
+    /// <summary>Each attempt to buy AI credits, through Checkout or auto-reload.</summary>
+    public DbSet<CreditPurchase> CreditPurchases => Set<CreditPurchase>();
+
+    /// <summary>An organization's low-balance alert and auto-reload, one row each.</summary>
+    public DbSet<CreditSettings> CreditSettings => Set<CreditSettings>();
 
     /// <summary>An organization's Slack workspace, one at most (docs/architecture/slack.md).</summary>
     public DbSet<SlackInstallation> SlackInstallations => Set<SlackInstallation>();

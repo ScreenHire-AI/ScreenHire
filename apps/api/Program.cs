@@ -208,6 +208,7 @@ app.MapTemplateUsageEndpoints();
 app.MapWebhookEndpoints();
 app.MapSlackEndpoints();
 app.MapBillingEndpoints();
+app.MapAiCreditEndpoints();
 app.MapAiUsageEndpoints();
 app.MapVerificationAreaEndpoints();
 app.MapBillingWebhookEndpoints();

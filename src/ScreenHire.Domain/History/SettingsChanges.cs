@@ -124,13 +124,6 @@ public static class SettingsChanges
             lines.Add(ChangeLine.Of(after.ConsistencyCheck ? "turned on " : "turned off ", "the consistency check"));
         }
 
-        AddLimit(lines, "budget", was.MonthlyBudget, after.MonthlyBudget, was.BudgetUnit, after.BudgetUnit);
-        AddLimit(lines, "cap", was.MonthlyCap, after.MonthlyCap, was.BudgetUnit, after.BudgetUnit);
-        if (was.BudgetUnit != after.BudgetUnit && was.MonthlyBudget == after.MonthlyBudget && was.MonthlyCap == after.MonthlyCap)
-        {
-            lines.Add(ChangeLine.Of("counts AI usage in ", after.BudgetUnit == UsageUnit.Money ? "dollars" : "tokens"));
-        }
-
         if (was.OwnKeyInputPrice != after.OwnKeyInputPrice || was.OwnKeyOutputPrice != after.OwnKeyOutputPrice)
         {
             lines.Add(ChangeLine.Plain("changed the price entered for the organization's own key"));
@@ -202,28 +195,6 @@ public static class SettingsChanges
         AddAlert(lines, was.BudgetAlertSlack, after.BudgetAlertSlack, "the budget alert on Slack");
         return lines;
     }
-
-    private static void AddLimit(List<ChangeLine> lines, string what, decimal? was, decimal? now, UsageUnit wasUnit, UsageUnit nowUnit)
-    {
-        if (was == now && wasUnit == nowUnit)
-        {
-            return;
-        }
-
-        if (was == now)
-        {
-            return; // only the unit changed; said once by the caller
-        }
-
-        lines.Add(now is { } amount
-            ? ChangeLine.Of($"set the monthly {what} to ", AmountText(amount, nowUnit))
-            : ChangeLine.Plain($"removed the monthly {what}"));
-    }
-
-    private static string AmountText(decimal amount, UsageUnit unit) =>
-        unit == UsageUnit.Money
-            ? "$" + amount.ToString("N2", CultureInfo.InvariantCulture)
-            : amount.ToString("N0", CultureInfo.InvariantCulture) + " tokens";
 
     private static void AddTrusted(List<ChangeLine> lines, IReadOnlyList<string> was, IReadOnlyList<string> now, string kind)
     {

@@ -7,8 +7,8 @@ using ScreenHire.Domain.Billing;
 namespace ScreenHire.Application.Billing;
 
 /// <summary>
-/// Stripe (https://docs.stripe.com/api) over plain HTTP: Checkout in subscription mode, the Customer Portal and the signed
-/// webhook (ADR-0029). No Stripe SDK: three calls and one signature do not earn a package, and the API version is pinned
+/// Stripe (https://docs.stripe.com/api) over plain HTTP: Checkout in subscription mode for a plan and in payment mode for AI credits,
+/// an auto-reload as an invoice paid off-session, the Customer Portal and the signed webhook (ADR-0029, ADR-0032). No Stripe SDK: three calls and one signature do not earn a package, and the API version is pinned
 /// here, not by whichever SDK release is installed. Nothing here logs the key or a customer.
 /// </summary>
 /// <remarks>
@@ -57,13 +57,6 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             new("line_items[0][price]", request.Plan.StripePriceId),
             new("line_items[0][quantity]", "1"),
         };
-        // The meter's price, so the subscription bills AI use on ScreenHire's key. A metered price takes no quantity. With none set
-        // the subscription is the plan alone and nothing is reported (ReportAiUsageAsync is not called without it).
-        if (!string.IsNullOrWhiteSpace(options.Ai.StripePriceId))
-        {
-            form.Add(new("line_items[1][price]", options.Ai.StripePriceId));
-        }
-
         form.AddRange(
         [
             new("success_url", request.SuccessUrl.ToString()),
@@ -222,51 +215,132 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
         element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Object ? value : null;
 
     /// <summary>
-    /// One meter event per call (https://docs.stripe.com/api/billing/meter-event/create), sent one after the other: Stripe answers 409
-    /// when two events for one customer and meter arrive at once. The ledger call's id is the event's <c>identifier</c>, which Stripe
-    /// deduplicates for 24 hours (a repeat is a 400 <c>duplicate_meter_event</c>, and counts as taken: it was). The value is the charge
-    /// in micro-dollars, a positive whole number, which the metered price turns into money at 0.0001 cents a unit. The timestamp is
-    /// now, so a call backfilled from the trial lands in the first paid period (Stripe takes up to 35 days back, and ignores usage
-    /// from before a subscription started). Any other refusal stops the batch.
+    /// A credit Checkout in payment mode (https://docs.stripe.com/api/checkout/sessions/create): one line of "AI credits" in US dollars,
+    /// priced inline (no Stripe price to keep in step), tax-exclusive like the plans. The card is saved for off-session use
+    /// (<c>setup_future_usage</c>), so auto-reload can charge it. A trial organization has no customer yet, so Checkout makes one
+    /// (<c>customer_creation=always</c>). The invoice Checkout creates carries the organization but not the purpose, so its
+    /// <c>invoice.paid</c> grants nothing: only the session's own events grant a Checkout purchase, and they carry the payment intent
+    /// whose card was saved. The purchase id is in the session's metadata and is what the grant is keyed on.
     /// </summary>
-    public async Task<AiUsageReportResult> ReportAiUsageAsync(AiUsageReport request, CancellationToken cancellationToken)
+    public async Task<Uri> CreateCreditCheckoutAsync(CreditCheckoutRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var accepted = new List<Guid>();
-        if (string.IsNullOrEmpty(request.CustomerId))
+        var organization = request.OrganizationId.ToString();
+        var purchase = request.PurchaseId.ToString();
+        var form = new List<KeyValuePair<string, string>>
         {
-            return new AiUsageReportResult(accepted, new BillingProviderException("There is no Stripe customer to report AI use for yet."));
+            new("mode", "payment"),
+            new("line_items[0][price_data][currency]", "usd"),
+            new("line_items[0][price_data][unit_amount]", Cents(request.Amount)),
+            new("line_items[0][price_data][product_data][name]", "AI credits"),
+            new("line_items[0][price_data][tax_behavior]", "exclusive"),
+            new("line_items[0][quantity]", "1"),
+            new("payment_intent_data[setup_future_usage]", "off_session"),
+            new("payment_intent_data[metadata][organization_id]", organization),
+            new("payment_intent_data[metadata][purchase_id]", purchase),
+            new("invoice_creation[enabled]", "true"),
+            new("invoice_creation[invoice_data][metadata][organization_id]", organization),
+            new("success_url", request.SuccessUrl.ToString()),
+            new("cancel_url", request.CancelUrl.ToString()),
+            new("client_reference_id", organization),
+            new("metadata[organization_id]", organization),
+            new("metadata[purpose]", CreditPurpose),
+            new("metadata[purchase_id]", purchase),
+        };
+        if (!string.IsNullOrEmpty(request.CustomerId))
+        {
+            form.Add(new("customer", request.CustomerId));
+        }
+        else
+        {
+            form.Add(new("customer_creation", "always"));
+            if (!string.IsNullOrEmpty(request.CustomerEmail))
+            {
+                form.Add(new("customer_email", request.CustomerEmail));
+            }
         }
 
-        var now = request.At.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
-        foreach (var usage in request.Events)
-        {
-            List<KeyValuePair<string, string>> form =
-            [
-                new("event_name", options.Ai.MeterEventName),
-                new("identifier", usage.Id.ToString()),
-                new("timestamp", now),
-                new("payload[stripe_customer_id]", request.CustomerId),
-                new("payload[value]", usage.Micros.ToString(CultureInfo.InvariantCulture)),
-            ];
-            try
-            {
-                await SendAsync(HttpMethod.Post, "billing/meter_events", form, null, cancellationToken);
-            }
-            catch (BillingProviderException e) when (e.Status == 400 && e.Code == "duplicate_meter_event")
-            {
-                // Stripe has this event already: an earlier run sent it and then failed before saving that it did.
-            }
-            catch (BillingProviderException e)
-            {
-                return new AiUsageReportResult(accepted, e);
-            }
-
-            accepted.Add(usage.Id);
-        }
-
-        return new AiUsageReportResult(accepted, null);
+        AddTax(form, hasCustomer: !string.IsNullOrEmpty(request.CustomerId));
+        return await SessionUrlAsync("checkout/sessions", form, cancellationToken);
     }
+
+    /// <summary>
+    /// An auto-reload as a Stripe invoice paid off-session with the saved card (https://docs.stripe.com/api/invoices/pay), so Stripe Tax
+    /// applies under <c>Stripe:Tax:Enabled</c> as it does at Checkout, and the charge is among the customer's invoices. Four calls, each
+    /// with an idempotency key from the purchase, so a retry after a timeout is the same invoice and the same charge: a draft that leaves
+    /// the customer's other pending items out and never advances on its own (<c>auto_advance=false</c>, so Stripe does not retry a refused
+    /// payment), its one line, finalize, and pay. A refusal voids the invoice, so nothing stays open to collect.
+    /// </summary>
+    public async Task<CreditCharge> ChargeCreditsAsync(CreditChargeRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var key = $"credit-reload-{request.PurchaseId:N}";
+        var draft = new List<KeyValuePair<string, string>>
+        {
+            new("customer", request.CustomerId),
+            new("currency", "usd"),
+            new("collection_method", "charge_automatically"),
+            new("auto_advance", "false"),
+            new("pending_invoice_items_behavior", "exclude"),
+            new("description", "AI credits, auto-reload"),
+            new("metadata[organization_id]", request.OrganizationId.ToString()),
+            new("metadata[purpose]", CreditPurpose),
+            new("metadata[purchase_id]", request.PurchaseId.ToString()),
+        };
+        if (options.Stripe.Tax.Enabled)
+        {
+            draft.Add(new("automatic_tax[enabled]", "true"));
+        }
+
+        var invoice = await SendAsync(HttpMethod.Post, "invoices", draft, $"{key}-invoice", cancellationToken);
+        var invoiceId = Text(invoice, "id") ?? throw new BillingProviderException("Stripe answered without an invoice id.");
+        await SendAsync(
+            HttpMethod.Post,
+            "invoiceitems",
+            [
+                new("customer", request.CustomerId),
+                new("invoice", invoiceId),
+                new("currency", "usd"),
+                new("amount", Cents(request.Amount)),
+                new("description", "AI credits"),
+                new("tax_behavior", "exclusive"),
+            ],
+            $"{key}-item",
+            cancellationToken);
+        await SendAsync(HttpMethod.Post, $"invoices/{Uri.EscapeDataString(invoiceId)}/finalize", [], $"{key}-finalize", cancellationToken);
+        try
+        {
+            var paid = await SendAsync(
+                HttpMethod.Post,
+                $"invoices/{Uri.EscapeDataString(invoiceId)}/pay",
+                [new("payment_method", request.PaymentMethodId), new("off_session", "true")],
+                $"{key}-pay",
+                cancellationToken);
+            return new CreditCharge(Text(paid, "status") == "paid" ? CreditChargeStatus.Succeeded : CreditChargeStatus.Pending, invoiceId);
+        }
+        catch (BillingProviderException e) when (e.Status == 402)
+        {
+            // A declined card, or one that needs the owner (3-D Secure): Stripe answers 402 with the reason. Void the invoice so it is not
+            // left open, and say so; the caller turns auto-reload off. Never retried here, and Stripe does not retry it either.
+            await SendAsync(HttpMethod.Post, $"invoices/{Uri.EscapeDataString(invoiceId)}/void", [], $"{key}-void", cancellationToken);
+            return new CreditCharge(CreditChargeStatus.Declined, invoiceId, e.Code ?? "declined");
+        }
+    }
+
+    /// <summary>The payment method of a Checkout's payment intent, which <c>setup_future_usage</c> saved to the customer.</summary>
+    public async Task<string?> SavedPaymentMethodAsync(string paymentIntentId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(paymentIntentId);
+        var intent = await SendAsync(HttpMethod.Get, $"payment_intents/{Uri.EscapeDataString(paymentIntentId)}", null, null, cancellationToken);
+        return Text(intent, "payment_method");
+    }
+
+    /// <summary>The <c>metadata.purpose</c> that marks a payment as a credit purchase.</summary>
+    public const string CreditPurpose = "ai-credits";
+
+    // US dollars to whole cents. The amounts are dollars to the cent, so nothing is lost.
+    private static string Cents(decimal dollars) =>
+        ((long)Math.Round(dollars * 100m, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Stripe's preview of the invoice the subscription would have with the new price, at <see cref="PlanChangeRequest.ProrationDate"/>
@@ -338,7 +412,9 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
         try
         {
             using var document = JsonDocument.Parse(body);
-            return new BillingWebhook(true, ReadEvent(document.RootElement));
+            return ReadCreditPayment(document.RootElement) is { } credit
+                ? new BillingWebhook(true, null, credit)
+                : new BillingWebhook(true, ReadEvent(document.RootElement));
         }
         catch (Exception e) when (e is JsonException or InvalidOperationException or FormatException or KeyNotFoundException or ArgumentOutOfRangeException or OverflowException)
         {
@@ -362,7 +438,7 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
 
         switch (type)
         {
-            case "checkout.session.completed":
+            case "checkout.session.completed" when Text(item, "mode") is "subscription" or null:
                 var paid = Text(item, "payment_status") is "paid" or "no_payment_required";
                 return new BillingProviderEvent(
                     id, created, OrganizationOf(item), Text(item, "customer"), Text(item, "subscription"), PlanKeyOf(item),
@@ -378,6 +454,36 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
             default:
                 return null;
         }
+    }
+
+    /// <summary>
+    /// A credit purchase that Stripe confirms as paid, or null for any other event. A Checkout purchase is confirmed by its session:
+    /// <c>checkout.session.completed</c> once <c>payment_status</c> is <c>paid</c>, or <c>checkout.session.async_payment_succeeded</c> for a
+    /// method that settles later (https://docs.stripe.com/checkout/fulfillment). An auto-reload is confirmed by its invoice's
+    /// <c>invoice.paid</c>. Both carry <c>metadata.purpose</c> and the purchase id, which the grant is keyed on. A credit session that is
+    /// not paid yet is neither a credit nor a subscription event.
+    /// </summary>
+    private static CreditPaymentEvent? ReadCreditPayment(JsonElement root)
+    {
+        if (Text(root, "id") is not { } id || Text(root, "type") is not { } type
+            || !root.TryGetProperty("data", out var data) || !data.TryGetProperty("object", out var item)
+            || !item.TryGetProperty("metadata", out var metadata) || metadata.ValueKind != JsonValueKind.Object
+            || Text(metadata, "purpose") != CreditPurpose
+            || !Guid.TryParse(Text(metadata, "organization_id"), out var organization) || !Guid.TryParse(Text(metadata, "purchase_id"), out var purchase))
+        {
+            return null;
+        }
+
+        var created = DateTimeOffset.FromUnixTimeSeconds(root.GetProperty("created").GetInt64());
+        return type switch
+        {
+            "checkout.session.completed" or "checkout.session.async_payment_succeeded"
+                when Text(item, "payment_status") == "paid" && Text(item, "payment_intent") is { } intent =>
+                new CreditPaymentEvent(id, created, organization, purchase, intent, intent, Text(item, "customer")),
+            "invoice.paid" when Text(item, "id") is { } invoice =>
+                new CreditPaymentEvent(id, created, organization, purchase, invoice, null, Text(item, "customer")),
+            _ => null,
+        };
     }
 
     /// <summary>Stripe's subscription status as ours: null for the ones that say nothing yet (incomplete, paused).</summary>
@@ -424,8 +530,8 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
         return end.ValueKind == JsonValueKind.Number ? DateTimeOffset.FromUnixTimeSeconds(end.GetInt64()) : null;
     }
 
-    // The item that carries one of the plans' prices, else the first. A subscription also has the metered item for AI use, and
-    // Stripe does not promise which one is listed first.
+    // The item that carries one of the plans' prices, else the first. A subscription made before ADR-0032 also has a metered item
+    // for AI use, and Stripe does not promise which one is listed first.
     private JsonElement? PlanItem(JsonElement item)
     {
         if (!item.TryGetProperty("items", out var items) || !items.TryGetProperty("data", out var list) || list.GetArrayLength() == 0)
@@ -504,8 +610,8 @@ public sealed class StripeBillingProvider : IBillingProvider, IDisposable
         long? regularStart = null;
         foreach (var line in invoice.GetProperty("lines").GetProperty("data").EnumerateArray())
         {
-            // The metered item (AI use so far this period) is on the invoice too. It is usage, not the plan: it is neither a
-            // proration nor the next plan charge, and its period would pull the next payment's date back to the period's start.
+            // A line on a price that is not a plan's (a metered item a subscription made before ADR-0032 may still carry) is not the
+            // plan: it is neither a proration nor the next plan charge, and its period would pull the next payment's date back.
             if (PriceOfLine(line) is { } linePrice && !PlanPrices().Contains(linePrice))
             {
                 continue;

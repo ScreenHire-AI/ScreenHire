@@ -73,7 +73,7 @@ public sealed class AiUsageOptionsCheck : IValidateOptions<AiUsageOptions>
     }
 }
 
-/// <summary>Refuses a negative deployment price or default limit, which would turn a cost or a cap into nonsense.</summary>
+/// <summary>Refuses a negative deployment price, which would turn a cost into nonsense.</summary>
 public sealed class LlmLimitsCheck : IValidateOptions<VerificationOptions>
 {
     public ValidateOptionsResult Validate(string? name, VerificationOptions options)
@@ -81,11 +81,6 @@ public sealed class LlmLimitsCheck : IValidateOptions<VerificationOptions>
         ArgumentNullException.ThrowIfNull(options);
         var llm = options.Llm;
         var problems = new List<string>();
-        if (llm.DefaultMonthlyTokenBudget < 0 || llm.DefaultMonthlyTokenCap < 0)
-        {
-            problems.Add("ScreenHire:Verification:Llm:DefaultMonthlyTokenBudget and DefaultMonthlyTokenCap must not be negative (0 turns one off).");
-        }
-
         problems.AddRange(llm.Prices
             .Where(p => p.Value.Input < 0 || p.Value.Output < 0)
             .Select(p => $"ScreenHire:Verification:Llm:Prices:{p.Key} must not be negative."));
@@ -196,11 +191,11 @@ public static partial class PurgeOrganizationAiUsageHandler
     private static partial void LogPurged(ILogger logger, Guid organizationId, int calls, int alerts);
 }
 
-/// <summary>Asks again for the AI checks every organization paused, where the month changed or the cap now allows it (daily, 05:12 UTC).</summary>
+/// <summary>Asks again for the AI checks every organization paused, where it now has AI credits (daily, 05:12 UTC).</summary>
 public sealed record ResumePausedAiChecks;
 
 /// <summary>
-/// Asks again for one organization's paused AI checks. Sent by the daily run and when an Owner raises or removes the cap.
+/// Asks again for one organization's paused AI checks. Sent by the daily run and when credits are granted (<c>GrantAiCredits</c>).
 /// <paramref name="Why"/> only keys the message to its cause, so two causes on one day are two intents. <paramref name="After"/>
 /// is the cursor of a follow-up batch: the start time of the last check the batch before it asked again.
 /// </summary>
@@ -229,7 +224,6 @@ public static partial class ResumeOrganizationAiChecksHandler
     public static async Task<OutgoingMessages> Handle(
         ResumeOrganizationAiChecks message,
         ScreenHireDbContext db,
-        IOptions<VerificationOptions> verification,
         IOptions<AiUsageOptions> options,
         IOptions<BillingOptions> billing,
         TimeProvider time,
@@ -241,7 +235,7 @@ public static partial class ResumeOrganizationAiChecksHandler
         if (message.After is { } after)
         {
             // Past the batch before: its checks may still be Paused until their messages run. A check that pauses again gets a
-            // new start time and lands after the cursor, but only when the cap holds again, which ends the run below.
+            // new start time and lands after the cursor, but only when the credits ran out again, which ends the run below.
             query = query.Where(c => c.StartedAt > after);
         }
 
@@ -256,11 +250,10 @@ public static partial class ResumeOrganizationAiChecksHandler
             return outgoing;
         }
 
-        // Only when the cap no longer stops them. A check asked again while the cap still holds would pause again and send nothing new.
+        // Only when there are credits again, or the checks no longer draw on them (an own key, or billing off). A check asked again with
+        // none would pause again and send nothing new.
         var settings = await db.VerificationSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        var (_, cap) = await AiUsageLimitsInForce.ResolveAsync(
-            db, settings, verification.Value.Llm, billing.Value.AiMarginInForce, time.GetUtcNow(), cancellationToken);
-        if (cap is { Reached: true })
+        if (await AiCreditLedger.PausesAsync(db, settings, billing.Value, message.OrganizationId, time.GetUtcNow(), cancellationToken))
         {
             return outgoing;
         }
@@ -268,7 +261,7 @@ public static partial class ResumeOrganizationAiChecksHandler
         outgoing.AddRange(paused.Select(p => new CheckApplicationConsistency(message.OrganizationId, p.ApplicationId)));
         if (paused.Count == batchSize)
         {
-            // A full batch may have left more behind: the next one starts after it, so raising the cap resumes every paused check.
+            // A full batch may have left more behind: the next one starts after it, so a top-up resumes every paused check.
             outgoing.Add(new ResumeOrganizationAiChecks(message.OrganizationId, message.Why, paused[^1].StartedAt));
         }
 

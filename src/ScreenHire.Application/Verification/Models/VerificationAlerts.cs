@@ -24,17 +24,15 @@ namespace ScreenHire.Application.Verification;
 public sealed record NotifyVerificationSuggested(Guid OrganizationId, Guid ApplicationId, Guid JobId, Guid AssessmentEventId) : ITenantMessage;
 
 /// <summary>
-/// The organization's AI use needs telling to the people who see it: a budget share passed, the cap reached, or a spike
-/// (ai-usage.md). <paramref name="Key"/> is the <see cref="AiUsageAlertKeys"/> key, which the handler claims so the alert goes out
-/// once. <paramref name="Percent"/> is the budget share for a budget alert.
+/// The organization's AI use needs telling to the people who see it: a day well above the recent average (ai-usage.md). The
+/// credit alerts are billing's (<c>NotifyAiCredits</c>). <paramref name="Key"/> is the <see cref="AiUsageAlertKeys"/> key, which the
+/// handler claims so the alert goes out once.
 /// </summary>
-public sealed record NotifyAiUsage(Guid OrganizationId, AiUsageAlertKind Kind, string Key, int Percent = 0) : ITenantMessage;
+public sealed record NotifyAiUsage(Guid OrganizationId, AiUsageAlertKind Kind, string Key) : ITenantMessage;
 
 /// <summary>What an AI usage alert is about.</summary>
 public enum AiUsageAlertKind
 {
-    Budget,
-    Cap,
     Spike,
 }
 
@@ -58,27 +56,21 @@ public static class VerificationAlertWording
 /// <summary>The words of the AI usage alerts, shared by the bell, email and Slack. Fixed text and numbers only.</summary>
 public static class AiUsageAlertWording
 {
-    public static string Subject(AiUsageAlertKind kind, int percent) => kind switch
+    public static string Subject(AiUsageAlertKind kind) => kind switch
     {
-        AiUsageAlertKind.Budget => $"AI usage is at {percent}% of this month's budget",
-        AiUsageAlertKind.Cap => "AI checks are paused: this month's cap is reached",
         _ => "AI usage yesterday was well above the recent average",
     };
 
-    public static string Body(AiUsageAlertKind kind, int percent, string organization) => kind switch
+    public static string Body(AiUsageAlertKind kind, string organization) => kind switch
     {
-        AiUsageAlertKind.Budget =>
-            $"{organization} has used {percent}% of this month's AI budget. The budget only warns. Set a cap in Billing to pause the AI checks at a limit.",
-        AiUsageAlertKind.Cap =>
-            $"{organization} reached its monthly AI cap, so the AI checks are paused until next month or until the cap is raised. The rule-based checks keep running, and a paused check is never a mark against a candidate.",
         _ => $"{organization} used much more AI yesterday than on a usual day. Open AI use in Billing to see which calls.",
     };
 
-    public static EmailMessage Email(string to, AiUsageAlertKind kind, int percent, string organization, Uri link)
+    public static EmailMessage Email(string to, AiUsageAlertKind kind, string organization, Uri link)
     {
-        var body = Body(kind, percent, organization);
+        var body = Body(kind, organization);
         return new EmailMessage(
-            to, Subject(kind, percent),
+            to, Subject(kind),
             $"{body}\n\nOpen Verification: {link}",
             $"<p>{WebUtility.HtmlEncode(body)}</p><p><a href=\"{WebUtility.HtmlEncode(link.ToString())}\">Open Verification</a>.</p>");
     }
@@ -145,7 +137,7 @@ public static partial class NotifyVerificationSuggestedHandler
 }
 
 /// <summary>
-/// Tells the people who see AI usage that a budget share was passed, the cap reached or a day spiked: a bell notification
+/// Tells the people who see AI usage that a day spiked: a bell notification
 /// for each of them, and an email and a Slack direct message when the organization chose them (ai-usage.md). The handler
 /// claims the alert key first (a unique row), so two checks finishing together send once and a redelivery after the commit
 /// finds the key taken. A crash between the sends and the commit sends again, as with <see cref="NotifyVerificationSuggestedHandler"/>.
@@ -180,8 +172,6 @@ public static partial class NotifyAiUsageHandler
 
         var (kind, payload) = message.Kind switch
         {
-            AiUsageAlertKind.Budget => (NotificationKinds.AiUsageBudget, new Dictionary<string, string> { ["percent"] = message.Percent.ToString(CultureInfo.InvariantCulture) }),
-            AiUsageAlertKind.Cap => (NotificationKinds.AiUsageCap, new Dictionary<string, string>()),
             _ => (NotificationKinds.AiUsageSpike, new Dictionary<string, string> { ["day"] = message.Key.Split(':')[0] }),
         };
         outgoing.Add(new RaiseNotification(message.OrganizationId, Permission.ViewAiUsage, kind, message.Key, payload, "/settings/billing#ai-use"));
@@ -197,14 +187,15 @@ public static partial class NotifyAiUsageHandler
         var alerts = await OrganizationAlertDefaults.ReadAsync(db, cancellationToken);
         var recipients = await VerificationRecipients.WithPermissionAsync(db, Permission.ViewAiUsage, message.OrganizationId, null, cancellationToken);
         var preferences = await PersonNotices.ForUsersAsync(db, message.OrganizationId, [.. recipients.Select(r => r.UserId)], cancellationToken);
-        var wording = SlackMessages.AiUsage(AiUsageAlertWording.Subject(message.Kind, message.Percent), link);
+        var wording = SlackMessages.AiUsage(AiUsageAlertWording.Subject(message.Kind), link);
         foreach (var recipient in recipients.DistinctBy(r => r.UserId))
         {
             var mine = preferences.GetValueOrDefault(recipient.UserId);
             var notice = new Notice(message.OrganizationId, recipient.UserId, NoticeKind.AiUseAndBilling, message.Key, Detail: "AI");
             await NoticeDelivery.EmailAsync(
                 db, email, links.Value, notice, PersonNotices.Email(mine, NoticeKind.AiUseAndBilling, alerts),
-                () => AiUsageAlertWording.Email(recipient.Email, message.Kind, message.Percent, organization, link), now, cancellationToken);
+                () => AiUsageAlertWording.Email(recipient.Email, message.Kind, organization, link), now, cancellationToken);
+
             if (slack.IsConfigured && PersonNotices.Slack(mine, NoticeKind.AiUseAndBilling, alerts))
             {
                 await VerificationSlackDirectMessages.SendAsync(

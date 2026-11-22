@@ -1229,50 +1229,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("automation_runs", (string)null);
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Billing.AiUsageCharge", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<decimal>("Margin")
-                        .HasPrecision(8, 4)
-                        .HasColumnType("numeric(8,4)")
-                        .HasColumnName("margin");
-
-                    b.Property<long>("Micros")
-                        .HasColumnType("bigint")
-                        .HasColumnName("micros");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("organization_id");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("provider");
-
-                    b.Property<DateTimeOffset>("SettledAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("settled_at");
-
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("state");
-
-                    b.HasKey("Id")
-                        .HasName("pk_ai_usage_charges");
-
-                    b.HasIndex("OrganizationId", "State")
-                        .HasDatabaseName("ix_ai_usage_charges_organization_id_state");
-
-                    b.ToTable("ai_usage_charges", (string)null);
-                });
-
             modelBuilder.Entity("ScreenHire.Domain.Billing.BillingAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1374,6 +1330,188 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_billing_events_organization_id_event_id");
 
                     b.ToTable("billing_events", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Billing.CreditEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AiCallId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ai_call_id");
+
+                    b.Property<Guid?>("ApplicationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("application_id");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<Guid?>("ConsistencyCheckId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("consistency_check_id");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid?>("GrantEntryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grant_entry_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<long>("Micros")
+                        .HasColumnType("bigint")
+                        .HasColumnName("micros");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<Guid?>("PurchaseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("purchase_id");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("source_key");
+
+                    b.HasKey("Id")
+                        .HasName("pk_credit_entries");
+
+                    b.HasIndex("OrganizationId", "SourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_credit_entries_organization_id_source_key");
+
+                    b.HasIndex("OrganizationId", "Kind", "At")
+                        .HasDatabaseName("ix_credit_entries_organization_id_kind_at");
+
+                    b.ToTable("credit_entries", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Billing.CreditPurchase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("ProviderPaymentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("provider_payment_id");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_credit_purchases");
+
+                    b.HasIndex("OrganizationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_credit_purchases_one_pending_reload")
+                        .HasFilter("source = 'AutoReload' AND status = 'Pending'");
+
+                    b.HasIndex("OrganizationId", "CreatedAt")
+                        .HasDatabaseName("ix_credit_purchases_organization_id_created_at");
+
+                    b.ToTable("credit_purchases", (string)null);
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Billing.CreditSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("AutoReloadAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("auto_reload_amount");
+
+                    b.Property<decimal?>("AutoReloadBelow")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("auto_reload_below");
+
+                    b.Property<bool>("AutoReloadEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("auto_reload_enabled");
+
+                    b.Property<decimal?>("AutoReloadMonthlyMax")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("auto_reload_monthly_max");
+
+                    b.Property<decimal>("LowBalanceAlert")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("low_balance_alert");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("PaymentMethodId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("payment_method_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_credit_settings");
+
+                    b.HasIndex("OrganizationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_credit_settings_organization_id");
+
+                    b.ToTable("credit_settings", (string)null);
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Candidates.Candidate", b =>
@@ -5192,14 +5330,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("budget_alert_slack");
 
-                    b.Property<string>("BudgetUnit")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasDefaultValue("Tokens")
-                        .HasColumnName("budget_unit");
-
                     b.Property<bool>("CheckAnswers")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -5279,16 +5409,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasDefaultValue("Included")
                         .HasColumnName("llm_source");
-
-                    b.Property<decimal?>("MonthlyBudget")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("monthly_budget");
-
-                    b.Property<decimal?>("MonthlyCap")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("monthly_cap");
 
                     b.Property<decimal?>("OwnKeyInputPrice")
                         .HasPrecision(12, 4)
@@ -6198,16 +6318,6 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_automation_runs_jobs_organization_id_job_id");
                 });
 
-            modelBuilder.Entity("ScreenHire.Domain.Billing.AiUsageCharge", b =>
-                {
-                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_ai_usage_charges_organizations_organization_id");
-                });
-
             modelBuilder.Entity("ScreenHire.Domain.Billing.BillingAccount", b =>
                 {
                     b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
@@ -6226,6 +6336,36 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_billing_events_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Billing.CreditEntry", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_credit_entries_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Billing.CreditPurchase", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_credit_purchases_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("ScreenHire.Domain.Billing.CreditSettings", b =>
+                {
+                    b.HasOne("ScreenHire.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_credit_settings_organizations_organization_id");
                 });
 
             modelBuilder.Entity("ScreenHire.Domain.Candidates.Candidate", b =>
