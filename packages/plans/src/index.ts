@@ -2,6 +2,7 @@ import catalogue from '../plans.json';
 import aiDefaults from '../ai.json';
 import trialDefaults from '../trial.json';
 import creditDefaults from '../credits.json';
+import includedDefaults from '../included.json';
 
 /** One plan as the catalogue holds it. A null price or limit is not set yet: the owner decides both. */
 export interface CataloguePlan {
@@ -52,3 +53,9 @@ export interface AiCredits {
 
 /** The credit amounts on offer. The API reads the same file as its default; `ScreenHire:Billing:Credits:*` overrides it there. */
 export const credits: AiCredits = creditDefaults;
+
+/**
+ * What every plan includes, as a few short lines. Plans differ only in how many jobs can be open at once, so the list is one for
+ * all of them. The marketing pricing page and the dashboard's Billing page both show it, so the two always say the same.
+ */
+export const included: string[] = includedDefaults;

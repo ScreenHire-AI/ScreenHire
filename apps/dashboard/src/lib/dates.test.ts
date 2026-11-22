@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { dayKey, dayLabel, formatDate, formatDateTime, formatDayMonth, shortDate, timeAgo, timeUntil } from './dates.js';
+import { afterEach, describe, expect, it } from 'vitest';
+import { configureDates } from '#lib/date-settings.svelte.js';
+import { calendarDaysUntil, dayKey, dayLabel, formatDate, formatDateTime, formatDayMonth, shortDate, timeAgo, timeUntil } from './dates.js';
 
 // jsdom's browser languages are US English, and vitest.config.ts pins the timezone to UTC.
 const now = Date.parse('2026-10-20T12:00:00Z');
@@ -65,5 +66,33 @@ describe('dayLabel', () => {
   it('keys an instant by its local day', () => {
     expect(dayKey('2026-10-20T23:59:00Z')).toBe('2026-10-20');
     expect(dayKey('2026-10-21T00:00:00Z')).toBe('2026-10-21');
+  });
+});
+
+// The trial's days left on Billing's plan card and in the bell: calendar days in the person's zone, which can differ from the
+// browser's (UTC here).
+describe('calendarDaysUntil', () => {
+  afterEach(() => configureDates({}));
+  const evening = Date.parse('2026-11-30T20:00:00Z');
+
+  it('counts whole days in the browser zone while the person has none', () => {
+    expect(calendarDaysUntil('2026-12-01T02:00:00Z', evening)).toBe(1);
+    expect(calendarDaysUntil('2026-12-09T12:00:00Z', evening)).toBe(9);
+    expect(calendarDaysUntil('2026-11-30T23:59:00Z', evening)).toBe(0);
+    expect(calendarDaysUntil('2026-11-29T12:00:00Z', evening)).toBe(-1);
+  });
+
+  it("counts in the person's own zone, where the same two instants can fall on one day", () => {
+    configureDates({ timeZone: 'Pacific/Auckland' });
+    expect(calendarDaysUntil('2026-12-01T02:00:00Z', evening)).toBe(0);
+    configureDates({ timeZone: 'America/Los_Angeles' });
+    expect(calendarDaysUntil('2026-12-01T02:00:00Z', evening)).toBe(0);
+    expect(calendarDaysUntil('2026-12-01T09:00:00Z', evening)).toBe(1);
+  });
+
+  it('is not shifted by a daylight saving change between the two days', () => {
+    configureDates({ timeZone: 'America/New_York' });
+    // Summer time ends on November 1 2026: noon on October 31 to noon on November 2 is two days, though 49 hours apart.
+    expect(calendarDaysUntil('2026-11-02T17:00:00Z', Date.parse('2026-10-31T16:00:00Z'))).toBe(2);
   });
 });

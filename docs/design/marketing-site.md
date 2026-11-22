@@ -8,6 +8,7 @@ sources:
   - resource: apps/marketing/src/lib/pages.ts
   - resource: apps/marketing/src/lib/pricing.ts
   - resource: apps/marketing/src/pages/pricing.astro
+  - resource: packages/plans/included.json
   - resource: apps/marketing/src/lib/features.test.ts
   - resource: apps/marketing/src/lib/copy.test.ts
   - resource: apps/marketing/src/lib/market.ts
@@ -218,7 +219,9 @@ decides. That a candidate is told what is collected before they start, and can s
 
 The target is the pricing band of the owner's "B + C, second pass" board, with the contents of the "Packages 1" board. In
 order: a dark band with the headline ("One price for your whole team. Everything included."), one sentence on the limit,
-the call to action and the three plans as rows, Growth marked as the trial; "Every plan includes", grouped by the five
+the call to action and the three plans as rows, Growth marked as the trial, with what every plan includes as a line of ticks
+under them (the plan catalogue's `included.json`, which the dashboard's Billing page shows on its plan cards too, so the two
+always match); "Every plan includes", grouped by the five
 selling points plus the careers site and job posting (`includedByTopic`); "What you will not pay extra for", each line
 with what one vendor's own page says today and a link (`pricingNotes`); seven questions (what counts as an open job, what
 happens at the limit and after the trial, changing and cancelling, what the AI costs, whether prices are before tax, how many users);

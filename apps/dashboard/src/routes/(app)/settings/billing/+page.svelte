@@ -1,5 +1,4 @@
 <script lang="ts">
-  import ArrowRightIcon from '~icons/lucide/arrow-right';
   import CreditCardIcon from '~icons/lucide/credit-card';
   import type { BillingPlan, BillingPortalIntent } from '@screenhire/api-client';
   import {
@@ -26,6 +25,8 @@
   import HeaderBand from '#lib/components/header-band.svelte';
   import Notice from '#lib/components/notice.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import PlanCard from '#lib/components/plan-card.svelte';
+  import PlanComparison from '#lib/components/plan-comparison.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import { settingsCrumbs } from '#lib/settings.js';
@@ -36,7 +37,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Empty from '#lib/components/ui/empty/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
-  import { aiMonthText, aiUsageNotes, billingStatus, formatCredits, formatMoney, mayChoosePlan, openJobsText, paymentMethodText, planLimitText, priceLine } from '#lib/billing.js';
+  import { aiMonthText, aiUsageNotes, billingStatus, formatCredits, formatMoney, mayChoosePlan, paymentMethodText } from '#lib/billing.js';
   import { can } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
   import { aiModelAddress, canEditVerification, canSeeUsage } from '#lib/verification-area.js';
@@ -116,6 +117,34 @@
   const choosable = $derived(mayChoosePlan(standing));
   // A subscription set to end is renewed on the payment page first; the API refuses to switch it.
   const switchable = $derived(standing === 'Active' && Boolean(overview?.canManage) && !overview?.cancelsAtPeriodEnd);
+  // What each plan's card offers: Change to on a live subscription (the change dialog prices it first), Choose while there is
+  // none (Checkout). The plan card's own button only brings these into view, so it shows only when one of them will be there.
+  function actionFor(plan: BillingPlan) {
+    if (switchable && plan.canSubscribe && plan.key !== overview?.currentPlan?.key) {
+      return {
+        label: `Change to ${plan.name}`,
+        run: () => {
+          switching = plan;
+          switchOpen = true;
+        },
+      };
+    }
+    if (choosable && plan.canSubscribe) return { label: `Choose ${plan.name}`, run: () => leave(plan.key) };
+    return null;
+  }
+  const offersChoice = $derived(overview?.plans.some((plan) => actionFor(plan) !== null) ?? false);
+  // The plan in force is marked on its card: the subscription's, or the trial's plan while the trial runs (still to be chosen).
+  const marked = $derived(subscribed || standing === 'Trialing' ? (overview?.currentPlan?.key ?? null) : null);
+  // Change plan and Choose a plan bring the plans into view and move focus there, to the cards that change it.
+  function showPlans() {
+    const target = document.getElementById('plans');
+    target?.scrollIntoView({ block: 'start' });
+    target?.focus({ preventScroll: true });
+  }
+  // The clock the trial's days left are counted from, read once per visit: a page left open past midnight counts from the
+  // visit until it is opened again. A live update redraws the card from the new overview, still against this clock.
+  const now = Date.now();
+
   // The card and the invoices exist once the provider has a customer: the portal can open.
   const hasCustomer = $derived(Boolean(overview?.available && overview.canManage));
   const paymentMethod = createGetBillingPaymentMethod(() => ({ query: { enabled: hasCustomer, refetchOnMount: 'always' } }));
@@ -204,19 +233,7 @@
             <FailureText message={failure} />
             {#if billing.isError}<FailureText message={describeError(billing.error, 'Could not refresh billing')} />{/if}
 
-            <Panel title="Plan" footer={outcome ? returnedFooter : undefined}>
-              <SummaryList>
-                <SummaryItem label="Current plan">{overview.currentPlan?.name ?? 'No plan'}</SummaryItem>
-                {#if standing === 'Trialing' && overview.trialEndsAt}
-                  <SummaryItem label="Trial ends"><DateText at={overview.trialEndsAt} /></SummaryItem>
-                {/if}
-                <!-- The next payment is This month so far's next invoice, said once there (W7). -->
-                {#if overview.cancelsAtPeriodEnd && overview.nextPaymentAt}
-                  <SummaryItem label="Ends on"><DateText at={overview.nextPaymentAt} /></SummaryItem>
-                {/if}
-                <SummaryItem label="Open jobs">{openJobsText(overview)}</SummaryItem>
-              </SummaryList>
-            </Panel>
+            <PlanCard {overview} {now} onchoose={offersChoice ? showPlans : undefined} footer={outcome ? returnedFooter : undefined} />
 
             <!-- What the organization pays this month, each charge on its line and added up, then the next invoice (docs/architecture/billing.md,
                  "The Billing page"). AI use is prepaid: the credits bought this month are the charge, and link to the credits below. -->
@@ -285,37 +302,19 @@
             {/if}
 
             <Panel
+              id="plans"
+              tabindex={-1}
+              class="scroll-mt-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               title="Plans"
               footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : standing === 'Trialing' ? trialFooter : undefined}>
-              <ul class="-my-3">
-                {#each overview.plans as plan (plan.key)}
-                  <li class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border-subtle py-3 last:border-0">
-                    <div class="flex min-w-0 flex-[1_1_12rem] flex-col gap-0.5">
-                      <p class="font-semibold">{plan.name}</p>
-                      <p class="text-muted-foreground">{priceLine(plan, overview.taxAtCheckout)}</p>
-                      <p class="text-muted-foreground">{planLimitText(plan)}</p>
-                    </div>
-                    <!-- Checkout starts a subscription; a live one is switched through the change dialog, which shows the cost first. -->
-                    {#if switchable && plan.canSubscribe && plan.key !== overview.currentPlan?.key}
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        disabled={leaving !== null}
-                        onclick={() => {
-                          switching = plan;
-                          switchOpen = true;
-                        }}
-                      >
-                        Switch{' '}<span class="sr-only">to {plan.name}</span><ArrowRightIcon aria-hidden="true" />
-                      </Button>
-                    {:else if choosable && plan.canSubscribe}
-                      <Button variant="outline" size="lg" disabled={leaving !== null} onclick={() => leave(plan.key)}>
-                        Choose{' '}<span class="sr-only">{plan.name}</span><ArrowRightIcon aria-hidden="true" />
-                      </Button>
-                    {/if}
-                  </li>
-                {/each}
-              </ul>
+              <PlanComparison
+                plans={overview.plans}
+                current={marked}
+                currentLabel={standing === 'Trialing' ? 'Your trial' : 'Your plan'}
+                taxAtCheckout={overview.taxAtCheckout}
+                {actionFor}
+                disabled={leaving !== null}
+              />
             </Panel>
 
           {/if}

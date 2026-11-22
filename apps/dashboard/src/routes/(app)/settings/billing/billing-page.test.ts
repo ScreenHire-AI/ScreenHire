@@ -1,5 +1,5 @@
 import type { BillingAiUsage, BillingInvoice, BillingOverview, BillingPlan, BillingThisMonth } from '@screenhire/api-client';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../../test-support/axe.js';
 import { apiStub, user } from '../../../../test-support/fixtures.js';
@@ -160,23 +160,32 @@ afterEach(() => {
 });
 
 const plans = () => screen.getByRole('region', { name: 'Plans' });
+const planCard = () => screen.getByRole('region', { name: 'Plan' });
 const primaryButtons = () => Array.from(document.querySelectorAll('main button')).filter((button) => button.getAttribute('role') !== 'switch' && button.className.includes('bg-primary'));
 
 describe('billing page', () => {
-  it('shows the trial: its end, the open jobs against the limit, and every plan with its price and limit', async () => {
-    renderPage();
+  it('shows the trial: its days left, the open jobs against the limit, and every plan with its price and limit', async () => {
+    // Only the clock is faked, so TanStack Query's timers still run.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-11T09:00:00Z'));
+    try {
+      renderPage();
 
-    expect(await screen.findByText('Free trial')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Billing' })).toBeInTheDocument();
-    expect(screen.getByText('Trial ends', { selector: 'dt' }).nextElementSibling).toHaveTextContent('Nov 20, 2026');
-    expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3 of 25$/);
-    expect(within(plans()).getByText('$49.00 a month')).toBeInTheDocument();
-    expect(within(plans()).getByText('Up to 5 open jobs')).toBeInTheDocument();
-    expect(within(plans()).getByText('$99.00 a month')).toBeInTheDocument();
-    expect(within(plans()).getByText('Price not set')).toBeInTheDocument();
-    expect(within(plans()).getByText('Unlimited open jobs')).toBeInTheDocument();
-    expect(within(plans()).queryByText(/plus tax/)).not.toBeInTheDocument();
-    await expectNoAxeViolations();
+      expect(await screen.findByText('Free trial')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Billing' })).toBeInTheDocument();
+      expect(planCard()).toHaveTextContent('Trial: 9 days left');
+      expect(planCard()).toHaveTextContent('Growth until November 20');
+      expect(planCard().querySelector('[data-headroom]')).toHaveTextContent(/^3 of 25 open jobs$/);
+      expect(within(plans()).getByText('$49.00')).toBeInTheDocument();
+      expect(within(plans()).getByText('Up to 5 open jobs')).toBeInTheDocument();
+      expect(within(plans()).getByText('$99.00')).toBeInTheDocument();
+      expect(within(plans()).getByText('Price not set')).toBeInTheDocument();
+      expect(within(plans()).getByText('Unlimited open jobs')).toBeInTheDocument();
+      expect(within(plans()).queryByText(/plus tax/)).not.toBeInTheDocument();
+      await expectNoAxeViolations();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   const trialEndWords = 'The trial needs no card. When it ends, open jobs stay open and a new job needs a plan.';
@@ -366,10 +375,9 @@ describe('billing page', () => {
     renderPage({ ...trial, taxAtCheckout: true });
 
     await screen.findByText('Free trial');
-    expect(within(plans()).getByText('$49.00 a month plus tax where it applies')).toBeInTheDocument();
-    expect(within(plans()).getByText('$99.00 a month plus tax where it applies')).toBeInTheDocument();
     expect(within(plans()).getByText('Price not set')).toBeInTheDocument();
-    expect(within(plans()).getAllByText(/plus tax where it applies/)).toHaveLength(2);
+    for (const key of ['starter', 'growth']) expect(plans().querySelector(`[data-plan-card="${key}"]`)).toHaveTextContent('plus tax where it applies');
+    expect(within(plans()).getAllByText('plus tax where it applies')).toHaveLength(2);
     await expectNoAxeViolations();
   });
 
@@ -388,6 +396,29 @@ describe('billing page', () => {
     expect(screen.queryByRole('button', { name: 'Cancel plan' })).toBeNull();
     expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Choose Starter', 'Choose Growth', 'Choose Unlimited']);
     expect(primaryButtons()).toEqual([]);
+  });
+
+  it('brings the plans into view from the plan card, with focus there: Choose a plan on the trial, Change plan on a subscription', async () => {
+    const original = Element.prototype.scrollIntoView;
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    try {
+      for (const [overview, label] of [
+        [trial, 'Choose a plan'],
+        [active, 'Change plan'],
+      ] as const) {
+        renderPage(overview);
+
+        await fireEvent.click(await screen.findByRole('button', { name: label }));
+
+        expect(document.activeElement).toBe(plans());
+        expect(scrolled).toHaveBeenCalled();
+        cleanup();
+        scrolled.mockClear();
+      }
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
   });
 
   it('sends the chosen plan to Checkout and goes to the address it answers with', async () => {
@@ -409,13 +440,14 @@ describe('billing page', () => {
     expect(screen.getByRole('button', { name: 'Choose Growth' })).toBeEnabled();
   });
 
-  it('shows a paying organization its plan with Switch on the other plans and no primary action (A1)', async () => {
+  it('shows a paying organization its plan, marked among the plans, with Change to on the others and no primary action (A1)', async () => {
     renderPage(active);
 
     expect(await screen.findByText('Active', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
-    expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3 of 5$/);
-    expect(within(plans()).queryByText('Current plan')).toBeNull();
-    expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Switch to Growth', 'Switch to Unlimited']);
+    expect(planCard().querySelector('[data-headroom]')).toHaveTextContent(/^3 of 5 open jobs$/);
+    expect(within(plans()).getAllByText('Your plan')).toHaveLength(1);
+    expect(plans().querySelector('[data-plan-card="starter"]')).toHaveTextContent('Your plan');
+    expect(within(plans()).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Change to Growth', 'Change to Unlimited']);
     expect(primaryButtons()).toEqual([]);
     await expectNoAxeViolations();
   });
@@ -423,7 +455,7 @@ describe('billing page', () => {
   it('shows what a switch costs before it is made: the amount now, then the monthly price from its date', async () => {
     renderPage(active);
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Change to Growth' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
     await waitFor(() => expect(dialog).toHaveTextContent('$35.50 now, then $99.00 a month from Dec 5, 2026'));
@@ -436,7 +468,7 @@ describe('billing page', () => {
   it('opens with the dialog focused, so the tooltip on the date does not open over the text by itself', async () => {
     renderPage(active);
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Change to Growth' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
     await waitFor(() => expect(dialog).toHaveTextContent('a month from'));
@@ -447,7 +479,7 @@ describe('billing page', () => {
   it('says nothing is due now for a cheaper plan and that the unused time is credited', async () => {
     renderPage({ ...active, currentPlan: growth, activeJobLimit: 25, nextPaymentAmount: 99 });
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Starter' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Change to Starter' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Change to Starter?' });
     await waitFor(() => expect(dialog).toHaveTextContent('Nothing now, then $49.00 a month from Dec 5, 2026'));
@@ -456,7 +488,7 @@ describe('billing page', () => {
 
   it('changes the plan with the date the price was worked out at, and says the page updates once the payment is confirmed', async () => {
     renderPage(active);
-    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Change to Growth' }));
     const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
     await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeEnabled());
 
@@ -471,7 +503,7 @@ describe('billing page', () => {
   it('keeps Confirm off and says why when the cost could not be worked out', async () => {
     renderPage(active, { 'POST /v1/organization/billing/plan/preview': () => Response.json({ detail: 'The payment provider did not answer. Try again in a moment.' }, { status: 502 }) });
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Change to Growth' }));
 
     const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
     expect(await within(dialog).findByText('The payment provider did not answer. Try again in a moment.')).toBeInTheDocument();
@@ -482,7 +514,7 @@ describe('billing page', () => {
     renderPage(active, {
       'POST /v1/organization/billing/plan': () => Response.json({ detail: 'The plan was not changed and you have not been charged.' }, { status: 502 }),
     });
-    await fireEvent.click(await screen.findByRole('button', { name: 'Switch to Growth' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Change to Growth' }));
     const dialog = await screen.findByRole('dialog', { name: 'Change to Growth?' });
     await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Confirm change' })).toBeEnabled());
 
@@ -498,16 +530,19 @@ describe('billing page', () => {
   it('says when a subscription that will not renew ends, instead of a next payment', async () => {
     renderPage({ ...active, cancelsAtPeriodEnd: true, nextPaymentAmount: null });
 
-    expect(await screen.findByText('Ends on', { selector: 'dt' })).toBeInTheDocument();
-    expect(screen.getByText('Ends on', { selector: 'dt' }).nextElementSibling).toHaveTextContent('Dec 5, 2026');
-    expect(screen.queryByText('Next payment')).toBeNull();
-    expect(within(plans()).queryByRole('button', { name: /^Switch/ })).toBeNull();
+    expect(await screen.findByText('Ends', { exact: false, selector: 'p' })).toHaveTextContent(/^Ends December 5$/);
+    expect(within(planCard()).queryByText(/^Renews/)).toBeNull();
+    // A plan set to end is renewed on the payment page first, so nothing here changes it.
+    expect(within(plans()).queryByRole('button', { name: /^Change to/ })).toBeNull();
+    expect(within(planCard()).queryByRole('button', { name: 'Change plan' })).toBeNull();
   });
 
   it('shows only the count when the plan has no limit', async () => {
     renderPage({ ...active, currentPlan: unlimited, activeJobLimit: null, openJobs: 3 });
 
-    expect((await screen.findByText('Open jobs', { selector: 'dt' })).nextElementSibling).toHaveTextContent(/^3$/);
+    await screen.findByText('Active');
+    expect(planCard().querySelector('[data-headroom]')).toHaveTextContent(/^3 open jobs$/);
+    expect(planCard().querySelector('[data-headroom-meter]')).toBeNull();
   });
 
   it('tells an owner a failed payment needs new details, with the payment status beside the title', async () => {
@@ -517,6 +552,7 @@ describe('billing page', () => {
     expect(screen.getByText('Payment failed', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
     // No plan switches while a payment has failed; Change card is the way to new payment details.
     expect(within(plans()).queryAllByRole('button')).toEqual([]);
+    expect(within(planCard()).queryByRole('button', { name: 'Change plan' })).toBeNull();
     expect(await screen.findByRole('button', { name: 'Change card' })).toBeInTheDocument();
     await expectNoAxeViolations();
   });
@@ -526,7 +562,9 @@ describe('billing page', () => {
 
     expect(await screen.findByText('Open jobs stay open, but you cannot publish new jobs until you choose a plan.')).toBeInTheDocument();
     expect(screen.getByText('Ended', { selector: '[data-slot="badge"]' })).toBeInTheDocument();
-    expect(screen.getByText('Open jobs', { selector: 'dt' }).nextElementSibling).toHaveTextContent(/^3$/);
+    expect(planCard().querySelector('[data-headroom]')).toHaveTextContent(/^3 open jobs$/);
+    expect(planCard()).toHaveTextContent('No plan');
+    expect(within(planCard()).getByRole('button', { name: 'Choose a plan' })).toBeInTheDocument();
     expect(within(plans()).getAllByRole('button')).toHaveLength(3);
     await expectNoAxeViolations();
   });

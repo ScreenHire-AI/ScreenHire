@@ -24,7 +24,7 @@
   import UserPlusIcon from '~icons/lucide/user-plus';
   import UserRoundIcon from '~icons/lucide/user-round';
   import UsersIcon from '~icons/lucide/users';
-  import type { ApplicationFileSummary, ApplicationInterview, CurrentOrganization, HiringWorkflow, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, ApplicationInterview, BillingOverview, BillingPlan, CurrentOrganization, HiringWorkflow, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -76,6 +76,8 @@
   import NotificationTray from '#lib/components/notification-tray.svelte';
   import OverdueBadge from '#lib/components/overdue-badge.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import PlanCard from '#lib/components/plan-card.svelte';
+  import PlanComparison from '#lib/components/plan-comparison.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RecordTabs, { type RecordTab } from '#lib/components/record-tabs.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
@@ -466,6 +468,35 @@
     { name: 'Needs visa', applications: 2 },
   ];
   let jobsChoice = $state<'All' | 'HiringTeamOnly'>('All');
+  // The plans as Billing gets them from the API, for the plan card and the comparison cards.
+  const samplePlan = (key: string, name: string, monthlyPrice: number, activeJobs: number | null): BillingPlan => ({
+    key,
+    name,
+    monthlyPrice,
+    currency: 'USD',
+    activeJobs,
+    unlimited: activeJobs === null,
+    canSubscribe: true,
+  });
+  const samplePlans = [samplePlan('starter', 'Starter', 79, 3), samplePlan('growth', 'Growth', 149, 10), samplePlan('unlimited', 'Unlimited', 249, null)];
+  const sampleBilling: BillingOverview = {
+    available: true,
+    sandbox: true,
+    state: 'Active',
+    currentPlan: samplePlans[1]!,
+    trialEndsAt: null,
+    nextPaymentAt: ago(-30 * day),
+    nextPaymentAmount: 149,
+    cancelsAtPeriodEnd: false,
+    openJobs: 3,
+    activeJobLimit: 10,
+    canManage: true,
+    taxAtCheckout: false,
+    plans: samplePlans,
+    aiUsage: null,
+    thisMonth: null,
+  };
+  const sampleTrial: BillingOverview = { ...sampleBilling, state: 'Trialing', trialEndsAt: ago(-9 * day), nextPaymentAt: null, nextPaymentAmount: null };
   let weeklyHours = $state(weekdayHours());
   let countriesChoice = $state(['GB', 'IE']);
   const sampleTeam = [
@@ -936,6 +967,19 @@
           <WeeklyHoursEditor bind:value={weeklyHours} id="style-guide-hours" legend="Days and hours" />
         </Panel>
       </div>
+
+      <!-- The plan card is a Panel of its own (titled Plan), so it sits in a plain section, not inside another panel (S4). -->
+      <section aria-label="Plan card" class="flex flex-wrap items-start gap-5">
+        <div class="min-w-0 flex-[1_1_360px]"><PlanCard overview={sampleBilling} {now} onchoose={() => {}} /></div>
+        <div class="min-w-0 flex-[1_1_360px]"><PlanCard overview={sampleTrial} {now} onchoose={() => {}} /></div>
+      </section>
+      <Panel title="Plan comparison cards">
+        <PlanComparison
+          plans={samplePlans}
+          current="growth"
+          actionFor={(plan) => (plan.key === 'growth' ? null : { label: `Change to ${plan.name}`, run: () => {} })}
+        />
+      </Panel>
 
       <Panel title="Step marker">
         <div class="flex flex-wrap items-start gap-x-8 gap-y-5">

@@ -10,7 +10,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { appLinks } from '../lib/app-links';
 import { aiCost, includedByTopic, pricingNotes } from '../lib/features';
 import { pages } from '../lib/pages';
-import { plans, pricedOffers, trialLabel, trialPlan } from '../lib/pricing';
+import { planIncludes, plans, pricedOffers, trialLabel, trialPlan } from '../lib/pricing';
 import { faqPage, softwareApplication, type Faq } from '../lib/seo';
 
 const { title, description, path, label } = pages.pricing;
@@ -66,7 +66,7 @@ const faqs: Faq[] = [
       <CtaLink href={startUrl} size="lg" class="mt-4">{trialLabel()}</CtaLink>
     </div>
     <div class="min-w-0 flex-[1_1_28rem]">
-      <PlanRows trialPlan={trialPlan} />
+      <PlanRows trialPlan={trialPlan} includes={planIncludes} />
     </div>
   </DarkBand>
 

@@ -47,33 +47,66 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing"));
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Billing");
 
-        // A new organization is on the free trial, on the trial plan, with nothing open yet.
+        // A new organization is on the free trial, on the trial plan, with nothing open yet. The plan card is the trial card: the
+        // days left (14 calendar days, give or take one across a clock change), the trial's plan, its meter and Choose a plan.
         var band = Page.Locator("[data-slot=header-band]");
         await Expect(band).ToContainTextAsync("Free trial");
         var plan = Page.GetByRole(AriaRole.Region, new() { Name = "Plan", Exact = true });
-        await Expect(plan).ToContainTextAsync("Growth");
-        await Expect(plan).ToContainTextAsync("Trial ends");
-        await Expect(plan).ToContainTextAsync($"0 of {ShippedPlans.Growth.RequiredLimit}");
+        await Expect(plan.Locator("[data-plan-headline]")).ToHaveTextAsync(new System.Text.RegularExpressions.Regex(@"^Trial: 1[3-5] days left$"));
+        await Expect(plan).ToContainTextAsync("Growth until");
+        await Expect(plan.Locator("[data-headroom]")).ToHaveTextAsync($"0 of {Jobs(ShippedPlans.Growth.RequiredLimit)}");
+        await Expect(plan.GetByRole(AriaRole.List, new() { Name = "What your plan includes" }).GetByRole(AriaRole.Listitem)).Not.ToHaveCountAsync(0);
 
+        // The plans as cards side by side at this width, each with its price and limit, the trial's plan marked.
         var plans = Page.GetByRole(AriaRole.Region, new() { Name = "Plans", Exact = true });
-        await Expect(plans).ToContainTextAsync("Starter");
-        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Starter.MonthlyPrice:0.00} a month");
-        await Expect(plans).ToContainTextAsync($"Up to {Jobs(ShippedPlans.Starter.RequiredLimit)}");
-        await Expect(plans).ToContainTextAsync("Growth");
-        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Growth.MonthlyPrice:0.00} a month");
-        await Expect(plans).ToContainTextAsync($"Up to {Jobs(ShippedPlans.Growth.RequiredLimit)}");
-        await Expect(plans).ToContainTextAsync("Unlimited");
-        await Expect(plans).ToContainTextAsync($"${ShippedPlans.Unlimited.MonthlyPrice:0.00} a month");
-        await Expect(plans).ToContainTextAsync("Unlimited open jobs");
+        await Expect(plans.Locator("[data-plan-card=starter]")).ToContainTextAsync($"${ShippedPlans.Starter.MonthlyPrice:0.00} a month");
+        await Expect(plans.Locator("[data-plan-card=starter]")).ToContainTextAsync($"Up to {Jobs(ShippedPlans.Starter.RequiredLimit)}");
+        await Expect(plans.Locator("[data-plan-card=growth]")).ToContainTextAsync($"${ShippedPlans.Growth.MonthlyPrice:0.00} a month");
+        await Expect(plans.Locator("[data-plan-card=growth]")).ToContainTextAsync($"Up to {Jobs(ShippedPlans.Growth.RequiredLimit)}");
+        await Expect(plans.Locator("[data-plan-card=growth]")).ToContainTextAsync("Your trial");
+        await Expect(plans.Locator("[data-plan-card=unlimited]")).ToContainTextAsync($"${ShippedPlans.Unlimited.MonthlyPrice:0.00} a month");
+        await Expect(plans.Locator("[data-plan-card=unlimited]")).ToContainTextAsync("Unlimited open jobs");
         await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(3);
+        var cardTops = await plans.Locator("[data-plan-card]").EvaluateAllAsync<double[]>("cards => cards.map(card => Math.round(card.getBoundingClientRect().top))");
+        cardTops.Distinct().Should().HaveCount(1, "three cards sit side by side at 1440");
+        (await NoSidewaysScrollAsync()).Should().BeTrue();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-trial-1440");
+
+        // On a phone the cards stack, one above the other, and the page never scrolls sideways.
+        await Page.SetViewportSizeAsync(390, 844);
+        await Expect(plans.Locator("[data-plan-card=unlimited]")).ToBeVisibleAsync();
+        var phoneTops = await plans.Locator("[data-plan-card]").EvaluateAllAsync<double[]>("cards => cards.map(card => Math.round(card.getBoundingClientRect().top))");
+        phoneTops.Should().BeInAscendingOrder().And.OnlyHaveUniqueItems("the cards stack at 390");
+        (await NoSidewaysScrollAsync()).Should().BeTrue();
+        await SaveScreenshotAsync(Page, "dashboard-settings-billing-trial-390");
+        await Page.SetViewportSizeAsync(1440, 1000);
+
+        // Choose a plan brings the plans into view for the choice.
+        await plan.GetByRole(AriaRole.Button, new() { Name = "Choose a plan" }).ClickAsync();
+        await Expect(plans).ToBeFocusedAsync();
 
         // Choosing a plan leaves for the sandbox's checkout, which activates it and sends the browser back here.
         await plans.GetByRole(AriaRole.Button, new() { Name = "Choose Starter" }).ClickAsync();
         await Expect(band).ToContainTextAsync("Active");
-        await Expect(plan).ToContainTextAsync("Starter");
-        await Expect(plan).ToContainTextAsync($"0 of {ShippedPlans.Starter.RequiredLimit}");
+        await Expect(plan.Locator("[data-plan-headline]")).ToHaveTextAsync("Starter");
+        await Expect(plan.Locator("[data-plan-price]")).ToContainTextAsync($"${ShippedPlans.Starter.MonthlyPrice:0.00} a month");
+        await Expect(plan).ToContainTextAsync("Renews");
+        await Expect(plan.Locator("[data-headroom]")).ToHaveTextAsync($"0 of {Jobs(ShippedPlans.Starter.RequiredLimit)}");
+        await Expect(plan.GetByRole(AriaRole.Button, new() { Name = "Change plan" })).ToBeVisibleAsync();
+        await Expect(plans.Locator("[data-plan-card=starter]")).ToContainTextAsync("Your plan");
+        await Expect(plans.GetByRole(AriaRole.Button, new() { NameRegex = new("^Change to") })).ToHaveCountAsync(2);
+        // The longest label, Change to Unlimited, stays on one line inside its card (F5), here and at a laptop width where the
+        // three cards are at their narrowest.
+        foreach (var width in new[] { 1440, 1180 })
+        {
+            await Page.SetViewportSizeAsync(width, 1000);
+            var overflowing = await plans.Locator("[data-plan-card] button").EvaluateAllAsync<int>(
+                "buttons => buttons.filter(button => button.scrollWidth > button.clientWidth || button.getBoundingClientRect().right > button.closest('[data-plan-card]').getBoundingClientRect().right).length");
+            overflowing.Should().Be(0, $"every plan button fits its card at {width}");
+        }
+
+        await Page.SetViewportSizeAsync(1440, 1000);
 
         // This month, added up: the plan's line and the total, then the next invoice. No AI credits bought, so the plan is the whole of it.
         var month = Page.GetByRole(AriaRole.Region, new() { Name = "This month so far", Exact = true });
@@ -254,6 +287,10 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Change card" })).ToHaveCountAsync(0);
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameRegex = new("^Choose") })).ToHaveCountAsync(0);
     }
+
+    // Measured against the window's width, which includes the stable scrollbar gutter (S8): a page that fits is never wider than it.
+    private async Task<bool> NoSidewaysScrollAsync() =>
+        await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth");
 
     private static string Jobs(int count) => count == 1 ? "1 open job" : $"{count} open jobs";
 

@@ -1,4 +1,4 @@
-import { catalogPlans, trial, type CataloguePlan } from '@screenhire/plans';
+import { catalogPlans, included, trial, type CataloguePlan } from '@screenhire/plans';
 import type { PricedOffer } from './seo';
 
 // Prices and limits live in the plan catalogue (packages/plans), which the API reads too. They are working values the
@@ -22,6 +22,9 @@ const copyByKey: Record<string, { summary: string; highlighted?: boolean }> = {
   growth: { summary: 'For a team with a steady flow of open roles.', highlighted: true },
   unlimited: { summary: 'For a team that is always hiring.' },
 };
+
+/** What every plan includes, from the plan catalogue (packages/plans/included.json), which the dashboard's Billing page shows too. */
+export const planIncludes: readonly string[] = included;
 
 /** The plan the free trial starts on, by name: the catalogue's trial plan (packages/plans/trial.json, which billing reads too). */
 export const trialPlan = catalogPlans.find((plan) => plan.key === trial.plan)?.name ?? '';
