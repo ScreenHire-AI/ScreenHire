@@ -87,7 +87,7 @@ public sealed class SettingsTeamTests(E2EFixture fixture) : SettingsArea(fixture
         await Expect(invitations).ToContainTextAsync("No open invitations.");
 
         // Change their role in the access sheet the row's menu opens, with the jobs they see beside it.
-        await row.GetByRole(AriaRole.Button).ClickAsync();
+        await row.GetByRole(AriaRole.Button, new() { Name = "Actions for" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Edit access" }).ClickAsync();
         var access = Page.GetByRole(AriaRole.Dialog, new() { NameRegex = new("access$") });
         await access.GetByRole(AriaRole.Combobox, new() { Name = "Role" }).SelectOptionAsync(new SelectOptionValue { Label = "Viewer" });
@@ -95,7 +95,7 @@ public sealed class SettingsTeamTests(E2EFixture fixture) : SettingsArea(fixture
         await Expect(row).ToContainTextAsync("Viewer");
 
         // Removing is destructive: it is in the menu and confirmed in a dialog (A2).
-        await row.GetByRole(AriaRole.Button).ClickAsync();
+        await row.GetByRole(AriaRole.Button, new() { Name = "Actions for" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Remove from team" }).ClickAsync();
         var confirm = Page.GetByRole(AriaRole.Dialog);
         await Expect(confirm).ToContainTextAsync("Remove");
@@ -184,7 +184,7 @@ public sealed class SettingsTeamTests(E2EFixture fixture) : SettingsArea(fixture
         await GoToAsync("dashboard", "/settings/team");
         var row = Page.GetByRole(AriaRole.Region, new() { Name = "Members" }).GetByRole(AriaRole.Row).Filter(new() { HasText = colleague });
         await Expect(row).ToContainTextAsync("Viewer");
-        await row.GetByRole(AriaRole.Button).ClickAsync();
+        await row.GetByRole(AriaRole.Button, new() { Name = "Actions for" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Edit access" }).ClickAsync();
         var access = Page.GetByRole(AriaRole.Dialog, new() { NameRegex = new("access$") });
         await access.GetByRole(AriaRole.Combobox, new() { Name = "Role" }).SelectOptionAsync(new SelectOptionValue { Label = "Interviewer" });
