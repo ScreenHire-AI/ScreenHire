@@ -233,7 +233,7 @@
     new Map([...(former?.questions ?? []), ...(workflow?.questionnaire.questions ?? [])].map((question) => [question.id, question])),
   );
   const followUpName = (requestId: string | null | undefined) =>
-    detail?.followUps.find((followUp) => followUp.id === requestId)?.name ?? 'a follow-up questionnaire';
+    detail?.followUps.find((followUp) => followUp.id === requestId)?.name ?? 'a follow-up form';
   // Saved candidates' entries name other jobs: where the candidate was invited, added or applied.
   const jobs = createListJobs();
   const jobName = (id: string | null | undefined) => jobs.data?.data.find((candidate) => candidate.id === id)?.title ?? 'another job';

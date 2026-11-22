@@ -164,7 +164,7 @@
                 aria-describedby={`questions-per-page-hint${$errors.questionsPerPage ? ' questions-per-page-error' : ''}`}
                 class="max-w-32"
               />
-              <Field.Description id="questions-per-page-hint">When a questionnaire has no sections, candidates see this many questions a page.</Field.Description>
+              <Field.Description id="questions-per-page-hint">When a form has no sections, candidates see this many questions a page.</Field.Description>
               <Field.Error id="questions-per-page-error" errors={$errors.questionsPerPage?.map((message) => ({ message }))} />
             </Field.Field>
             {#snippet footer()}
