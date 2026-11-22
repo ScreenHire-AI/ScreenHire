@@ -91,9 +91,9 @@ export const selectedOf = (answer: AnswerValue | undefined): string[] =>
  * can be wrong to the browser.
  */
 export function checkFor(type: string, required: boolean): string | null {
-  if (type === 'email') return 'Enter an email address, like name@example.com';
-  if (type === 'url') return 'Enter a web address, like https://example.com';
-  return required ? 'Add an answer' : null;
+  if (type === 'email') return 'Enter an email address like name@example.com.';
+  if (type === 'url') return 'Enter a web address like https://example.com.';
+  return required ? 'Add an answer.' : null;
 }
 
 /** The `aria-describedby` for a field with an optional hint and error. */

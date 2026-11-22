@@ -292,8 +292,8 @@ file, rounded up to whole minutes and never under 2.
   what they typed and never sends the application or presses a panel's Change. (A disabled first button would not do:
   Chromium skips it and presses the next.)
 - A text field left in a state the browser knows is wrong (empty and required, an address that is not an email or a web
-  address) turns its edge red and shows its check line under it ("Enter an email address, like name@example.com", "Add
-  an answer"), through `:user-invalid` in `questions.css`, once the candidate has left it. The form keeps `novalidate`, so
+  address) turns its edge red and shows its check line under it ("Enter an email address like name@example.com.", "Add
+  an answer."), through `:user-invalid` in `questions.css`, once the candidate has left it. The form keeps `novalidate`, so
   Back, Change and Save post unchecked, and the server's error summary stays the one accessible account of what is wrong.
   The check line is not in the field's `aria-describedby`, and it hides while the server's own error shows.
 - Choices are 48px high and buttons 44px, so a thumb finds them on a phone.

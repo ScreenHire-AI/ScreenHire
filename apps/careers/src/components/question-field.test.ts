@@ -155,14 +155,14 @@ describe('the check line beside a field', () => {
     const html = await render({ question: question({ id: 'notice', label: 'Notice period', required: true }) });
 
     expect(html).toMatch(/<div class="field [^"]*">/);
-    expect(html).toMatch(/<p class="field-check">Add an answer<\/p>/);
+    expect(html).toMatch(/<p class="field-check">Add an answer.<\/p>/);
     // Kept out of the field's description: hidden text in aria-describedby would be read while the field is fine.
     expect(html).not.toMatch(/aria-describedby="[^"]*check/);
   });
 
   it('says what a web address needs, and an optional line has none', async () => {
     expect(await render({ question: question({ id: 'site', type: 'Url', label: 'Portfolio' }) })).toContain(
-      'Enter a web address, like https://example.com',
+      'Enter a web address like https://example.com.',
     );
     expect(await render({ question: question({ id: 'notes', label: 'Anything else?' }) })).not.toContain('field-check');
   });

@@ -255,7 +255,7 @@ const answerText = (questionId: string): string => {
               </label>
             )}
             {aiIntro && <p class="text-candidate-hint text-candidate-muted-foreground">{aiIntro}</p>}
-            <TextField name="firstName" label="First name" value={state.firstName} error={errors.firstName} required autocomplete="given-name" maxlength={MAX_NAME} check="Enter your first name" />
+            <TextField name="firstName" label="First name" value={state.firstName} error={errors.firstName} required autocomplete="given-name" maxlength={MAX_NAME} check="Enter your first name." />
             <TextField name="lastName" label="Last name" value={state.lastName} error={errors.lastName} autocomplete="family-name" maxlength={MAX_NAME} />
             <TextField name="email" label="Email" type="email" inputmode="email" value={state.email} error={errors.email} required autocomplete="email" maxlength={MAX_EMAIL} />
             <TextField name="phone" label="Phone" type="tel" inputmode="tel" value={state.phone} error={errors.phone} autocomplete="tel" maxlength={MAX_PHONE} />

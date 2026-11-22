@@ -150,7 +150,7 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         await Page.GetByLabel("Email").FillAsync("casey.example.com");
         await Page.GetByLabel("Phone").FocusAsync();
         await Expect(emailCheck).ToBeVisibleAsync();
-        await Expect(emailCheck).ToHaveTextAsync("Enter an email address, like name@example.com");
+        await Expect(emailCheck).ToHaveTextAsync("Enter an email address like name@example.com.");
         await ExpectNoAccessibilityViolationsAsync();
         await FillDetailsAsync(email);
         await Page.GetByLabel("Phone").FocusAsync();

@@ -61,9 +61,9 @@ describe('progressPercent', () => {
 
 describe('checkFor', () => {
   it('says what an email or a web address needs, and that a required field needs an answer', () => {
-    expect(checkFor('email', false)).toBe('Enter an email address, like name@example.com');
-    expect(checkFor('url', true)).toBe('Enter a web address, like https://example.com');
-    expect(checkFor('text', true)).toBe('Add an answer');
+    expect(checkFor('email', false)).toBe('Enter an email address like name@example.com.');
+    expect(checkFor('url', true)).toBe('Enter a web address like https://example.com.');
+    expect(checkFor('text', true)).toBe('Add an answer.');
     expect(checkFor('text', false)).toBeNull();
     expect(checkFor('tel', false)).toBeNull();
   });
