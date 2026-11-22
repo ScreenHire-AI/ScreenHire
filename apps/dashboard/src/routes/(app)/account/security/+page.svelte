@@ -32,10 +32,10 @@
 <TopBar crumbs={accountCrumbs('/account/security')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Sign-in and security" oneRow />
+  <HeaderBand title="Sign-in and security" frame oneRow />
 
   <AccountMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <div class="flex w-full flex-col gap-5">
       {#if signIn.isError && !methods}
         <Panel title="How you sign in">
           <QueryError message={describeError(signIn.error, 'Could not load how you sign in')} onretry={() => signIn.refetch()} inset />

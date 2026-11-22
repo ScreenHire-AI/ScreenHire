@@ -221,7 +221,7 @@
 <TopBar crumbs={settingsCrumbs('/settings/branding')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Branding" oneRow>
+  <HeaderBand title="Branding" frame oneRow>
     {#snippet actions()}
       {#if detail}<HistoryFact value={detail.lastUpdated} name="Branding" page={(before) => getGetOrganizationBrandingHistoryQueryOptions({ before })} />{/if}
     {/snippet}
@@ -229,7 +229,7 @@
 
   <SettingsMenu>
     {#if branding.isError && !detail}
-      <div class="flex w-full max-w-form flex-col gap-5">
+      <div class="flex w-full flex-col gap-5">
         <Panel title="Colours">
           <QueryError message={describeError(branding.error, 'Could not load the branding')} onretry={() => branding.refetch()} inset />
         </Panel>

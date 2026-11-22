@@ -31,10 +31,10 @@
 <TopBar crumbs={accountCrumbs('/account/preferences')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Preferences" oneRow />
+  <HeaderBand title="Preferences" frame oneRow />
 
   <AccountMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <div class="flex w-full flex-col gap-5">
       <p role="status" class="sr-only">{announcement}</p>
       <Panel title="On this device">
         <div class="flex flex-col gap-5">

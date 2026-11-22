@@ -155,15 +155,16 @@ sortable headers.
 
 In the dashboard this is Billing's AI use section (`/settings/billing#ai-use`, [billing](billing.md#the-billing-page)), where the
 money lives, following the owner's walk-through of 2026-11-22: Verification keeps only the checks. Billing opens for whoever can see AI
-usage, so an Admin gets this section without the Owner's plan, and an Owner where no payment provider is set up gets it alone. It
-shows, in order:
+usage, so an Admin gets this section without the Owner's plan, and an Owner where no payment provider is set up gets it alone. On
+its own it shows, in order (beside an Owner's plan, from about a 1440px window, the credits and auto-reload move to the side column
+and the purchases and deductions go under both columns, [billing](billing.md#the-billing-page)):
 
 1. **AI credits.** The balance, paused at zero on ScreenHire's key, and for an Owner the amounts to buy and auto-reload
    ([billing](billing.md#the-billing-page)).
 2. **AI use.** The Owner's use this month ("41 AI calls, $3.74" and its notes), whose key runs the AI check as a fact
    ("ScreenHire's key. The checks use your AI credits."), and links to every call in the Activity log and, for Edit settings,
    to Settings > Integrations > AI model ("Use your own key" or "Change the key").
-3. **What the checks used**, at the full width: calls, tokens and the amount for AI use for a range (ScreenHire's key as Cost, an own
+3. **What the checks used**, at the column's width: calls, tokens and the amount for AI use for a range (ScreenHire's key as Cost, an own
    key apart as its provider's estimate), tokens by day for ScreenHire's key against the own key with its table, and use by model and
    key. The Model calls tile ends with "Last call 5 minutes ago" (`lastCallAt`, the newest call whatever the range, left out before
    the first; design system T7).

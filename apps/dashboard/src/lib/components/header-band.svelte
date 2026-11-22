@@ -13,6 +13,7 @@
     summary,
     tabs,
     form = false,
+    frame = false,
     oneRow = false,
     level = 1,
     heading = $bindable(),
@@ -35,6 +36,11 @@
     /** A form page's band, its title in line with the 688px column (section 7). */
     form?: boolean;
     /**
+     * A page with the Settings or account menu: the band's contents sit on the settings frame's box (`SettingsFrame`), so the
+     * title starts above the menu and the actions end at the column's right edge, wherever the frame is centred (section 7).
+     */
+    frame?: boolean;
+    /**
      * The title row never wraps, at any width, for the pages of one set whose menu or tabs sit under the band (S8): the
      * title keeps its width and the actions give way, so a fact like Last updated truncates beside the title instead of
      * dropping to a row only some of the pages have.
@@ -48,8 +54,16 @@
 </script>
 
 <div data-slot="header-band" class="@container border-b border-border bg-card">
-  <!-- The band fills the window, as the page does (S6); on a form page its contents line up with the 688px column. -->
-  <div class={['flex w-full flex-col gap-4 px-4 pt-5 md:px-6', form && 'mx-auto max-w-form', !tabs && 'pb-5']}>
+  <!-- The band fills the window, as the page does (S6); on a form page its contents line up with the 688px column, and on a
+       settings page with the settings frame: the same 74rem and gutters (`SettingsFrame`). -->
+  <div
+    class={[
+      'flex w-full flex-col gap-4 px-4 pt-5 md:px-6',
+      frame && 'mx-auto max-w-[calc(var(--container-settings)+--spacing(12))]',
+      form && 'mx-auto max-w-form',
+      !tabs && 'pb-5',
+    ]}
+  >
     <!-- At least a button's height, so a header with actions and one without are the same height and moving between
          sibling pages never shifts what is below (S8). -->
     <div class={['flex min-h-9 items-center gap-x-4 gap-y-3', !oneRow && 'flex-wrap']}>

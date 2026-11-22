@@ -582,7 +582,14 @@ So the page is in the Settings menu's Organization group for an Owner where bill
 (`alsoFor` on its entry in `#lib/settings.ts`), whatever the provider; the account menu's Billing link stays an Owner's, where billing
 is set up. An Admin gets the AI use part only; an Owner
 where no payment provider is set up gets it alone, never a page of what is not set up (design system A3). Someone with neither has no
-entry, and its address says only an owner can change billing. The Owner's panels, in order:
+entry, and its address says only an owner can change billing.
+
+Where billing is set up, an Owner's page is an overview (design system section 7, Overview) inside the settings column: from
+about a 1440px window the plan card, This month so far, Invoices and the AI use section's AI use panel and figures make the
+main column, and Payment method, AI credits, Auto-reload and Plans the side column, each stacking on its own; Purchases and
+Deductions sit under both, so on a phone those long tables come after Plans rather than before it. Below that width it is
+one column, main then side. Loading, an error, no payment provider and the AI use section on its own are one column in the
+order below. `#ai-use`, `#ai-credits` and `#plans` land on their panels in either layout. The Owner's panels, in order:
 
 - **Plan** (`PlanCard`, the owner's fifth walk-through, 2026-11-22: the plan is what customers pay for most, and it had been one plain
   row). The state stays a status badge beside the page title (Free trial, Active, Payment failed or Ended). The card shows the plan's name
@@ -621,7 +628,7 @@ entry, and its address says only an owner can change billing. The Owner's panels
 - **AI use**: for an Owner, the overview's `aiUsage`, "This month: 59 AI calls, $0.05", the one amount drawn from the credits, never the
   provider's price or the margin; calls on the organization's own key and calls with no known price each counted in a sentence of their
   own. For everyone in the section, Key says whose key runs the AI check. The footer says bringing your own key means the checks use no
-  credits, with a link to Settings > Integrations > AI model for Edit settings and one to the Activity log. Under it, at the full width,
+  credits, with a link to Settings > Integrations > AI model for Edit settings and one to the Activity log. Under it, at its column's width,
   what the checks used by day and by model ([AI usage](ai-usage.md#who-sees-it)).
 - **Purchases** (`CreditPurchases`, Owner) and **Deductions** (`CreditDeductions`, everyone in the section): sortable tables (L2), newest
   first. A deduction is one AI check, linked to the application's Verification tab, or a credit's unused rest when it expired.

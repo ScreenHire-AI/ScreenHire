@@ -24,6 +24,7 @@
   import FailureText from '#lib/components/failure-text.svelte';
   import HeaderBand from '#lib/components/header-band.svelte';
   import Notice from '#lib/components/notice.svelte';
+  import OverviewColumns from '#lib/components/overview-columns.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PlanCard from '#lib/components/plan-card.svelte';
   import PlanComparison from '#lib/components/plan-comparison.svelte';
@@ -190,196 +191,225 @@
 <TopBar crumbs={settingsCrumbs('/settings/billing')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Billing" oneRow>
+  <HeaderBand title="Billing" frame oneRow>
     {#snippet status()}
       {#if overview?.available && standing}<StatusBadge {...billingStatus[standing]} />{/if}
     {/snippet}
   </HeaderBand>
 
   <SettingsMenu>
-    <div class="flex w-full min-w-0 flex-col gap-5">
-      {#if ownerParts}
-        <div class="flex w-full max-w-form flex-col gap-5">
-          {#if billing.isError && !overview}
-            <Panel title="Plan">
-              <QueryError message={describeError(billing.error, 'Could not load billing')} onretry={() => billing.refetch()} inset />
-            </Panel>
-          {:else if !overview}
-            <Panel title="Plan">
-              <div aria-hidden="true" class="flex flex-col gap-3">
-                {#each [0, 1, 2] as row (row)}<Skeleton class="h-5 w-full" />{/each}
-              </div>
-              <p class="sr-only" role="status">Loading billing…</p>
-            </Panel>
-            <Panel title="Plans">
-              <div aria-hidden="true" class="flex flex-col gap-4"><Skeleton class="h-12 w-full" /><Skeleton class="h-12 w-full" /></div>
-            </Panel>
-          {:else if !overview.available}
-            <Panel title="Plan">
-              <Empty.Root>
-                <Empty.Header>
-                  <Empty.Title>Billing is not set up here</Empty.Title>
-                  <Empty.Description>It needs a payment provider where ScreenHire is hosted. Nothing is limited until it is.</Empty.Description>
-                </Empty.Header>
-              </Empty.Root>
-            </Panel>
-          {:else}
-            {#if standing === 'PastDue'}
-              <Notice>Your last payment failed. Update your payment details to keep publishing.</Notice>
-            {:else if standing === 'Ended'}
-              <!-- The badge beside the title says Ended, for a subscription or a trial that ran out alike. -->
-              <Notice>Open jobs stay open, but you cannot publish new jobs until you choose a plan.</Notice>
-            {/if}
-            <FailureText message={failure} />
-            {#if billing.isError}<FailureText message={describeError(billing.error, 'Could not refresh billing')} />{/if}
-
-            <PlanCard {overview} {now} onchoose={offersChoice ? showPlans : undefined} footer={outcome ? returnedFooter : undefined} />
-
-            <!-- What the organization pays this month, each charge on its line and added up, then the next invoice (docs/architecture/billing.md,
-                 "The Billing page"). AI use is prepaid: the credits bought this month are the charge, and link to the credits below. -->
-            {#if month}
-              <Panel title="This month so far">
-                <div class="flex max-w-form flex-col gap-3">
-                  <ul class="flex flex-col" aria-label="Charges this month">
-                    {#if month.planAmount !== null}
-                      <li class="flex items-baseline justify-between gap-4 py-1.5">
-                        <span>{month.planName ?? 'Plan'}{standing === 'Trialing' ? ', free trial' : ''}</span>
-                        <span class="tabular-nums">{formatMoney(month.planAmount, month.currency)}</span>
-                      </li>
-                    {/if}
-                    {#if month.creditsBought > 0}
-                      <li class="flex items-baseline justify-between gap-4 py-1.5">
-                        <a href="#ai-credits" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11"
-                          >AI credits</a
-                        >
-                        <span class="tabular-nums">{formatCredits(month.creditsBought)}</span>
-                      </li>
-                    {/if}
-                    <li class="mt-1 flex items-baseline justify-between gap-4 border-t border-border-subtle pt-2.5 font-semibold">
-                      <span>Total so far</span>
-                      <span class="tabular-nums" data-total>{formatMoney(month.total, month.currency)}</span>
-                    </li>
-                  </ul>
-                  {#if month.nextInvoiceAmount !== null && month.nextInvoiceAt}
-                    <p class="text-muted-foreground" data-next-invoice>
-                      Next invoice about {formatMoney(month.nextInvoiceAmount, month.currency)}{overview.taxAtCheckout ? ' plus tax where it applies' : ''} on
-                      <DateText at={month.nextInvoiceAt} />.
-                    </p>
-                  {:else if standing === 'Trialing'}
-                    <p class="text-muted-foreground">The plan costs nothing until you choose one.</p>
-                  {/if}
-                </div>
-              </Panel>
-            {/if}
-
-            {#if hasCustomer}
-              <Panel title="Payment method">
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
-                  {#if paymentMethod.isError && !paymentMethod.data}
-                    <div class="min-w-0 flex-[1_1_12rem]">
-                      <QueryError message={describeError(paymentMethod.error, 'Could not load the payment method')} onretry={() => paymentMethod.refetch()} inset />
-                    </div>
-                  {:else}
-                    <div class="flex min-w-0 flex-[1_1_12rem] items-center gap-2">
-                      <CreditCardIcon aria-hidden="true" class="shrink-0 text-muted-foreground" />
-                      {#if paymentMethod.data}
-                        <span data-payment-method>{paymentMethod.data.data.method ? paymentMethodText(paymentMethod.data.data.method) : 'No payment method on file'}</span>
-                      {:else}
-                        <Skeleton class="h-5 w-40" /><span class="sr-only" role="status">Loading the payment method…</span>
-                      {/if}
-                    </div>
-                  {/if}
-                  <div class="flex flex-wrap gap-3">
-                    <Button variant="outline" size="lg" disabled={leaving !== null} onclick={() => openPortal('ChangeCard')}>Change card</Button>
-                    {#if subscribed && !overview.cancelsAtPeriodEnd}
-                      <Button variant="outline" size="lg" disabled={leaving !== null} onclick={() => openPortal('Cancel')}>Cancel plan</Button>
-                    {/if}
-                  </div>
-                </div>
-              </Panel>
-
-              <BillingInvoices />
-            {/if}
-
-            <Panel
-              id="plans"
-              tabindex={-1}
-              class="scroll-mt-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              title="Plans"
-              footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : standing === 'Trialing' ? trialFooter : undefined}>
-              <PlanComparison
-                plans={overview.plans}
-                current={marked}
-                currentLabel={standing === 'Trialing' ? 'Your trial' : 'Your plan'}
-                taxAtCheckout={overview.taxAtCheckout}
-                {actionFor}
-                disabled={leaving !== null}
-              />
-            </Panel>
-
-          {/if}
-        </div>
+    <!-- With billing set up, the Owner's page is an overview (design system section 7): the plan and what it costs this month in the
+         main column, with the AI use they paid for; the card, the credits and the plans to change to in the side column; then the
+         purchases and deductions under both, long tables that never push the side column down on a phone (docs/architecture/billing.md,
+         "The Billing page"). Anything else (loading, an error, no payment provider, someone who sees only AI use) is one column. -->
+    {#if ownerParts && overview?.available}
+      {#if standing === 'PastDue'}
+        <Notice>Your last payment failed. Update your payment details to keep publishing.</Notice>
+      {:else if standing === 'Ended'}
+        <!-- The badge beside the title says Ended, for a subscription or a trial that ran out alike. -->
+        <Notice>Open jobs stay open, but you cannot publish new jobs until you choose a plan.</Notice>
       {/if}
+      <FailureText message={failure} />
+      {#if billing.isError}<FailureText message={describeError(billing.error, 'Could not refresh billing')} />{/if}
 
-      <!-- The AI use section (docs/architecture/billing.md, "AI credits"), at `/settings/billing#ai-use`: the credits and auto-reload,
-           then this month's use in the form column, what the checks used as a report at the full width (tables never stop short, S6),
-           then the purchases and deductions behind the balance. -->
-      {#if usage}
-        <div id="ai-use" class="flex w-full min-w-0 scroll-mt-20 flex-col gap-5">
-          <div class="flex w-full max-w-form flex-col gap-5">
-            {#if creditsQuery.isError && !creditsQuery.data}
-              <Panel title="AI credits">
-                <QueryError message={describeError(creditsQuery.error, 'Could not load the AI credits')} onretry={() => creditsQuery.refetch()} inset />
-              </Panel>
-            {:else if credits}
-              <AiCreditsPanel {credits} {owner} returned={creditOutcome} />
-              {#if owner && !credits.ownKey}
-                <Panel title="Auto-reload"><AutoReloadForm {credits} /></Panel>
-              {/if}
-            {/if}
-            {#if settings.isError && !detail}
-              <Panel title="AI use">
-                <QueryError message={describeError(settings.error, 'Could not load the AI settings')} onretry={() => settings.refetch()} inset />
-              </Panel>
-            {:else if !detail}
-              <Panel title="AI use">
-                <div aria-hidden="true" class="flex flex-col gap-3"><Skeleton class="h-5 w-full" /><Skeleton class="h-5 w-full" /></div>
-                <p class="sr-only" role="status">Loading AI use…</p>
-              </Panel>
-            {:else}
-              <!-- What ScreenHire's key costs this month (the Owner's charge, from billing) and whose key runs the check, for everyone here. -->
-              <Panel title="AI use" footer={aiFooter}>
-                <div class="flex flex-col gap-4">
-                  <SummaryList>
-                    {#if charge}
-                      <SummaryItem label="This month"><span class="tabular-nums">{aiMonthText(charge)}</span></SummaryItem>
-                    {/if}
-                    <SummaryItem label="Key">{keyText}</SummaryItem>
-                  </SummaryList>
-                  {#if charge}
-                    {#each aiUsageNotes(charge) as note (note)}
-                      <p class="max-w-measure text-muted-foreground">{note}</p>
-                    {/each}
-                  {/if}
-                </div>
-              </Panel>
-            {/if}
-          </div>
-
-          <AiUsageFigures />
-
-          {#if credits}
-            <!-- Every credit added and every deduction, each traceable to the check that used it. -->
-            <div class="flex w-full max-w-form flex-col gap-5">
-              {#if owner}<CreditPurchases />{/if}
-              <CreditDeductions />
+      <OverviewColumns within="settings">
+        {#snippet main()}
+          <PlanCard {overview} {now} onchoose={offersChoice ? showPlans : undefined} footer={outcome ? returnedFooter : undefined} />
+          {@render thisMonth()}
+          {#if hasCustomer}<BillingInvoices />{/if}
+          {#if usage}
+            <!-- The AI use section (docs/architecture/billing.md, "AI credits"), at `/settings/billing#ai-use`. -->
+            <div id="ai-use" class="flex min-w-0 scroll-mt-20 flex-col gap-5">
+              {@render aiUse()}
+              <AiUsageFigures />
             </div>
           {/if}
+        {/snippet}
+        {#snippet side()}
+          {#if hasCustomer}{@render paymentMethodPanel()}{/if}
+          {#if usage}{@render aiCredits()}{/if}
+          {@render plansPanel()}
+        {/snippet}
+      </OverviewColumns>
+
+      {#if usage}{@render ledger()}{/if}
+    {:else}
+      {#if ownerParts}
+        {#if billing.isError && !overview}
+          <Panel title="Plan">
+            <QueryError message={describeError(billing.error, 'Could not load billing')} onretry={() => billing.refetch()} inset />
+          </Panel>
+        {:else if !overview}
+          <Panel title="Plan">
+            <div aria-hidden="true" class="flex flex-col gap-3">
+              {#each [0, 1, 2] as row (row)}<Skeleton class="h-5 w-full" />{/each}
+            </div>
+            <p class="sr-only" role="status">Loading billing…</p>
+          </Panel>
+          <Panel title="Plans">
+            <div aria-hidden="true" class="flex flex-col gap-4"><Skeleton class="h-12 w-full" /><Skeleton class="h-12 w-full" /></div>
+          </Panel>
+        {:else}
+          <Panel title="Plan">
+            <Empty.Root>
+              <Empty.Header>
+                <Empty.Title>Billing is not set up here</Empty.Title>
+                <Empty.Description>It needs a payment provider where ScreenHire is hosted. Nothing is limited until it is.</Empty.Description>
+              </Empty.Header>
+            </Empty.Root>
+          </Panel>
+        {/if}
+      {/if}
+
+      <!-- The AI use section on its own: the credits and auto-reload, this month's use, what the checks used, then the purchases and
+           deductions behind the balance. -->
+      {#if usage}
+        <div id="ai-use" class="flex w-full min-w-0 scroll-mt-20 flex-col gap-5">
+          {@render aiCredits()}
+          {@render aiUse()}
+          <AiUsageFigures />
+          {@render ledger()}
         </div>
       {/if}
-    </div>
+    {/if}
   </SettingsMenu>
 </main>
+
+<!-- What the organization pays this month, each charge on its line and added up, then the next invoice (docs/architecture/billing.md,
+     "The Billing page"). AI use is prepaid: the credits bought this month are the charge, and link to the credits. -->
+{#snippet thisMonth()}
+  {#if month && overview?.available}
+    <Panel title="This month so far">
+      <div class="flex max-w-form flex-col gap-3">
+        <ul class="flex flex-col" aria-label="Charges this month">
+          {#if month.planAmount !== null}
+            <li class="flex items-baseline justify-between gap-4 py-1.5">
+              <span>{month.planName ?? 'Plan'}{standing === 'Trialing' ? ', free trial' : ''}</span>
+              <span class="tabular-nums">{formatMoney(month.planAmount, month.currency)}</span>
+            </li>
+          {/if}
+          {#if month.creditsBought > 0}
+            <li class="flex items-baseline justify-between gap-4 py-1.5">
+              <a href="#ai-credits" class="inline-flex min-h-6 items-center text-foreground underline underline-offset-2 pointer-coarse:min-h-11">AI credits</a>
+              <span class="tabular-nums">{formatCredits(month.creditsBought)}</span>
+            </li>
+          {/if}
+          <li class="mt-1 flex items-baseline justify-between gap-4 border-t border-border-subtle pt-2.5 font-semibold">
+            <span>Total so far</span>
+            <span class="tabular-nums" data-total>{formatMoney(month.total, month.currency)}</span>
+          </li>
+        </ul>
+        {#if month.nextInvoiceAmount !== null && month.nextInvoiceAt}
+          <p class="text-muted-foreground" data-next-invoice>
+            Next invoice about {formatMoney(month.nextInvoiceAmount, month.currency)}{overview.taxAtCheckout ? ' plus tax where it applies' : ''} on
+            <DateText at={month.nextInvoiceAt} />.
+          </p>
+        {:else if standing === 'Trialing'}
+          <p class="text-muted-foreground">The plan costs nothing until you choose one.</p>
+        {/if}
+      </div>
+    </Panel>
+  {/if}
+{/snippet}
+
+{#snippet paymentMethodPanel()}
+  <Panel title="Payment method">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+      {#if paymentMethod.isError && !paymentMethod.data}
+        <div class="min-w-0 flex-[1_1_12rem]">
+          <QueryError message={describeError(paymentMethod.error, 'Could not load the payment method')} onretry={() => paymentMethod.refetch()} inset />
+        </div>
+      {:else}
+        <div class="flex min-w-0 flex-[1_1_12rem] items-center gap-2">
+          <CreditCardIcon aria-hidden="true" class="shrink-0 text-muted-foreground" />
+          {#if paymentMethod.data}
+            <span data-payment-method>{paymentMethod.data.data.method ? paymentMethodText(paymentMethod.data.data.method) : 'No payment method on file'}</span>
+          {:else}
+            <Skeleton class="h-5 w-40" /><span class="sr-only" role="status">Loading the payment method…</span>
+          {/if}
+        </div>
+      {/if}
+      <div class="flex flex-wrap gap-3">
+        <Button variant="outline" size="lg" disabled={leaving !== null} onclick={() => openPortal('ChangeCard')}>Change card</Button>
+        {#if subscribed && !overview?.cancelsAtPeriodEnd}
+          <Button variant="outline" size="lg" disabled={leaving !== null} onclick={() => openPortal('Cancel')}>Cancel plan</Button>
+        {/if}
+      </div>
+    </div>
+  </Panel>
+{/snippet}
+
+{#snippet plansPanel()}
+  {#if overview?.available}
+    <Panel
+      id="plans"
+      tabindex={-1}
+      class="scroll-mt-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      title="Plans"
+      footer={switched && overview.currentPlan?.name !== switched ? switchedFooter : standing === 'Trialing' ? trialFooter : undefined}>
+      <PlanComparison
+        plans={overview.plans}
+        current={marked}
+        currentLabel={standing === 'Trialing' ? 'Your trial' : 'Your plan'}
+        taxAtCheckout={overview.taxAtCheckout}
+        {actionFor}
+        disabled={leaving !== null}
+      />
+    </Panel>
+  {/if}
+{/snippet}
+
+<!-- The prepaid credits (`#ai-credits`) and, for an Owner on ScreenHire's key, auto-reload. -->
+{#snippet aiCredits()}
+  {#if creditsQuery.isError && !creditsQuery.data}
+    <Panel title="AI credits">
+      <QueryError message={describeError(creditsQuery.error, 'Could not load the AI credits')} onretry={() => creditsQuery.refetch()} inset />
+    </Panel>
+  {:else if credits}
+    <AiCreditsPanel {credits} {owner} returned={creditOutcome} />
+    {#if owner && !credits.ownKey}
+      <Panel title="Auto-reload"><AutoReloadForm {credits} /></Panel>
+    {/if}
+  {/if}
+{/snippet}
+
+<!-- What ScreenHire's key costs this month (the Owner's charge, from billing) and whose key runs the check, for everyone here. -->
+{#snippet aiUse()}
+  {#if settings.isError && !detail}
+    <Panel title="AI use">
+      <QueryError message={describeError(settings.error, 'Could not load the AI settings')} onretry={() => settings.refetch()} inset />
+    </Panel>
+  {:else if !detail}
+    <Panel title="AI use">
+      <div aria-hidden="true" class="flex flex-col gap-3"><Skeleton class="h-5 w-full" /><Skeleton class="h-5 w-full" /></div>
+      <p class="sr-only" role="status">Loading AI use…</p>
+    </Panel>
+  {:else}
+    <Panel title="AI use" footer={aiFooter}>
+      <div class="flex flex-col gap-4">
+        <SummaryList>
+          {#if charge}
+            <SummaryItem label="This month"><span class="tabular-nums">{aiMonthText(charge)}</span></SummaryItem>
+          {/if}
+          <SummaryItem label="Key">{keyText}</SummaryItem>
+        </SummaryList>
+        {#if charge}
+          {#each aiUsageNotes(charge) as note (note)}
+            <p class="max-w-measure text-muted-foreground">{note}</p>
+          {/each}
+        {/if}
+      </div>
+    </Panel>
+  {/if}
+{/snippet}
+
+<!-- Every credit added and every deduction, each traceable to the check that used it. -->
+{#snippet ledger()}
+  {#if credits}
+    {#if owner}<CreditPurchases />{/if}
+    <CreditDeductions />
+  {/if}
+{/snippet}
 
 {#snippet returnedFooter()}
   <p role="status">

@@ -138,6 +138,7 @@
 
 <main class={[sidebar.isMobile && supported && 'pb-28']}>
   <HeaderBand
+    frame
     title="Passkeys"
     actions={supported && !sidebar.isMobile ? bandActions : undefined}
   />

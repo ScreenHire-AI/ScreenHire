@@ -127,10 +127,10 @@
 <TopBar crumbs={accountCrumbs('/account/profile')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Profile" oneRow />
+  <HeaderBand title="Profile" frame oneRow />
 
   <AccountMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <div class="flex w-full flex-col gap-5">
       {#if account.isError && !details}
         <Panel title="You">
           <QueryError message={describeError(account.error, 'Could not load your profile')} onretry={() => account.refetch()} inset />

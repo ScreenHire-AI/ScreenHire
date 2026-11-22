@@ -361,7 +361,7 @@
 <main class={[sidebar.isMobile && 'pb-28']}>
   <!-- No gap of its own: the band and the Settings menu sit where they do on every settings page (S8). -->
   <Tabs.Root value={tab} onValueChange={selectTab} class="gap-0">
-    <HeaderBand title="Team" actions={bandActions} oneRow />
+    <HeaderBand title="Team" actions={bandActions} frame oneRow />
 
     <SettingsMenu>
       <p role="status" class="sr-only">{announcement}</p>

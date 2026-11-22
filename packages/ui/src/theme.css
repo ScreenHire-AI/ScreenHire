@@ -65,10 +65,12 @@
   --text-price--line-height: 1;
   --text-price--font-weight: 800;
 
-  /* Widths (section 5). Pages fill the window and have none. `max-w-measure` stops a long paragraph at 72 characters,
-     and `max-w-form` is the 688px form column. */
+  /* Widths (section 5). Pages fill the window and have none, except the settings frame. `max-w-measure` stops a long
+     paragraph at 72 characters, `max-w-form` is the 688px form column, and `max-w-settings` is the settings frame: the
+     200px menu, its 24px gap and the 960px column, centred on every page with the Settings or account menu (section 7). */
   --container-measure: 72ch;
   --container-form: 43rem;
+  --container-settings: 74rem;
   /* Marketing content column (section 22): 1240px, centred inside full-bleed bands. */
   --container-site: 77.5rem;
 

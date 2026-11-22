@@ -7,8 +7,9 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The frame of the Settings area in a real browser: every settings page fits the screen and passes axe at desktop,
-/// tablet and phone widths; the menu lists every page under its group, search finds a setting by everyday words, and the
-/// menu starts in the same place on every page of a group. The journeys inside Settings are in
+/// tablet and phone widths; the frame is centred and the same on every settings and account page at 1440 and 2560; the menu
+/// lists every page under its group, search finds a setting by everyday words, and the menu starts in the same place on
+/// every page of a group. The journeys inside Settings are in
 /// <see cref="SettingsTeamTests"/>, <see cref="SettingsBrandingTests"/> and <see cref="SettingsAccessTests"/>. Each test
 /// signs in as a new owner of a new organization.
 /// </summary>
@@ -153,6 +154,65 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Careers page");
         await Expect(careers.GetByRole(AriaRole.Link, new() { Name = "Careers page" })).ToHaveAttributeAsync("aria-current", "page");
         await ExpectNoAccessibilityViolationsAsync();
+    }
+
+    [Theory]
+    [InlineData(2560, 1440)]
+    [InlineData(1440, 900)]
+    public async Task The_settings_frame_is_centred_and_the_same_on_a_form_a_list_an_overview_and_an_editor(int width, int height)
+    {
+        // S10: every page with the Settings or account menu sits in one frame, the menu and a 960px column, centred so a wide
+        // window's spare width splits evenly on both sides. Whatever the page holds, the frame is the same, so the menu never
+        // moves (S8), and the header band's title starts above the menu.
+        var (owner, _) = await OwnerAsync();
+        await Page.SetViewportSizeAsync(width, height);
+        await SignInAsync(owner);
+
+        (string Path, string Title, string Menu)[] pages =
+        [
+            ("/settings/organization", "General", "Settings"),
+            ("/settings/team", "Team", "Settings"),
+            ("/settings/billing", "Billing", "Settings"),
+            ("/settings/branding", "Branding", "Settings"),
+            ("/account/profile", "Profile", "Your account"),
+        ];
+        var frames = new List<(string Title, double MenuX, double MenuY, double MenuWidth, double BandHeight)>();
+        foreach (var (path, title, menuName) in pages)
+        {
+            await GoToAsync("dashboard", path);
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync(title);
+            await Expect(Page.Locator("main [data-slot=skeleton]")).ToHaveCountAsync(0);
+            var menu = (await Page.GetByRole(AriaRole.Navigation, new() { Name = menuName, Exact = true }).BoundingBoxAsync())!;
+            var heading = (await Page.GetByRole(AriaRole.Heading, new() { Level = 1 }).BoundingBoxAsync())!;
+            var band = (await Page.Locator("[data-slot=header-band]").BoundingBoxAsync())!;
+            var frame = (await Page.Locator("[data-settings-frame]").BoundingBoxAsync())!;
+            var main = (await Page.GetByRole(AriaRole.Main).BoundingBoxAsync())!;
+            ((double)heading.X).Should().BeApproximately(menu.X, 0.5, "{0}'s title starts above its menu at {1}px", title, width);
+            double left = frame.X - main.X;
+            double right = main.X + main.Width - (frame.X + frame.Width);
+            left.Should().BeApproximately(right, 1, "{0}'s frame is centred at {1}px", title, width);
+            (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
+                .Should().BeTrue("{0} scrolls sideways at {1}px", path, width);
+            frames.Add((title, menu.X, menu.Y, menu.Width, band.Height));
+            if (path == "/settings/organization")
+            {
+                // At 2560 the frame stops at its width and the spare room is on both sides, not pooled on the right.
+                if (width >= 2560)
+                {
+                    left.Should().BeGreaterThan(200, "a 2560px window leaves room on both sides of the frame");
+                }
+
+                await SaveScreenshotAsync(Page, $"dashboard-settings-organization-{width}");
+            }
+        }
+
+        foreach (var frame in frames)
+        {
+            frame.MenuX.Should().BeApproximately(frames[0].MenuX, 0.5, "{0}'s menu starts where General's does at {1}px", frame.Title, width);
+            frame.MenuY.Should().BeApproximately(frames[0].MenuY, 0.5, "{0}'s menu starts where General's does at {1}px", frame.Title, width);
+            frame.MenuWidth.Should().BeApproximately(frames[0].MenuWidth, 0.5);
+            frame.BandHeight.Should().BeApproximately(frames[0].BandHeight, 0.5, "{0}'s header band is General's height at {1}px", frame.Title, width);
+        }
     }
 
     [Fact]

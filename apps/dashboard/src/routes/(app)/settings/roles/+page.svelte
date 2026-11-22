@@ -111,7 +111,7 @@
   <HeaderBand
     title="Roles"
     actions={sidebar.isMobile ? compareLink : bandActions}
-    oneRow
+    frame oneRow
   />
 
   <SettingsMenu>

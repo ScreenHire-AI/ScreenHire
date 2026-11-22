@@ -175,7 +175,7 @@
 <TopBar crumbs={settingsCrumbs('/settings/slack')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="Slack" oneRow>
+  <HeaderBand title="Slack" frame oneRow>
     {#snippet status()}
       {#if connected && settings}<StatusBadge {...workspaceStatus(settings.problem)} />{/if}
     {/snippet}
@@ -200,7 +200,7 @@
   </HeaderBand>
 
   <SettingsMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <div class="flex w-full flex-col gap-5">
       <p role="status" class="sr-only">{announcement}</p>
       {#if slack.isError && !current}
         <Panel title="Workspace">

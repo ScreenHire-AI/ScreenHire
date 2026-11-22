@@ -135,7 +135,7 @@
 <TopBar crumbs={settingsCrumbs('/settings/tags')} />
 
 <main class={[sidebar.isMobile && 'pb-28']}>
-  <HeaderBand title="Tags" oneRow />
+  <HeaderBand title="Tags" frame oneRow />
 
   <SettingsMenu>
     <p role="status" class="sr-only">{announcement}</p>

@@ -124,14 +124,14 @@
 <TopBar crumbs={settingsCrumbs('/settings/organization')} />
 
 <main class="flex flex-col">
-  <HeaderBand title="General" oneRow>
+  <HeaderBand title="General" frame oneRow>
     {#snippet actions()}
       {#if detail}<HistoryFact value={detail.lastUpdated} name={detail.name} page={(before) => getGetOrganizationHistoryQueryOptions({ before })} />{/if}
     {/snippet}
   </HeaderBand>
 
   <SettingsMenu>
-    <div class="flex w-full max-w-form flex-col gap-5">
+    <div class="flex w-full flex-col gap-5">
     {#if organization.isError && !detail}
       <Panel title="Details">
         <QueryError message={describeError(organization.error, 'Could not load the organization')} onretry={() => organization.refetch()} inset />

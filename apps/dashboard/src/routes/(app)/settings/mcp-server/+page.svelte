@@ -137,7 +137,7 @@
 <TopBar crumbs={settingsCrumbs('/settings/mcp-server')} />
 
 <main>
-  <HeaderBand title="MCP server" oneRow />
+  <HeaderBand title="MCP server" frame oneRow />
 
   <SettingsMenu>
     <p role="status" class="sr-only">{announcement}</p>

@@ -27,6 +27,11 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(Tabs).ToHaveTextAsync(EveryTab);
         await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Overview" })).ToHaveAttributeAsync("aria-selected", "true");
         await Expect(Page.GetByText("Applications checked")).ToBeVisibleAsync();
+        // An overview (design system section 7): what the checks found in the main column, the AI credits beside it in the side column.
+        var findings = (await Page.GetByRole(AriaRole.Region, new() { NameRegex = new("^Findings by group") }).BoundingBoxAsync())!;
+        var credits = (await Page.GetByRole(AriaRole.Region, new() { Name = "AI credits", Exact = true }).BoundingBoxAsync())!;
+        credits.X.Should().BeGreaterThan(findings.X + findings.Width, "the AI credits are in the side column at 1440");
+        credits.Y.Should().BeApproximately(findings.Y, 1, "the two columns start at the same top");
         await ExpectNoAccessibilityViolationsAsync();
 
         await OpenTabAsync("Activity log", "/verification/activity");
@@ -65,11 +70,11 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await Expect(answers.GetByRole(AriaRole.Combobox, new() { Name = "AI use while applying", Exact = true })).ToHaveValueAsync("NotAllowed");
 
         // The AI use tab moved out of the area: its old address, which alert emails still carry, lands on Billing's AI use section,
-        // brought into view under the trial's plan panels. The section opens with the AI credits (ADR-0032).
+        // brought into view under the trial's plan panels. Beside the Owner's plan the AI credits (ADR-0032) are in the side column.
         await GoToAsync("dashboard", "/verification/ai-use");
         await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing#ai-use"));
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "AI credits", Exact = true })).ToBeInViewportAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "AI use", Exact = true })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "AI use", Exact = true })).ToBeInViewportAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "AI credits", Exact = true })).ToBeVisibleAsync();
         await Expect(Page.GetByText("Model calls", new() { Exact = true })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Deductions" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();

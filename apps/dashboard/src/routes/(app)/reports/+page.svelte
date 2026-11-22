@@ -19,6 +19,7 @@
   import HeaderBand from '#lib/components/header-band.svelte';
   import MultiFilterMenu from '#lib/components/multi-filter-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import OverviewColumns from '#lib/components/overview-columns.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import RelativeTime from '#lib/components/relative-time.svelte';
   import ReportStat from '#lib/components/report-stat.svelte';
@@ -311,13 +312,13 @@
   </HeaderBand>
 
   <div class="@container">
-    <div class="flex w-full flex-col px-4 py-5 md:px-6">
+    <div class="flex w-full flex-col gap-5 px-4 py-5 md:px-6">
       {#if report.isError && !data}
         <Panel label="Reports">
           <QueryError message={describeError(report.error, 'Could not load the reports')} onretry={() => report.refetch()} inset />
         </Panel>
       {:else if !data}
-        <div aria-hidden="true" class="flex flex-col gap-4">
+        <div aria-hidden="true" class="flex flex-col gap-5">
           <div class={statGrid}>
             {#each statSpans as span, card (card)}
               <div class={['flex flex-col gap-2 rounded-panel border border-border bg-card p-3.5 shadow-surface', span]}>
@@ -326,14 +327,10 @@
               </div>
             {/each}
           </div>
-          <div class="grid gap-4 @5xl:grid-cols-2">
-            {#each [0, 1, 2] as panel (panel)}
-              <div class={['flex flex-col gap-3 rounded-panel border border-border bg-card p-4.5 shadow-surface', panel === 0 && '@5xl:col-span-2']}>
-                <Skeleton class="h-6 w-40" />
-                {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-5" style="width: {90 - row * 18}%" />{/each}
-              </div>
-            {/each}
-          </div>
+          <OverviewColumns>
+            {#snippet main()}{@render panelSkeleton()}{@render panelSkeleton()}{/snippet}
+            {#snippet side()}{@render panelSkeleton()}{/snippet}
+          </OverviewColumns>
         </div>
         <p class="sr-only" role="status">Loading reports…</p>
       {:else if empty}
@@ -341,7 +338,7 @@
              panel has only a label, so it has no header band over it. -->
         <Panel label="Reports">{@render nothing('Nothing in these dates', true)}</Panel>
       {:else}
-        <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-5">
           <div
             class={[statGrid, 'transition-opacity motion-reduce:transition-none', busy && 'opacity-60']}
             aria-busy={busy || undefined}
@@ -400,105 +397,119 @@
             />
           </div>
 
-          <ChartPanel
-            title="Open jobs"
-            tableId="reports-open-jobs"
-            columns={openJobColumns}
-            rows={data.openJobs}
-            rowKey={(job) => job.jobId}
-            defaultSort={{ id: 'applications', desc: true }}
-            {busy}
-          >
-            {#snippet empty()}{@render nothing('No open jobs', false)}{/snippet}
-          </ChartPanel>
+          <!-- An overview (design system section 7): the weekly chart, the open jobs and the time to hire in the main column; the
+               funnel, the sources and any equality monitoring totals in the side column. Each column stacks on its own, so a
+               short panel never leaves a hole beside a tall one. -->
+          <OverviewColumns>
+            {#snippet main()}
+              <ChartPanel
+                title="Applications and hires by week"
+                basis="Applications that arrived and hires made in each week of these dates."
+                tableId="reports-weekly"
+                columns={weekColumns}
+                rows={data.weekly}
+                rowKey={(week) => week.weekStart}
+                {busy}
+              >
+                {#snippet chart()}<WeekChart label="Applications and hires by week" weeks={weekPoints} />{/snippet}
+              </ChartPanel>
 
-          <!-- Side by side where each still reads well, so neither stretches across a wide monitor. -->
-          <div class="grid gap-4 @5xl:grid-cols-2">
-            <ChartPanel
-              title="Applications and hires by week"
-              basis="Applications that arrived and hires made in each week of these dates."
-              tableId="reports-weekly"
-              columns={weekColumns}
-              rows={data.weekly}
-              rowKey={(week) => week.weekStart}
-              {busy}
-            >
-              {#snippet chart()}<WeekChart label="Applications and hires by week" weeks={weekPoints} />{/snippet}
-            </ChartPanel>
+              <ChartPanel
+                title="Open jobs"
+                tableId="reports-open-jobs"
+                columns={openJobColumns}
+                rows={data.openJobs}
+                rowKey={(job) => job.jobId}
+                defaultSort={{ id: 'applications', desc: true }}
+                {busy}
+              >
+                {#snippet empty()}{@render nothing('No open jobs', false)}{/snippet}
+              </ChartPanel>
 
-            <ChartPanel
-              title="Hiring funnel"
-              basis="Applications that arrived in these dates, by the furthest stage they reached."
-              tableId="reports-funnel"
-              columns={funnelColumns}
-              rows={data.funnel}
-              rowKey={(stage) => stage.kind}
-              {busy}
-            >
-              {#snippet chart()}<BarChart label="Hiring funnel" series={[{ label: 'Applications', tone: 'chart-1' }]} rows={funnelRows} />{/snippet}
-              {#snippet empty()}{@render nothing('No applications in these dates', true)}{/snippet}
-            </ChartPanel>
-          </div>
+              <ChartPanel
+                title="Time to hire"
+                basis="Median days hires spent in each stage, and from applying to being hired by job, for hires made in these dates."
+                tableId="reports-time-to-hire"
+                columns={hireColumns}
+                rows={hireTable}
+                rowKey={(row) => row.key}
+                {busy}
+              >
+                {#snippet chart()}
+                  <div class="flex flex-col gap-5">
+                    {#if hireStages.length > 0}
+                      <div class="flex flex-col gap-2">
+                        <h3 class="text-caption font-semibold text-muted-foreground">In each stage</h3>
+                        <BarChart label="Median days in each stage" series={[{ label: 'Median days', tone: 'chart-1' }]} rows={hireBars(hireStages)} />
+                      </div>
+                    {/if}
+                    {#if hireJobs.length > 0}
+                      <div class="flex flex-col gap-2">
+                        <h3 class="text-caption font-semibold text-muted-foreground">By job</h3>
+                        <BarChart label="Median days to hire by job" series={[{ label: 'Median days', tone: 'chart-1' }]} rows={hireBars(hireJobs)} />
+                      </div>
+                    {/if}
+                  </div>
+                {/snippet}
+                {#snippet empty()}{@render nothing('No hires in these dates', data.headline.applications > 0)}{/snippet}
+              </ChartPanel>
+            {/snippet}
+            {#snippet side()}
+              <ChartPanel
+                title="Hiring funnel"
+                basis="Applications that arrived in these dates, by the furthest stage they reached."
+                tableId="reports-funnel"
+                columns={funnelColumns}
+                rows={data.funnel}
+                rowKey={(stage) => stage.kind}
+                {busy}
+              >
+                {#snippet chart()}<BarChart label="Hiring funnel" series={[{ label: 'Applications', tone: 'chart-1' }]} rows={funnelRows} />{/snippet}
+                {#snippet empty()}{@render nothing('No applications in these dates', true)}{/snippet}
+              </ChartPanel>
 
-          <div class="grid gap-4 @5xl:grid-cols-2">
-            <ChartPanel
-              title="Time to hire"
-              basis="Median days hires spent in each stage, and from applying to being hired by job, for hires made in these dates."
-              tableId="reports-time-to-hire"
-              columns={hireColumns}
-              rows={hireTable}
-              rowKey={(row) => row.key}
-              {busy}
-            >
-              {#snippet chart()}
-                <div class="flex flex-col gap-5">
-                  {#if hireStages.length > 0}
-                    <div class="flex flex-col gap-2">
-                      <h3 class="text-caption font-semibold text-muted-foreground">In each stage</h3>
-                      <BarChart label="Median days in each stage" series={[{ label: 'Median days', tone: 'chart-1' }]} rows={hireBars(hireStages)} />
-                    </div>
-                  {/if}
-                  {#if hireJobs.length > 0}
-                    <div class="flex flex-col gap-2">
-                      <h3 class="text-caption font-semibold text-muted-foreground">By job</h3>
-                      <BarChart label="Median days to hire by job" series={[{ label: 'Median days', tone: 'chart-1' }]} rows={hireBars(hireJobs)} />
-                    </div>
-                  {/if}
-                </div>
-              {/snippet}
-              {#snippet empty()}{@render nothing('No hires in these dates', data.headline.applications > 0)}{/snippet}
-            </ChartPanel>
+              <ChartPanel
+                title="Sources"
+                basis="Applications that arrived in these dates and the hires among them, by source."
+                tableId="reports-sources"
+                columns={sourceColumns}
+                rows={data.sources}
+                rowKey={(source) => source.key}
+                defaultSort={{ id: 'applications', desc: true }}
+                {busy}
+              >
+                {#snippet chart()}
+                  <BarChart
+                    label="Sources"
+                    series={[
+                      { label: 'Applications', tone: 'chart-2' },
+                      { label: 'Hires', tone: 'chart-1' },
+                    ]}
+                    rows={sourceRows}
+                  />
+                {/snippet}
+                {#snippet empty()}{@render nothing('No applications in these dates', false)}{/snippet}
+              </ChartPanel>
 
-            <ChartPanel
-              title="Sources"
-              basis="Applications that arrived in these dates and the hires among them, by source."
-              tableId="reports-sources"
-              columns={sourceColumns}
-              rows={data.sources}
-              rowKey={(source) => source.key}
-              defaultSort={{ id: 'applications', desc: true }}
-              {busy}
-            >
-              {#snippet chart()}
-                <BarChart
-                  label="Sources"
-                  series={[
-                    { label: 'Applications', tone: 'chart-2' },
-                    { label: 'Hires', tone: 'chart-1' },
-                  ]}
-                  rows={sourceRows}
-                />
-              {/snippet}
-              {#snippet empty()}{@render nothing('No applications in these dates', false)}{/snippet}
-            </ChartPanel>
-          </div>
+              <!-- Equality monitoring totals, where this deployment offers them, for someone who may see them. -->
+              <EqualityReportPanel from={instants.from} to={instants.to} {jobIds} />
+            {/snippet}
+          </OverviewColumns>
         </div>
       {/if}
-      <!-- Equality monitoring totals, where this deployment offers them, for someone who may see them. -->
-      <EqualityReportPanel from={instants.from} to={instants.to} {jobIds} />
+      {#if !data || empty}
+        <EqualityReportPanel from={instants.from} to={instants.to} {jobIds} />
+      {/if}
     </div>
   </div>
 </main>
+
+{#snippet panelSkeleton()}
+  <div class="flex flex-col gap-3 rounded-panel border border-border bg-card p-4.5 shadow-surface">
+    <Skeleton class="h-6 w-40" />
+    {#each [0, 1, 2, 3] as row (row)}<Skeleton class="h-5" style="width: {90 - row * 18}%" />{/each}
+  </div>
+{/snippet}
 
 <!-- `offer`: whether this empty state carries the one "Show the last 365 days", so a page shows it once (W7). -->
 {#snippet nothing(title: string, offer: boolean)}
