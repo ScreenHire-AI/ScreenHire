@@ -36,6 +36,23 @@ public sealed class ManualPostingTests
         ManualPosting.SourceKeyFor(name).Should().Be(key);
     }
 
+    // The listing's address is only a link the team clicks (non-negotiable 5), so it must be a web page with a host, and
+    // never carry a password the whole team would see in the list.
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("", true)]
+    [InlineData("https://jobs.example.org/listing/42", true)]
+    [InlineData("http://jobs.example.org/listing/42", true)]
+    [InlineData("javascript:alert(1)", false)]
+    [InlineData("ftp://jobs.example.org/listing/42", false)]
+    [InlineData("jobs.example.org/listing/42", false)]
+    [InlineData("https://someone:secret@jobs.example.org/listing/42", false)]
+    [InlineData("https://someone@jobs.example.org/listing/42", false)]
+    public void A_listing_address_is_a_web_page_with_no_sign_in_in_it(string? url, bool accepted)
+    {
+        ScreenHire.Api.Contracts.ManualPostingRules.IsListingUrl(url).Should().Be(accepted);
+    }
+
     [Fact]
     public void A_long_name_makes_a_key_the_column_holds_with_no_trailing_hyphen()
     {

@@ -13,6 +13,7 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import { applyValidationProblem } from '#lib/forms.js';
+  import { CopyFeedback } from '#lib/copy-feedback.svelte.js';
   import { commonBoards, isUsableKey, localToday, sourceKeyFor, trackedUrl } from '#lib/manual-postings.js';
   import { describeError, invalidatePath } from '#lib/query.js';
   import { jobsPath } from '#lib/realtime.js';
@@ -50,7 +51,8 @@
     if (value === '') return true;
     try {
       const url = new URL(value);
-      return url.protocol === 'https:' || url.protocol === 'http:';
+      // As the server's IsListingUrl: a web address with a host and no user name or password in it.
+      return (url.protocol === 'https:' || url.protocol === 'http:') && url.hostname !== '' && url.username === '' && url.password === '';
     } catch {
       return false;
     }
@@ -108,19 +110,7 @@
   const usable = $derived(posting !== undefined || isUsableKey(key, boardIds));
   const link = $derived(posting?.trackedUrl ?? (usable ? trackedUrl(jobUrl, key) : ''));
 
-  let copied = $state<boolean | null>(null);
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  async function copyLink() {
-    clearTimeout(timer);
-    try {
-      await navigator.clipboard.writeText(link);
-      copied = true;
-    } catch {
-      copied = false;
-    }
-    timer = setTimeout(() => (copied = null), 2000);
-  }
-  $effect(() => () => clearTimeout(timer));
+  const feedback = new CopyFeedback();
 
   const describedBy = (field: string, error: unknown, hint = false) =>
     [hint ? `manual-${field}-hint` : '', error ? `manual-${field}-error` : ''].filter(Boolean).join(' ') || undefined;
@@ -149,17 +139,18 @@
   <!-- The apply link for the board: applications through it show the board in Source and in Reports. -->
   <Field.Field>
     <Field.Label for="manual-link">Apply link for this board</Field.Label>
-    <div class="flex min-w-0 gap-2">
-      <Input id="manual-link" readonly value={link} placeholder="Name the board to get its link" class="min-w-0 font-mono text-code" aria-describedby="manual-link-hint" data-tracked-link />
-      <Button type="button" variant="outline" size="lg" disabled={!link} onclick={copyLink} class="shrink-0">
-        {#if copied}<CheckIcon aria-hidden="true" />Copied{:else}<CopyIcon aria-hidden="true" />{copied === false ? 'Could not copy' : 'Copy link'}{/if}
+    <!-- Wraps: on a phone Copy link goes under the link rather than leaving the link a few characters wide (F2). -->
+    <div class="flex min-w-0 flex-wrap gap-2">
+      <Input id="manual-link" readonly value={link} placeholder="Name the board first" class="min-w-40 flex-1 font-mono text-code" aria-describedby="manual-link-hint" data-tracked-link />
+      <Button type="button" variant="outline" size="lg" disabled={!link} onclick={() => feedback.copyText('link', link)} class="shrink-0">
+        {#if feedback.copied('link')}<CheckIcon aria-hidden="true" />{:else}<CopyIcon aria-hidden="true" />{/if}{feedback.said('link', 'Copy link')}
       </Button>
     </div>
     <Field.Description id="manual-link-hint">
       {#if !usable && key !== ''}
         ScreenHire posts to this board itself. Name the board another way.
       {:else}
-        Use this as the listing's apply link. Applications through it show {$form.boardName.trim() || 'the board'} as their source once you save.
+        Applications through it show {$form.boardName.trim() || 'the board'} as their source once you save.
       {/if}
     </Field.Description>
   </Field.Field>

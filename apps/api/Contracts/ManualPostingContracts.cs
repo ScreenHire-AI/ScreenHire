@@ -57,12 +57,17 @@ public sealed record UpdateManualPostingRequest(string BoardName, string? Listin
 
 internal static class ManualPostingRules
 {
-    /// <summary>An absolute http or https address, or blank. Anything else (a <c>javascript:</c> link) is refused.</summary>
+    /// <summary>
+    /// An absolute http or https address with a host, or blank. Anything else (a <c>javascript:</c> link) is refused, and so
+    /// is an address carrying a user name or password, which the dashboard would show to the whole team.
+    /// </summary>
     public static bool IsListingUrl(string? url) =>
         string.IsNullOrWhiteSpace(url)
         || (url.Trim().Length <= ManualPosting.ListingUrlMaxLength
             && Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri)
-            && uri.Scheme is "https" or "http");
+            && uri.Scheme is "https" or "http"
+            && uri.Host.Length > 0
+            && uri.UserInfo.Length == 0);
 
     public static bool IsBoardName(string? name) =>
         !string.IsNullOrWhiteSpace(name) && name.Trim().Length <= ManualPosting.BoardNameMaxLength && ManualPosting.SourceKeyFor(name).Length > 0;
