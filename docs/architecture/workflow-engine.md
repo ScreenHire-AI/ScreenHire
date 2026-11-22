@@ -124,6 +124,8 @@ sources:
   - resource: apps/dashboard/src/lib/undo-context.ts
   - resource: apps/dashboard/src/lib/workflow-draft.svelte.ts
   - resource: apps/api/Hiring/DraftShape.cs
+  - resource: apps/api/Hiring/WorkflowDiff.cs
+  - resource: src/ScreenHire.Infrastructure/Persistence/Configurations/FormTemplateConfiguration.cs
   - resource: apps/api/Endpoints/JobEndpoints.cs
   - resource: apps/api/Contracts/JobContracts.cs
   - resource: apps/api/Contracts/TemplateContracts.cs
@@ -688,7 +690,9 @@ The data model and API from the jobs and templates task, and the engine that run
   keep it and show "update available".
 - **Jobs** copy a published template version's workflow and keep `sourceTemplateVersionId`. `JobSummary` shows
   `templateUpdateAvailable`, and `GET /v1/jobs/{id}/workflow/template-diff` compares the job's workflow with the
-  template's newest published version, matching list elements by id. The job's header shows the update as its own
+  template's newest published version, matching list elements by id. A form's link to its library form
+  (`formTemplateId`, `formVersion`) is bookkeeping and is left out of the comparison, so a job that copied a form before
+  forms had links shows no change for it; its questions are compared. The job's header shows the update as its own
   fact, Update available, with See what changes, which opens the job's pipeline page with the differences
   (`?review=update`). Publishing says what it does before it happens ("Publishing makes version 2 the version new jobs
   get. Your 1 job stays on version 1 until you update it.", `publishWords` in `#lib/templates.ts`), and while any job is
