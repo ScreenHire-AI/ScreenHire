@@ -83,8 +83,8 @@ own.
   most. `limit` is 20 unless the assistant asks, and 50 at most. The HTTP lists take no search; the filter lives in
   the same service. The dashboard's Ctrl K has its own session-only `GET /v1/search`, which keys cannot call.
 - `get_application` returns the candidate, each answer with its question as the job asks it now, the files (names
-  only, not their contents), follow-up questionnaires, the job's stages with the current one, and the latest 20
-  activity entries, newest first. The stage ids are what `move_to_stage` takes.
+  only, not their contents), follow-up questionnaires (an equality monitoring form's with no answers, which only count
+  toward totals in Reports), the job's stages with the current one, and the latest 20 activity entries, newest first. The stage ids are what `move_to_stage` takes.
 - `get_hiring_report` takes the dashboard's range rule (`from` inclusive, `to` exclusive, at most five years, at most
   200 jobs, an optional previous range and the time zone that decides where Monday weeks start) from
   `ReportEndpoints.Problems`, and returns the headline numbers, weekly trend, funnel, days per stage, sources and open
