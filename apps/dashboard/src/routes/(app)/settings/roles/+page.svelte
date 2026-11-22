@@ -21,6 +21,7 @@
   import SortMenu from '#lib/components/sort-menu.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { rowLink } from '#lib/row-link.js';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -158,21 +159,21 @@
               </Table.Header>
               <Table.Body>
                 {#each sorted as role (roleKey(role))}
-                  <!-- The whole row is the link (design system section 9): the role's name covers it. -->
-                  <Table.Row class="relative h-12">
+                  <!-- A click anywhere on the row opens the role (L5): its name is the link. -->
+                  <Table.Row {@attach rowLink} class="h-12 hover:bg-muted">
                     <Table.Cell class="max-w-64 px-4.5">
                       <span class="flex min-w-0 items-center gap-2">
-                        <TruncatedText text={role.name} href={href(role)} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" />
+                        <TruncatedText text={role.name} href={href(role)} data-row-link class="font-semibold text-foreground no-underline hover:underline" />
                         {#if builtIn(role)}<BuiltInBadge class="shrink-0" />{/if}
                       </span>
                     </Table.Cell>
                     <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground"><span class="flex min-w-0"><TruncatedText text={role.description} /></span></Table.Cell>
                     <Table.Cell class="tabular-nums">{role.people}</Table.Cell>
                     <Table.Cell class="whitespace-nowrap text-muted-foreground">
-                      {#if role.lastUpdated.at}<span class="relative"><DateText at={role.lastUpdated.at} /></span>{:else}By ScreenHire{/if}
+                      {#if role.lastUpdated.at}<DateText at={role.lastUpdated.at} />{:else}By ScreenHire{/if}
                     </Table.Cell>
                     <Table.Cell class="pr-4.5 text-right">
-                      {#if copyable(role) || deletable(role)}<span class="relative">{@render roleMenu(role)}</span>{/if}
+                      {#if copyable(role) || deletable(role)}{@render roleMenu(role)}{/if}
                     </Table.Cell>
                   </Table.Row>
                 {/each}

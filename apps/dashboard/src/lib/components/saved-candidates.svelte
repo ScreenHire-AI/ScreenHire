@@ -52,6 +52,7 @@
   import { formatDate } from '#lib/dates.js';
   import { can } from '#lib/permissions.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { rowLink, selectCellLabel } from '#lib/row-link.js';
   import { applicationsPath, talentPoolPath } from '#lib/realtime.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
   import { tagsOf } from '#lib/tags.js';
@@ -141,8 +142,7 @@
   const sorted = $derived(table.getRowModel().rows.map((row) => row.original));
 
   // A table wider than its panel (a tablet) scrolls sideways inside it, and the checkbox and name columns stay put (design
-  // system section 8), as on the template list. A stuck cell holds the name's row-covering link, so while the table
-  // overflows the link covers the name cell only; while it fits, the whole row is the link (section 9).
+  // system section 8), as on the template list.
   let tableElement = $state<HTMLTableElement | null>(null);
   let overflowing = $state(false);
   let scrolledSideways = $state(false);
@@ -163,7 +163,8 @@
     };
   });
   const selectColumn = 'w-12.5 min-w-12.5 px-2 pointer-coarse:w-17.5 pointer-coarse:min-w-17.5';
-  const stuckSelect = $derived(overflowing ? 'sticky left-0 z-10' : 'relative z-10');
+  // The select cell holds its label, which fills it (`selectCellLabel`), so it is positioned either way.
+  const stuckSelect = $derived(overflowing ? 'sticky left-0 z-10' : 'relative');
   const stuckName = $derived(overflowing ? ['sticky left-12.5 z-[1] pointer-coarse:left-17.5', scrolledSideways && 'after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border'] : '');
   const href = (person: TalentPoolMember) => `/applications/${person.applicationId}`;
 
@@ -310,8 +311,8 @@
             <Table.Header>
               {#each table.getHeaderGroups() as group (group.id)}
                 <Table.Row class="bg-muted hover:bg-muted">
-                  <Table.Head class={[selectColumn, overflowing && 'sticky left-0 z-[1] bg-muted']}>
-                    <label class="inline-grid size-6 place-items-center pointer-coarse:size-11">
+                  <Table.Head class={[selectColumn, overflowing ? 'sticky left-0 z-[1] bg-muted' : 'relative']}>
+                    <label class={selectCellLabel}>
                       <input type="checkbox" class="size-4 accent-primary" aria-label="Select everyone shown" checked={allSelected} onchange={toggleAll} />
                     </label>
                   </Table.Head>
@@ -322,11 +323,12 @@
             </Table.Header>
             <Table.Body>
               {#each sorted as person (person.candidateId)}
-                <!-- The whole row is the link to the application they were saved from (design system section 9). -->
-                <!-- A stuck cell covers what scrolls under it, so it carries the row's hover tint itself. -->
-                <Table.Row class="group relative h-12 hover:bg-muted">
+                <!-- A click anywhere on the row opens the application they were saved from (L5): their name is its link,
+                     and the checkbox's whole cell selects. A stuck cell covers what scrolls under it, so it carries the
+                     row's hover tint itself. -->
+                <Table.Row {@attach rowLink} class="group h-12 hover:bg-muted">
                   <Table.Cell class={[selectColumn, stuckSelect, overflowing && 'bg-card group-hover:bg-muted']}>
-                    <label class="inline-grid size-6 place-items-center pointer-coarse:size-11">
+                    <label class={selectCellLabel}>
                       <input
                         type="checkbox"
                         class="size-4 accent-primary"
@@ -338,13 +340,13 @@
                   </Table.Cell>
                   <Table.Cell class={['max-w-56', stuckName, overflowing && 'bg-card group-hover:bg-muted']}>
                     <span class="flex min-w-0">
-                      <TruncatedText text={person.candidateName} href={href(person)} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" />
+                      <TruncatedText text={person.candidateName} href={href(person)} data-row-link class="font-semibold text-foreground no-underline hover:underline" />
                     </span>
                   </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap"><span class="relative"><Rating rating={person.rating} /></span></Table.Cell>
+                  <Table.Cell class="whitespace-nowrap"><Rating rating={person.rating} /></Table.Cell>
                   <Table.Cell class="w-full max-w-0 min-w-48">
                     {#if mayEditNote}
-                      <!-- A real button, above the row's link, that fills the cell and opens the note's sheet. -->
+                      <!-- A real button that fills the cell and opens the note's sheet, so a click on the note never opens the record. -->
                       <!-- One line in the row, the whole note in the tooltip (F5). -->
                       <Tooltip.Root disabled={!person.note}>
                         <Tooltip.Trigger>
@@ -352,7 +354,7 @@
                             <button
                               {...mergeProps(props, { onclick: () => open('note', [person]) })}
                               type="button"
-                              class="relative flex min-h-5 w-full min-w-0 items-center rounded-md text-left hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
+                              class="flex min-h-5 w-full min-w-0 items-center rounded-md text-left hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11"
                             >
                               {#if person.note}
                                 <span class="block min-w-0 truncate">{person.note}</span>
@@ -377,20 +379,18 @@
                     {#if person.tags.length === 0}<span class="sr-only">No tags</span>{/if}
                   </Table.Cell>
                   <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={person.jobTitle} /></span></Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={person.keptAt} /></span></Table.Cell>
+                  <Table.Cell class="whitespace-nowrap text-muted-foreground"><DateText at={person.keptAt} /></Table.Cell>
                   <!-- "Never" is a value that means something (L1), so it keeps its word, where an empty cell would not. -->
                   <Table.Cell class="whitespace-nowrap text-muted-foreground">
-                    <span class="relative">
-                      {#if person.lastContactedAt}
-                        <DateText at={person.lastContactedAt} />
-                      {:else}
-                        <span aria-hidden="true">Never</span>
-                        <span class="sr-only">Never contacted</span>
-                      {/if}
-                    </span>
+                    {#if person.lastContactedAt}
+                      <DateText at={person.lastContactedAt} />
+                    {:else}
+                      <span aria-hidden="true">Never</span>
+                      <span class="sr-only">Never contacted</span>
+                    {/if}
                   </Table.Cell>
                   <Table.Cell class="pr-4.5 text-right">
-                    {#if mayInvite || mayAdd || mayRemove}<span class="relative">{@render personMenu(person)}</span>{/if}
+                    {#if mayInvite || mayAdd || mayRemove}{@render personMenu(person)}{/if}
                   </Table.Cell>
                 </Table.Row>
               {/each}

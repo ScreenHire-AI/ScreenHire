@@ -1,13 +1,14 @@
 <script lang="ts">
   // Every Lucide icon has this one component type.
   import type LucideIcon from '~icons/lucide/circle';
+  import { mergeProps } from 'bits-ui';
   import Hint from '#lib/components/hint.svelte';
   import { cn } from '#lib/utils.js';
 
   // One line of text (or `lines` of them) that ends in an ellipsis when it does not fit, with the full value in a tooltip
   // (design system F5).
   // The tooltip, and its tab stop, exist only while the text is cut. With `href` the text is a link, such as a name in a
-  // table, and its tooltip opens on the link itself. A link outside a list of names is `underlined` at rest (A5) and may
+  // table, and its tooltip opens on the link itself; with `onclick` alone it is a button, as a name that opens a sheet. A link outside a list of names is `underlined` at rest (A5) and may
   // take an `icon` that goes before its text, inside the link.
   let {
     text,
@@ -27,9 +28,19 @@
     class?: string;
     /** -1 inside a card that is itself the tab stop, such as a board card. */
     tabindex?: number;
-    /** A link's click, such as closing the sheet it sits in. */
+    /** A link's click, such as closing the sheet it sits in. Without `href`, the text is a button that runs it. */
     onclick?: (event: MouseEvent) => void;
+    /** A button's name when it says more than the text, such as "Rename" before a tag. */
+    'aria-label'?: string;
   } & Record<`data-${string}`, unknown> = $props();
+
+  // A button's click is its action, such as opening a sheet (or a row's click pressing it, L5): it must not also pin the
+  // tooltip open, which Hint's click does for plain text. Hover and focus still show it.
+  function buttonProps(props: Record<string, unknown>) {
+    const { onclick, ...rest } = props;
+    void onclick;
+    return rest;
+  }
 
   let element = $state<HTMLElement | null>(null);
   let truncated = $state(false);
@@ -56,6 +67,9 @@
       </a>
     {:else if href}
       <a {...props} {...restProps} {href} bind:this={element} class={cn('block min-w-0 truncate', underlined && 'underline underline-offset-2', className)}>{text}</a>
+    {:else if restProps.onclick}
+      <!-- With `onclick` and no `href` the text is a button, such as a row's name that opens its sheet (L5). -->
+      <button {...mergeProps(buttonProps(props), restProps)} type="button" bind:this={element} class={cn('block min-w-0 truncate text-left', className)}>{text}</button>
     {:else}
       <span {...props} {...restProps} bind:this={element} class={cn('block min-w-0', lines === 2 ? 'line-clamp-2 break-words' : 'truncate', className)}>{text}</span>
     {/if}

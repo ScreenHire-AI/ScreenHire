@@ -29,6 +29,7 @@
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
   import TruncatedText from '#lib/components/truncated-text.svelte';
+  import { rowLink } from '#lib/row-link.js';
   import { Badge } from '#lib/components/ui/badge/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -196,15 +197,15 @@
                 <Table.Body>
                   {#each sortedApplications as application (application.id)}
                     {@const how = application.how}
-                    <!-- The whole row opens the application (design system section 9). -->
-                    <Table.Row class="group relative h-12 hover:bg-muted">
+                    <!-- A click anywhere on the row opens the application (L5): the job's title is its link. -->
+                    <Table.Row {@attach rowLink} class="h-12 hover:bg-muted">
                       <Table.Cell class="max-w-64 pl-4.5">
-                        <span class="flex min-w-0"><TruncatedText text={application.jobTitle} href={`/applications/${application.id}`} class="font-semibold text-foreground no-underline after:absolute after:inset-0 hover:underline" /></span>
+                        <span class="flex min-w-0"><TruncatedText text={application.jobTitle} href={`/applications/${application.id}`} data-row-link class="font-semibold text-foreground no-underline hover:underline" /></span>
                       </Table.Cell>
                       <Table.Cell class="whitespace-nowrap">{#if application.keptInMindAt}<StatusBadge status="saved" label={keptInMindLabel} quiet />{:else}{how.outcome}{/if}</Table.Cell>
-                      <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative"><DateText at={application.submittedAt} /></span></Table.Cell>
+                      <Table.Cell class="whitespace-nowrap text-muted-foreground"><DateText at={application.submittedAt} /></Table.Cell>
                       <Table.Cell class="max-w-48"><span class="flex min-w-0"><TruncatedText text={how.reached ?? ''} /></span></Table.Cell>
-                      <Table.Cell class="whitespace-nowrap text-muted-foreground"><span class="relative">{#if how.endedAt}<DateText at={how.endedAt} />{/if}</span></Table.Cell>
+                      <Table.Cell class="whitespace-nowrap text-muted-foreground">{#if how.endedAt}<DateText at={how.endedAt} />{/if}</Table.Cell>
                     </Table.Row>
                   {/each}
                 </Table.Body>

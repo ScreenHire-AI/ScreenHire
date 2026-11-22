@@ -183,7 +183,9 @@
     [role='menuitemcheckbox'],
     [role='menuitemradio'],
     /* A table row that opens in place (A9): the whole row answers a click, and its button is the control for keyboards. */
-    [data-row-opens]
+    [data-row-opens],
+    /* A table row that opens its record (L5): `rowLink` follows the control in its name cell, while there is one. */
+    [data-row-click]:has([data-row-link])
   ) {
     cursor: pointer;
 

@@ -31,6 +31,7 @@
   import * as Table from '#lib/components/ui/table/index.js';
   import { peopleWords } from '#lib/hiring-team.js';
   import { describeError, invalidatePath } from '#lib/query.js';
+  import { rowLink } from '#lib/row-link.js';
   import { teamPath, teamsPath } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
 
@@ -171,9 +172,12 @@
         </Table.Header>
         <Table.Body>
           {#each sorted as team (team.id)}
-            <Table.Row class="h-12">
+            <!-- A click anywhere on the row opens the team (L5): its name is the button. -->
+            <Table.Row {@attach rowLink} class="h-12 hover:bg-muted">
               <Table.Cell class="max-w-64 px-4.5">
-                <button type="button" class="max-w-full truncate text-left font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11" onclick={() => onedit(team)}>{team.name}</button>
+                <span class="flex min-w-0"
+                  ><TruncatedText text={team.name} data-row-link class="font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11" onclick={() => onedit(team)} /></span
+                >
               </Table.Cell>
               <Table.Cell class="w-full max-w-0 min-w-48 text-muted-foreground">
                 {#if team.members.length === 0}<span class="sr-only">Nobody yet</span>{:else}<TruncatedText text={names(team)} />{/if}

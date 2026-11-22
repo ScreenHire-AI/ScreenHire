@@ -75,6 +75,7 @@
   import { describeError, invalidatePath } from '#lib/query.js';
   import { assignableRoles, mayAssign, mayGiveJobAccess, roleFromKey, roleKey, seesAllJobsWith, teamPath, settingsCrumbs } from '#lib/settings.js';
   import { createTableSort, tableSortOptions } from '#lib/table-sort.svelte.js';
+  import { rowLink } from '#lib/row-link.js';
   import { cn } from '#lib/utils.js';
   import type { PageProps } from './$types';
 
@@ -427,10 +428,24 @@
                 </Table.Header>
                 <Table.Body>
                   {#each sortedMembers as member (member.id)}
-                    <Table.Row class="h-12">
+                    <!-- A click anywhere on a member you can manage opens Edit access (L5): their name is its button. -->
+                    <Table.Row {@attach rowLink} class={['h-12', manageable(member) && 'hover:bg-muted']}>
                       <Table.Cell class="max-w-64 px-4.5">
                         <span class="flex min-w-0 items-center gap-2">
-                          <TruncatedText text={member.displayName} class="font-semibold" />
+                          {#if manageable(member)}
+                            <TruncatedText
+                              text={member.displayName}
+                              data-row-link
+                              aria-label={`Edit access for ${member.displayName}`}
+                              class="font-semibold underline-offset-2 hover:underline pointer-coarse:min-h-11"
+                              onclick={() => {
+                                editing = member;
+                                accessOpen = true;
+                              }}
+                            />
+                          {:else}
+                            <TruncatedText text={member.displayName} class="font-semibold" />
+                          {/if}
                           {#if member.userId === myId}<Badge variant="muted" class="shrink-0">You</Badge>{/if}
                         </span>
                       </Table.Cell>
