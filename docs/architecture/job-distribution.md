@@ -46,6 +46,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/post-it-yourself-sheet.svelte
   - resource: apps/dashboard/src/lib/components/manual-posting-form.svelte
   - resource: apps/dashboard/src/lib/components/posting-text-copy.svelte
+  - resource: apps/dashboard/src/lib/copy-feedback.svelte.ts
   - resource: apps/dashboard/src/lib/components/close-job-dialog.svelte
   - resource: apps/api/Endpoints/PublicDistributionEndpoints.cs
   - resource: apps/careers/src/lib/job-posting.ts
@@ -252,7 +253,8 @@ is one job on one such board.
 - **What is stored:** the board's name as the team typed it, a source key, the listing's address (optional), the day it was
   posted and the day it ends (optional, both `date`), the job's `JobSnapshot` as it was posted (`posted_content`), and when
   the team said it was taken down. Nothing fetches or reads the listing's address: it is stored and shown as a link
-  (CLAUDE.md non-negotiable 5), and the API takes only an absolute `http` or `https` address.
+  (CLAUDE.md non-negotiable 5). The API takes only an absolute `http` or `https` address with a host and no user name or
+  password, because the dashboard shows the address to the whole team.
 - **The tracked link:** the job's careers page with `src={sourceKey}` (`BoardUrls.WithSource`). The key is the board's name
   in lower case with every other run of characters a hyphen (`LinkedIn` is `linkedin`). The dashboard's `sourceKeyFor` and
   `ManualPosting.SourceKeyFor` follow the same rule, and the dashboard sends the key with the save, so the link the person
@@ -288,7 +290,10 @@ is one job on one such board.
   Saved, the posting is a row under the automatic boards: Posted by you, the board's name linking to the listing, the badge
   Job changed since you posted while `changedFields` has anything (its tooltip names the fields), and a menu with Edit, Open
   the listing, Copy the updated text (the same sheet, each changed field marked), Mark as updated and Mark as taken down.
-  Every row has an Applications column. The Job postings tab's count includes the postings still up.
+  Every row has an Applications column. The Job postings tab's count includes the postings still up. Status and the row
+  menu stay in place while a tablet scrolls the table, and a phone shows the count as a line of its own under the board's
+  name. The copy buttons say Copied, or Could not copy where the browser gives no clipboard, through the shared
+  `CopyFeedback` helper.
 
 ### Check before publishing
 
@@ -461,7 +466,7 @@ secrets locally, the secret store in a deployment) and passes it to both as `Goo
 | `FeedFormatTests` (unit) | every feed validates against its board's schema; CDATA, `]]>` and control characters; per-board field mapping; validation issues |
 | `DistributionTests` (integration) | publish puts the job in every feed, the job-board API, the Indexing queue and the sandbox; close serves 410, drops it from the feeds, queues `URL_DELETED`, and the sandbox reports Closed only after its delay; per-board teardown; new versions; cache headers and 304; tenant isolation; the dispatcher sends queued notifications and Google never reaches Closed; a duplicate board command leaves one claim for its key and changes nothing |
 | `BoardAnswerRaceTests` (integration) | a changed publish and a close that arrive while a board answer is being saved (the test holds the posting's lock, as the worker does) wait for it and succeed, where both were a 409 |
-| `ManualPostingTests` (unit) | the source key a board name makes (the same cases as `manual-postings.test.ts`), which copied fields count as changed, marking updated, taking down twice and posting again |
+| `ManualPostingTests` (unit) | the source key a board name makes (the same cases as `manual-postings.test.ts`), which copied fields count as changed, marking updated, taking down twice and posting again, and which listing addresses are taken (a web page with a host, no sign-in in it) |
 | `ManualPostingTests` (integration) | a saved posting's link names its board in Source and Reports after a rename, every link of a job is counted and an unknown key is dropped, the stale flag and Mark as updated, a closed job's posting stays up until it is marked taken down and a board can be posted again, the refusals (an automatic board's name or id, a `javascript:` address, an end before the start, a draft), and isolation between organizations |
 | `manual-postings.test.ts`, `distribution-panel.test.ts`, `close-job-dialog.test.ts` (Vitest) | the key, the plain text, the salary line and the row's status; the team's rows and counts in the panel, the stale badge and its marks, the sheet's link and save, and the close dialog's Still posted by you |
 | `JobPageTests` (end-to-end) | a posting saved from the sheet shows as its row, and an application through its link is counted as it arrives |
