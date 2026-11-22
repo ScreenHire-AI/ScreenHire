@@ -20,11 +20,14 @@
   let {
     open = $bindable(false),
     value,
+    saved,
     onchoose,
   }: {
     open?: boolean;
     /** The font the form holds now, '' for ScreenHire's. */
     value: string;
+    /** The font candidates see now, the last save's, '' for ScreenHire's: the one marked "In use". */
+    saved: string;
     onchoose: (font: HeadingFontOption) => void;
   } = $props();
 
@@ -62,7 +65,7 @@
   });
   const visible = $derived(matches.slice(0, shown));
   const chosen = $derived(fonts.find((font) => font.id === selected));
-  const count = $derived(new Intl.NumberFormat('en').format(matches.length));
+  const count = $derived(new Intl.NumberFormat().format(matches.length));
 
   // A row's name loads its face once the row is in view (or about to be).
   function face(id: string) {
@@ -93,13 +96,11 @@
 </script>
 
 <Sheet.Root bind:open>
-  <Sheet.Content side="right" class="w-full gap-0 data-[side=right]:sm:max-w-md">
+  <!-- Full width on a phone, so the six style filters fit on one row (design system F5). -->
+  <Sheet.Content side="right" class="w-full gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-md">
     <Sheet.Header class="border-b border-border-subtle">
       <Sheet.Title>Heading fonts</Sheet.Title>
-      <Sheet.Description>
-        From Google Fonts, each under the SIL Open Font License or Apache 2.0. ScreenHire hosts the one you pick, so candidates' browsers only
-        talk to your careers site.
-      </Sheet.Description>
+      <Sheet.Description>Open-licence Google Fonts, hosted by ScreenHire for your careers site.</Sheet.Description>
     </Sheet.Header>
     <div class="flex flex-col gap-3 border-b border-border-subtle p-4">
       <SearchField bind:value={() => query, (next) => ((query = next), (shown = pageSize))} label="Search fonts" />
@@ -108,7 +109,7 @@
         variant="outline"
         spacing={0}
         aria-label="Style"
-        class="flex-wrap"
+        class="max-w-full overflow-x-auto"
         bind:value={() => style, (next) => ((style = (next || 'All') as HeadingFontStyle | 'All'), (shown = pageSize))}
       >
         {#each styleFilters as filter (filter.value)}
@@ -147,7 +148,7 @@
                 <span class="min-w-0 flex-1 truncate text-heading font-bold" style:font-family={previewFamily(font.id, font.styles.includes('Serif'))}>
                   {font.family}
                 </span>
-                {#if font.id === value}<span class="shrink-0 text-caption text-muted-foreground">In use</span>{/if}
+                {#if font.id === saved}<span class="shrink-0 text-caption text-muted-foreground">In use</span>{/if}
               </label>
             {/each}
           </div>

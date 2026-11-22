@@ -4,6 +4,7 @@
   import ColorField from '#lib/components/color-field.svelte';
   import ImageField from '#lib/components/image-field.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import HeadingFontPickerDemo from './heading-font-picker-demo.svelte';
 
   // Settings, Branding's components (design system section 11). The colours are the candidate tokens read at run time,
   // so this page holds no colour of its own: a pale one (the chip fill) that fails the links pair, and the careers
@@ -63,6 +64,13 @@
       <ImageField id="demo-scanning" kind="logo" noun="logo" description="The malware scan is running." organizationName="Brightwater Studio" image={scanning} onchoose={() => {}} onremove={() => {}} />
       <ImageField id="demo-blocked" kind="favicon" noun="favicon" description="The scan blocked the file." organizationName="Brightwater Studio" image={blocked} onchoose={() => {}} onremove={() => {}} />
     </div>
+  </Panel>
+
+  <Panel title="Heading font picker" class="flex-[1_1_420px]">
+    <figure class="flex flex-col items-start gap-2">
+      <figcaption class="text-caption text-muted-foreground">From the Heading font panel's More fonts. Open it: Fraunces is in use</figcaption>
+      <HeadingFontPickerDemo />
+    </figure>
   </Panel>
 </div>
 

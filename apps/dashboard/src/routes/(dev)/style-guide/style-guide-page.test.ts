@@ -141,6 +141,7 @@ const panels: Record<string, string[]> = {
   'Drop area': ['Drop area'],
   'Image field': ['Image field'],
   'Branding preview': ['Branding preview'],
+  'Heading font picker': ['Heading font picker'],
 };
 
 // The page draws the whole catalogue, which grows with each component, and axe walks all of it: more than Vitest's 5

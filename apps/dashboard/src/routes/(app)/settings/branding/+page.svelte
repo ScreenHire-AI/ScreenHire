@@ -314,7 +314,7 @@
                   </div>
                   <FailureText message={$errors.headingFont?.[0]} />
                 </div>
-                <HeadingFontSheet bind:open={moreFonts} value={$form.headingFont} onchoose={chooseFont} />
+                <HeadingFontSheet bind:open={moreFonts} value={$form.headingFont} saved={detail?.headingFont?.id ?? ''} onchoose={chooseFont} />
               </Panel>
             </div>
 

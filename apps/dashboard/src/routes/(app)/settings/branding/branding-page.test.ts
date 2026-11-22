@@ -464,6 +464,15 @@ describe('branding page', () => {
     // The pick joins the panel's choices, checked, beside the six; Save sends its id and the API hosts it.
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Heading fonts' })).toBeNull());
     expect(screen.getByRole('radio', { name: /^Roboto Slab/ })).toBeChecked();
+
+    // Until Save, candidates still see Fraunces, so it stays the font marked In use.
+    await fireEvent.click(screen.getByRole('button', { name: 'More fonts' }));
+    const again = await screen.findByRole('dialog', { name: 'Heading fonts' });
+    expect(within(again).getByRole('radio', { name: /^Roboto Slab$/ })).toBeChecked();
+    expect(within(again).getByRole('radio', { name: /^Fraunces\s*In use$/ })).not.toBeChecked();
+    await fireEvent.click(within(again).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Heading fonts' })).toBeNull());
+
     await fireEvent.click(await save());
     await waitFor(() => expect(bodies[0]).toMatchObject({ headingFont: 'roboto-slab' }));
   });
