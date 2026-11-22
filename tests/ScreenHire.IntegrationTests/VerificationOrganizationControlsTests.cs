@@ -542,7 +542,7 @@ public sealed class VerificationOrganizationControlsTests(AppHostFixture fixture
 
         alerts = [.. (await fixture.Mailpit.MessagesAsync(ownerEmail, Ct)).Where(m => subjects.Contains(m.Subject))];
         alerts.Should().HaveCount(3, "each share alerted once, though the second application found all three already passed");
-        alerts[0].Text.Should().Contain("/verification").And.NotContain("/settings/verification", "Verification left Settings for its own sidebar item");
+        alerts[0].Text.Should().Contain("/settings/billing#ai-use", "the AI use section moved to Billing").And.NotContain("/settings/verification", "Verification left Settings for its own sidebar item");
         var bell = (await tenant.GetAsync("/v1/notifications")).Expect(HttpStatusCode.OK);
         bell.At("items").EnumerateArray().Select(n => n.GetProperty("kind").GetString()).Should().Equal("ai-usage-budget", "ai-usage-budget", "ai-usage-budget");
         (await fixture.Mailpit.MessagesAsync(ownKeyEmail, Ct)).Where(m => subjects.Contains(m.Subject))

@@ -174,12 +174,12 @@ public sealed class OrganizationModels : IDisposable
 
         if (settings.LlmProvider is not { } provider || string.IsNullOrWhiteSpace(settings.LlmModel) || settings.ProtectedLlmApiKey is null)
         {
-            return LlmAccess.Unavailable("The organization's own model is not fully set up. Enter the provider, model and key in Verification settings.");
+            return LlmAccess.Unavailable("The organization's own model is not fully set up. Enter the provider, model and key under AI model in Settings.");
         }
 
         if (keys.Unprotect(settings.OrganizationId, settings.ProtectedLlmApiKey) is not { } key)
         {
-            return LlmAccess.Unavailable("The saved API key could not be read. Enter it again in Verification settings.");
+            return LlmAccess.Unavailable("The saved API key could not be read. Enter it again under AI model in Settings.");
         }
 
         var endpoint = new ModelEndpoint(provider, settings.LlmBaseUrl, key, settings.LlmModel);
