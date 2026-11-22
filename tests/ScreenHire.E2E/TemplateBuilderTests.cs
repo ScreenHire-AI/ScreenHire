@@ -205,33 +205,23 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         // The template the workflow came from is a header fact (W3).
         await Expect(HeaderBand).ToContainTextAsync($"{templateName} v1");
 
-        // The test drive runs four sample candidates; "Try your own candidate" is the guided test: what happened, who the
-        // candidate is, then what would happen, one question at a time.
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Test" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "What happens to these candidates" })).ToContainTextAsync("Meets every requirement");
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Try your own candidate" }).ClickAsync();
-        var test = Page.GetByRole(AriaRole.Region, new() { Name = "Try your own candidate" });
-        await Expect(test.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("What happened?");
-        await Expect(test).ToContainTextAsync("It never touches a real candidate or sends anything.");
-        await test.GetByRole(AriaRole.Button, new() { Name = "The verification checks finished" }).ClickAsync();
-        await Expect(test.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("Who is the candidate?");
-        await test.GetByRole(AriaRole.Button, new() { Name = "Has verification signals" }).ClickAsync();
-        var results = test.GetByRole(AriaRole.List, new() { Name = "What would happen, in order" });
-        await Expect(results).ToContainTextAsync("Route for review");
-        await Expect(results).ToContainTextAsync("Add the tag \"needs-review\"");
+        // Try it on the job's copy: the checks flag something, the tag goes on, and the screen says only that a person
+        // decides, never a level.
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Try it" }).ClickAsync();
+        var tryIt = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Try it" });
+        await Expect(tryIt.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("Who is applying?");
+        await Expect(tryIt).ToContainTextAsync("Nothing real is created and no one is emailed.");
+        await tryIt.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Something to check") }).ClickAsync();
+        await Expect(tryIt.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("Applied");
+        await Expect(tryIt).ToContainTextAsync("The checks flagged something about Jordan. A person looks and decides what happens.");
+        await Expect(tryIt).ToContainTextAsync("Adds the tag \"needs-review\"");
+        await Expect(tryIt).Not.ToContainTextAsync("Verify");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-simulate-light");
-
-        // A candidate the conditions do not match runs nothing, and the result says why in a line.
-        await test.GetByRole(AriaRole.Button, new() { Name = "Change the candidate" }).ClickAsync();
-        await test.GetByRole(AriaRole.Button, new() { Name = "Meets every requirement" }).ClickAsync();
-        await Expect(test.GetByRole(AriaRole.Heading, new() { Level = 4 })).ToHaveTextAsync("Would not run");
-        await Expect(test).ToContainTextAsync("Nothing would run.");
-        await Expect(test).ToContainTextAsync("Verification is Verify");
     }
 
     [Fact]
-    public async Task A_recruiter_starts_from_Trade_role_renames_a_stage_changes_a_time_limit_sees_the_test_drive_update_and_publishes()
+    public async Task A_recruiter_starts_from_Trade_role_renames_a_stage_changes_a_time_limit_tries_a_good_fit_to_the_end_and_publishes()
     {
         var email = await OnboardAsync();
         await Page.SetViewportSizeAsync(1440, 1040);
@@ -276,7 +266,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(sheet).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" })).ToContainTextAsync("Respond within 3 days");
 
-        // An automation with a blank tag pauses the Test tab, with the fix inline.
+        // An automation with a blank tag pauses the Try it tab, with the fix inline.
         await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" }).GetByRole(AriaRole.Button, new() { Name = "Actions for Applied" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Add an automation" }).ClickAsync();
         await Page.GetByRole(AriaRole.Dialog, new() { Name = "Add an automation" }).GetByRole(AriaRole.Button, new() { Name = "Write your own" }).ClickAsync();
@@ -290,46 +280,72 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ExpectProblemAsync("The tag in \"Welcome tag\" has no name. Type one, or remove that step.");
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Fix 1 thing" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Publish", Exact = true })).ToBeDisabledAsync();
-        await Page.GetByRole(AriaRole.Tab, new() { Name = "Test" }).ClickAsync();
-        var drive = Page.GetByRole(AriaRole.Region, new() { Name = "What happens to these candidates" });
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Try it" }).ClickAsync();
+        var drive = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Try it" });
         await Expect(drive).ToContainTextAsync("Paused until 1 thing is fixed");
-        await Expect(drive).Not.ToContainTextAsync("Meets every requirement");
+        await Expect(drive).Not.ToContainTextAsync("Who is applying?");
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Fix 1 thing" })).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-test-paused-light");
 
-        // Type the tag: the samples run again by themselves and show it.
+        // Type the tag, and Try it is back: a good fit, clicked through one stage at a time to the end.
         await drive.GetByRole(AriaRole.Textbox, new() { Name = "Tag name" }).FillAsync("welcome");
         await drive.GetByRole(AriaRole.Button, new() { Name = "Add the tag" }).ClickAsync();
-        await Expect(drive).ToContainTextAsync("Meets every requirement");
-        await Expect(drive).ToContainTextAsync("Adds the tag \"welcome\"");
-        await Expect(drive).ToContainTextAsync("Goes to the team's review list");
+        await Expect(drive.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("Who is applying?");
         await ExpectNoProblemsAsync();
+        await drive.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^A good fit") }).ClickAsync();
+        await Expect(drive.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("Applied");
+        await Expect(drive.GetByRole(AriaRole.List, new() { Name = "Pipeline" }).Locator("[aria-current=step]")).ToContainTextAsync("Applied");
+        // The email as an inbox shows it, with Jordan's name filled in; a click opens it in full.
+        var inbox = drive.Locator("[data-try-it-email]").First;
+        await Expect(inbox.Locator("[data-try-it-subject]")).ToBeVisibleAsync();
+        await inbox.ClickAsync();
+        var letter = Page.GetByRole(AriaRole.Dialog);
+        await Expect(letter).ToContainTextAsync("What the candidate gets. Nothing is sent.");
+        await Expect(letter.Locator("[data-email-subject]")).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(letter).ToBeHiddenAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-test-drive-light");
 
+        // Each press moves Jordan one stage on, until the last offers the whole process. A disabled button waits for the
+        // stage it is moving to, so each press lands on the next stage's button.
+        var move = drive.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Move Jordan to ") });
+        for (var pressed = 0; await move.CountAsync() > 0; pressed++)
+        {
+            pressed.Should().BeLessThan(10, "the pipeline has fewer stages than that");
+            await move.ClickAsync();
+            await Expect(drive.Locator("[aria-busy=true]")).ToHaveCountAsync(0);
+        }
+        await drive.GetByRole(AriaRole.Button, new() { Name = "See the whole process" }).ClickAsync();
+        await Expect(drive.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync("That's your hiring process");
+        await Expect(drive.GetByRole(AriaRole.Button, new() { Name = "Looks good, publish" })).ToBeEnabledAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-template-try-it-end-light");
+
         // The three screens on a phone and in the dark theme: no sideways scroll, no accessibility violations.
         await Page.SetViewportSizeAsync(390, 844);
-        foreach (var tab in new[] { "Pipeline", "Test" })
+        foreach (var (tab, file) in new[] { ("Pipeline", "pipeline"), ("Try it", "test") })
         {
             await Page.GetByRole(AriaRole.Tab, new() { Name = tab }).ClickAsync();
             await Expect(Page.GetByRole(AriaRole.Tabpanel, new() { Name = tab })).ToBeVisibleAsync();
             await ExpectNoSidewaysScrollAsync();
             await ExpectNoAccessibilityViolationsAsync();
-            await SaveScreenshotAsync(Page, $"dashboard-template-{tab.ToLowerInvariant()}-390");
+            await SaveScreenshotAsync(Page, $"dashboard-template-{file}-390");
         }
         await Page.SetViewportSizeAsync(1440, 1040);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to dark theme" }).ClickAsync();
-        foreach (var tab in new[] { "Pipeline", "Test" })
+        foreach (var (tab, file) in new[] { ("Pipeline", "pipeline"), ("Try it", "test") })
         {
             await Page.GetByRole(AriaRole.Tab, new() { Name = tab }).ClickAsync();
             await Expect(Page.GetByRole(AriaRole.Tabpanel, new() { Name = tab })).ToBeVisibleAsync();
             await ExpectNoAccessibilityViolationsAsync();
-            await SaveScreenshotAsync(Page, $"dashboard-template-{tab.ToLowerInvariant()}-dark");
+            await SaveScreenshotAsync(Page, $"dashboard-template-{file}-dark");
         }
         await Page.GetByRole(AriaRole.Button, new() { Name = "Switch to light theme" }).ClickAsync();
 
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Publish", Exact = true }).ClickAsync();
+        // The end of Try it publishes, as the header's Publish does.
+        await drive.GetByRole(AriaRole.Button, new() { Name = "Looks good, publish" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Published version 1." })).ToBeVisibleAsync();
         await Expect(HeaderBand).ToContainTextAsync("Published");
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();

@@ -14,14 +14,12 @@
     errors = [],
     mode,
     tab = 'pipeline',
-    checking = false,
     aiUse,
   }: {
     workflow: HiringWorkflow;
     errors?: DefinitionError[];
     mode: 'editor' | 'summary';
     tab?: WorkflowTab;
-    checking?: boolean;
     aiUse?: { policy?: AiUsePolicy; href?: string };
   } = $props();
 
@@ -34,7 +32,7 @@
   <Tabs.Root bind:value={current}>
     <WorkflowTabs />
     {#if mode === 'editor'}
-      <WorkflowEditor bind:workflow={edited} {errors} {checking} bind:tab={current} hrefOf={(next) => `?tab=${next}`} {aiUse} />
+      <WorkflowEditor bind:workflow={edited} {errors} bind:tab={current} hrefOf={(next) => `?tab=${next}`} {aiUse} />
     {:else}
       <WorkflowSummary workflow={edited} {errors} tab={current as WorkflowTab} hrefOf={(next) => `?tab=${next}`} {aiUse} />
     {/if}

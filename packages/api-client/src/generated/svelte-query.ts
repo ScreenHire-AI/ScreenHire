@@ -275,6 +275,8 @@ import type {
   TelemetrySnapshotInput,
   TemplateUsageList,
   TestEmailSent,
+  TryItEmailsRequest,
+  TryItEmailsSent,
   UpdateAccountNotificationsRequest,
   UpdateAccountPreferencesRequest,
   UpdateAiUsageLimitsRequest,
@@ -21736,6 +21738,120 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getSimulateWorkflowMutationOptions(options?.()) }), queryClient);
+    }
+
+export type sendTryItEmailsResponse200 = {
+  data: TryItEmailsSent
+  status: 200
+}
+
+export type sendTryItEmailsResponse400 = {
+  data: HttpValidationProblemDetails
+  status: 400
+}
+
+export type sendTryItEmailsResponse401 = {
+  data: void
+  status: 401
+}
+
+export type sendTryItEmailsResponse404 = {
+  data: void
+  status: 404
+}
+
+export type sendTryItEmailsResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
+export type sendTryItEmailsResponseSuccess = (sendTryItEmailsResponse200) & {
+  headers: Headers;
+};
+export type sendTryItEmailsResponseError = (sendTryItEmailsResponse400 | sendTryItEmailsResponse401 | sendTryItEmailsResponse404 | sendTryItEmailsResponse429) & {
+  headers: Headers;
+};
+
+export const getSendTryItEmailsUrl = () => {
+
+
+
+
+  return `/v1/workflows/test-emails`
+}
+
+export const sendTryItEmails = async (tryItEmailsRequest: TryItEmailsRequest, options?: Parameters<typeof apiQueryFetch>[1]): Promise<sendTryItEmailsResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiQueryFetch<sendTryItEmailsResponseSuccess>(getSendTryItEmailsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(tryItEmailsRequest)
+  }
+);}
+
+
+
+
+
+export const getSendTryItEmailsMutationKey = () => ['sendTryItEmails'] as const;
+
+export const getSendTryItEmailsMutationOptions = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof sendTryItEmails>>, TError,SendTryItEmailsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof sendTryItEmails>>, TError,SendTryItEmailsMutationVariables, TContext> => {
+
+const mutationKey = getSendTryItEmailsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendTryItEmails>>, SendTryItEmailsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendTryItEmails(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendTryItEmailsMutationResult = NonNullable<Awaited<ReturnType<typeof sendTryItEmails>>>
+    export type SendTryItEmailsMutationBody = TryItEmailsRequest
+    export type SendTryItEmailsMutationError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>
+    export type SendTryItEmailsMutationVariables = {data: TryItEmailsRequest}
+
+    export const createSendTryItEmails = <TError = ErrorType<HttpValidationProblemDetails | void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof sendTryItEmails>>, TError,SendTryItEmailsMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof sendTryItEmails>>,
+        TError,
+        SendTryItEmailsMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getSendTryItEmailsMutationOptions(options?.()) }), queryClient);
     }
 
 export type listAutomationRunsResponse200 = {

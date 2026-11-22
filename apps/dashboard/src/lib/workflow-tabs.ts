@@ -5,7 +5,7 @@ export const workflowTabs = [
   { value: 'pipeline', label: 'Pipeline' },
   { value: 'forms', label: 'Forms' },
   { value: 'automations', label: 'Automations' },
-  { value: 'test', label: 'Test' },
+  { value: 'test', label: 'Try it' },
 ] as const;
 
 export type WorkflowTab = (typeof workflowTabs)[number]['value'];

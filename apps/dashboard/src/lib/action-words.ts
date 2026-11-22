@@ -1,4 +1,4 @@
-// A step of an automation in plain words, as the Test drive says what happens to a sample candidate. Pure, so the words
+// A step of an automation in plain words, as Try it shows a task the candidate set off. Pure, so the words
 // are tested without a page. Generated text never names a person: a reviewer is "the team", whoever is saved in the step.
 import type { AutomationAction, HiringWorkflow } from '@screenhire/api-client';
 import { followUpName, followUpsOf } from '#lib/workflow.js';

@@ -13,8 +13,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/form-cards.svelte
   - resource: apps/dashboard/src/lib/components/workflow/ai-use-row.svelte
   - resource: apps/dashboard/src/lib/components/job-ai-use-panel.svelte
-  - resource: apps/dashboard/src/lib/simulate.ts
-  - resource: apps/dashboard/src/lib/components/workflow/guided-test.svelte
+  - resource: apps/dashboard/src/lib/try-it.ts
+  - resource: apps/dashboard/src/lib/components/workflow/try-it.svelte
   - resource: src/ScreenHire.Domain/Hiring/FactSchema.cs
   - resource: src/ScreenHire.Domain/Hiring/SystemTemplates.cs
   - resource: src/ScreenHire.Domain/Automations/ApplicationTask.cs
@@ -108,7 +108,8 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/stage-cards.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-sheet.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-fact-list.svelte
-  - resource: apps/dashboard/src/lib/components/workflow/test-drive.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/try-it-stage.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/try-it-email.svelte
   - resource: apps/dashboard/src/lib/components/workflow/problem-notice.svelte
   - resource: apps/dashboard/src/lib/components/workflow/problems-panel.svelte
   - resource: apps/dashboard/src/lib/components/workflow/validation-badge.svelte
@@ -117,7 +118,6 @@ sources:
   - resource: apps/dashboard/src/routes/(app)/templates/new/+page.svelte
   - resource: apps/dashboard/src/lib/stage-facts.ts
   - resource: apps/dashboard/src/lib/action-words.ts
-  - resource: apps/dashboard/src/lib/test-drive.ts
   - resource: apps/dashboard/src/lib/starting-points.ts
   - resource: apps/dashboard/src/lib/workflow-tabs.ts
   - resource: apps/dashboard/src/lib/workflow-tab.svelte.ts
@@ -286,8 +286,8 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
   Add automation opens ready-made recipes. Same underlying model; the map is a projection, not a separate format.
 - **Questionnaire builder** with a preview rendering the **same question components** the candidate sees on the
   Astro apply page (shared component package, a factor in the dashboard framework decision).
-- **Test**: four sample candidates built from the template run through the definition after each change and show
-  what happens to each. It is an essential trust feature, and cheap because evaluation is deterministic.
+- **Try it**: one made-up candidate clicked through the definition a stage at a time, seeing each stage's emails and
+  tasks as the real things. It is an essential trust feature, and cheap because evaluation is deterministic.
 
 What the dashboard builds (`apps/dashboard`, routes `/templates`, `/templates/{id}` and `/jobs/{id}/workflow`). The
 Templates page has a tab each for hiring templates, library scorecards (`/templates/scorecards/{id}`, the form builder
@@ -295,7 +295,7 @@ with its preview beside it, or behind an Edit / Preview switch where both do not
 (`/templates/forms/{id}`, section 7, Forms) and email templates ([email.md](email.md)), each listed by
 `template-list.svelte` with where it is used, from `GET /v1/template-usage`. The
 workflow builder is one editor, `#lib/components/workflow/workflow-editor.svelte`, over a template draft or a job's own
-copy, with four tabs on the page's header band (Pipeline, Forms, Automations, Test; `#lib/workflow-tabs.ts`,
+copy, with four tabs on the page's header band (Pipeline, Forms, Automations, Try it; `#lib/workflow-tabs.ts`,
 kept in the address as `?tab=`; an address saved with the old Overview tab opens Pipeline, and one with Questions opens Forms). In what people read it is the
 pipeline (design system W13): the job's Edit pipeline, Save pipeline. A workflow that cannot be edited there (a ScreenHire template, a
 published version, a closed job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no
@@ -349,10 +349,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     every recipe.
   - **Paths.** Hovering or focusing a node lights its path (`pathOf`): an automation's chain with the stage it fires on
     and the stage it moves into, or a stage's automations and the moves into it. The rest quietens by its edge and its
-    line alone, so text keeps its contrast, and nothing moves for someone who prefers reduced motion. Simulate's
-    "Show this path in the graph" lights the path its test took (`testedPath`: all of an automation that would run, up
-    to the conditions of one that did not hold, only the trigger of one that was skipped) until Clear or the next
-    change to the workflow.
+    line alone, so text keeps its contrast, and nothing moves for someone who prefers reduced motion.
   - **View.** The first view (`firstView`) is always at full size, because node text is 12px there and 12px is the
     floor (design system W1). A workflow narrower than the canvas is centred. A wider one starts at the top left, where
     the first stage is, and pans and zooms from there (the wheel or trackpad pans, the controls zoom and
@@ -440,31 +437,39 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   that follows each edit. The apply form's preview starts with the candidate's details and the resume and ends with the
   AI-use question; a follow-up's is its questions alone, as its page shows them. The preview pages as the candidate does (each named section, or
   pages of the organization's questions per page), one step at a time with Back and Next, each opening with the step line the
-  candidate sees ("Step 2 of 4", "9 of 24 answered"); the last step's send button is off, because nothing is sent from a preview. Marking a yes/no question as a knockout shows what a knockout may be (an
+  candidate sees ("Step 2 of 4", "9 of 24 answered"); the last step's send button is off, because nothing is sent from a preview; in Try it it hands the answers back instead, still sending nothing. Marking a yes/no question as a knockout shows what a knockout may be (an
   objective eligibility check, never AI use or an accommodation), and, while no automation's condition reads its answer, that nothing happens to it yet, with a link to the Automations tab (A11). The automation form offers "Send a questionnaire" and
   the "questionnaire answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
-- **Test:** `test-drive.svelte`. A moment after each change it builds samples from the template (`#lib/test-drive.ts`: meets every requirement, fails a knockout, whose checks suggest a review, then one who reaches each stage that has steps of its own, up to three, and one who asked for an accommodation), runs each through `POST /v1/workflows/simulate`, and shows what happens to each in a few plain steps with a "Show in the map" link to the Automations tab. While a problem blocks the workflow the tab shows only a notice with the fix inline (`problem-notice.svelte`: type the missing tag, or remove the step). "Try your own candidate" is the guided test: a guided test, three questions one at a time (`guided-test.svelte`, rules in `#lib/simulate.ts`, design
-  system section 11, Guided test). What happened: a moment in plain words, offered only where an automation that is on
-  reacts to it, with a second question (which stage or questionnaire) only when automations react in more than one. Who
-  is the candidate: ready-made candidates built from the workflow (one who meets every requirement, one who fails a
-  knockout, and others only where an automation reads what they change), each one press, or Customize, which opens only
-  the facts those automations read. What would happen: a timeline of the automations of that moment, those that would
-  run first with their actions in order, the others with one line on why not. It sends the facts through
-  `POST /v1/workflows/simulate` on the unsaved workflow and touches no real candidate. Verification levels are words and
-  appear only where an automation reads one; the endpoint refuses a workflow whose verification-driven automation
-  rejects, so no result does. A workflow with no automation says there is nothing to test yet and, in the editor, offers
-  to add one. A result says when the workflow changed after it ran and offers to run it again.
+- **Try it:** `try-it.svelte` (rules in `#lib/try-it.ts`, design system section 11, Try it; the owner's walk-through of
+  2026-11-21 replaced a Test tab of four sample candidates and a guided test, which showed far too much to read). The tab
+  keeps the address `?tab=test`. It walks one made-up candidate, Jordan (the API's sample candidate, so the emails say
+  the same name), through the stages one at a time. Who is applying: a good fit, one who says no to a must-have question
+  (only where the form has one), one the checks flag, or the application form filled in by hand. Each move runs the
+  moments of the stage reached through `POST /v1/workflows/simulate` on the workflow as it is on screen: applying is
+  ApplicationSubmitted, VerificationAssessed and StageEntered of the first stage, as the worker raises them; any later
+  stage is StageEntered. A form a stage sends is answered with the candidate's answers (QuestionnaireCompleted), and an
+  automation that moves them on by itself is followed with the request's `chain`, up to three moves a click, so two that
+  move back and forth stop. A stage shows at most three things: each email as an inbox lists it, rendered by
+  `POST /v1/email-templates/preview` from the organization's wording, a chip for each step for the team, and a last line
+  that says who decides. The flagged candidate's line says only that the checks flagged something and a person decides:
+  verification levels stay inside the facts, and the endpoint refuses a workflow whose verification-driven automation
+  rejects. Let 3 days pass runs the stage's passed time limit or time-passed automations with the hours in the stage.
+  Send me these emails is `POST /v1/workflows/test-emails`. The end offers the page's own action (Looks good, publish on
+  a template's draft, Looks good, save on a job's pipeline with changes) and Change something, which opens a stage's
+  sheet. Nothing is saved and no real candidate is touched. An edit starts Try it again. While a problem blocks the
+  workflow the tab shows only a notice with the fix inline (`problem-notice.svelte`: type the missing tag, or remove the
+  step).
 
 Every change is checked with `POST /v1/workflows/validate` after a short pause, and each message shows on the control
 its path names, so the guardrail refusal of a verification-driven rejection appears on that action. Each message is a
 whole sentence that names the thing and says what to do (`DefinitionValidator`). A draft with problems still saves:
 the API stores a template draft, and a draft job's workflow, whatever the validator finds (only a body it cannot store
 is refused, `DraftShape`), and returns the problems with the save (`problems` on the template version, `workflowProblems`
-on the job). Only the Test tab and Publish wait for the fix: a template publish and a job's first publish validate
+on the job). Only Try it and Publish wait for the fix: a template publish and a job's first publish validate
 again and refuse. A save to an open job's workflow is live at once, so it is validated like a publish. The editor still
 holds unsaved work in the page and asks before leaving it. It lists the open problems in a "Problems to fix" panel above
-every tab but Test; a read-only view lists a stored version's in a "Problems" panel. An Add a tag step asks for its tag
+every tab but Try it; a read-only view lists a stored version's in a "Problems" panel. An Add a tag step asks for its tag
 first, and a step left empty is dropped with Undo, so a blank step is never a problem. Saving with no changes sends
 nothing, because each save of a job's workflow is a new version.
 
@@ -472,7 +477,7 @@ nothing, because each save of a job's workflow is a new version.
 
 - `GET/POST /v1/templates`, `POST /v1/templates/{id}/versions`, `POST /v1/templates/{id}/versions/{v}/publish`
 - `POST /v1/jobs` (from template version), `PUT /v1/jobs/{id}/workflow`, `PUT /v1/jobs/{id}/ai-use`, `POST /v1/jobs/{id}/workflow/apply-template-update`
-- `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`
+- `POST /v1/workflows/validate`, `POST /v1/workflows/simulate`, `POST /v1/workflows/test-emails`
 - `POST /v1/jobs/{id}/applications` (add a candidate by hand) and `POST /v1/jobs/{id}/applications/resume-uploads`
   (its resume's upload link), both Add candidates
 - `POST /v1/applications/{id}/move`, `GET /v1/applications/{id}/timeline`, `POST /v1/applications/{id}/notes`,
@@ -977,6 +982,12 @@ name; the worker builds the careers URL from the same `ScreenHire:Domains` setti
 **Validate and simulate.** `POST /v1/workflows/validate` returns the validator's errors with their paths, 200 either
 way. `POST /v1/workflows/simulate` refuses an invalid workflow, then runs a sample facts snapshot through the same
 evaluator for one trigger and lists each triggered automation's outcome, rule results and actions.
+`POST /v1/workflows/test-emails` is Try it's Send me these emails: up to five of the organization's email templates,
+in their current wording with the sample candidate, sent to the signed-in person's own address and nobody else's, each
+subject starting `[Test]`. Any template may go, the rejection and form emails included, because Try it shows them. Every
+member may use it, since it reaches only their own inbox; a fixed window of 5 sends per person each 10 minutes
+(`try-it-emails`) keeps it from flooding one, and with no email sender configured it is a 404 and Try it hides the
+button.
 
 **Decisions that differ from the text above.**
 

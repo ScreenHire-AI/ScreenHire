@@ -690,7 +690,7 @@ internal static class EmailEndpoints
 
     // Every email to a candidate ends with the link to their page, which only the worker can issue. A preview or a test
     // shows the line with the page where anyone asks for such a link, so the team sees what the candidate's email says.
-    private static EmailMessage WithPortalFooter(EmailMessage message, DomainOptions domains, string organizationSlug) =>
+    internal static EmailMessage WithPortalFooter(EmailMessage message, DomainOptions domains, string organizationSlug) =>
         domains.CareersHostPattern.Contains("{tenant}", StringComparison.Ordinal)
             ? CandidatePortalFooter.Append(message, domains.PortalEntryUrl(organizationSlug))
             : message;

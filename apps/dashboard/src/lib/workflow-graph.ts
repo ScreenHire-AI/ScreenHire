@@ -6,7 +6,7 @@
 // Edits made in the graph are the functions at the end of this file, each a change to the workflow that the next
 // projection shows.
 import type { Edge, Node } from '@xyflow/svelte';
-import type { DefinitionError, EvaluationOutcome, HiringWorkflow } from '@screenhire/api-client';
+import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
 import { ruleTitle, triggerTitle } from './automation-sentence.js';
 import { describeAction, emailTemplateNames, errorsUnder, factsFor, isTerminal, newAction, newAutomation, newRule, placeOf } from './workflow.js';
 
@@ -601,9 +601,6 @@ export function arrowhead(points: readonly Point[]): string {
   return `M${tip.x} ${tip.y}L${base.x + side.x} ${base.y + side.y}L${base.x - side.x} ${base.y - side.y}Z`;
 }
 
-/** What a test ran on: its result stops applying when this changes. */
-export const definitionStamp = (workflow: Pick<HiringWorkflow, 'stages' | 'automations'>) => JSON.stringify([workflow.stages, workflow.automations]);
-
 /** The ids of the nodes and lines a hover, a focus or a test lights, and so what everything else quietens. */
 export interface Path {
   nodes: Set<string>;
@@ -655,33 +652,6 @@ export function pathOf(graph: Pick<Graph, 'nodes' | 'edges'>, id: string): Path 
     if (edge.data?.automationId !== automationId) continue;
     path.edges.add(edge.id);
     if (edge.data.kind === 'moves') add(edge.target);
-  }
-  return path;
-}
-
-/**
- * The path a test took (design system section 11, workflow graph): an automation that would run lights its whole chain;
- * one whose conditions do not hold stops at its conditions; a skipped or blocked one lights only its trigger. A plus and
- * its dashed line are places to add a step, not steps, so a test never lights them.
- */
-export function testedPath(graph: Pick<Graph, 'nodes' | 'edges'>, tested: ReadonlyMap<string, EvaluationOutcome>): Path {
-  const path = emptyPath();
-  for (const [automationId, outcome] of tested) {
-    const trigger = graph.nodes.find((node) => node.id === triggerNode(automationId));
-    if (!trigger) continue;
-    if (outcome === 'Matched') {
-      const whole = pathOf(graph, trigger.id);
-      for (const node of graph.nodes) if (whole.nodes.has(node.id) && !isAdd(node.data.kind)) path.nodes.add(node.id);
-      for (const edge of graph.edges) if (whole.edges.has(edge.id) && edge.data?.kind !== 'stub') path.edges.add(edge.id);
-      continue;
-    }
-    path.nodes.add(headerNode(trigger.data.band));
-    path.nodes.add(trigger.id);
-    path.edges.add(`${automationId}:fires-on`);
-    if (outcome === 'NotMatched' && graph.nodes.some((node) => node.id === `${automationId}:conditions`)) {
-      path.nodes.add(`${automationId}:conditions`);
-      path.edges.add(`${automationId}:to-conditions`);
-    }
   }
   return path;
 }

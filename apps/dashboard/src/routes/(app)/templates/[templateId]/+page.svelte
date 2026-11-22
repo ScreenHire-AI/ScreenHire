@@ -298,7 +298,7 @@
       {:else if detail.archived}
         <Button size="lg" onclick={() => setArchived(false)} disabled={busy}><ArchiveRestoreIcon aria-hidden="true" />Restore</Button>
       {:else if isDraft}
-        <!-- A draft with problems saves; only Test and Publish wait for them, and the Fix button beside the title says why. -->
+        <!-- A draft with problems saves; only Try it and Publish wait for them, and the Fix button beside the title says why. -->
         <!-- It goes off and on with every edit, so it does not fade: a half-faded button reads as a contrast failure to a checker that looks mid-change. -->
         <Button size="lg" class="transition-none" onclick={publishDraft} disabled={busy || !draft.ready}><SendIcon aria-hidden="true" />Publish</Button>
       {:else if draftVersion}
@@ -443,11 +443,11 @@
           <WorkflowEditor
             bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
             errors={draft.errors}
-            checking={draft.checking}
             bind:tab={workflowTab.value}
             hrefOf={(tab) => workflowTab.href(tab)}
             {aiUse}
             templateId={params.templateId}
+            finish={{ label: 'Looks good, publish', run: publishDraft, disabled: busy || !draft.ready }}
           />
         {:else}
           <WorkflowSummary workflow={draft.workflow} errors={draft.errors} tab={workflowTab.value} hrefOf={(tab) => workflowTab.href(tab)} {aiUse} />

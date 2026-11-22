@@ -494,6 +494,8 @@ export * from './testEmailSent.ts';
 export * from './timeToHire.ts';
 export * from './toastKind.ts';
 export * from './triggerType.ts';
+export * from './tryItEmailsRequest.ts';
+export * from './tryItEmailsSent.ts';
 export * from './updateAccountNotificationsRequest.ts';
 export * from './updateAccountPreferencesRequest.ts';
 export * from './updateAiUsageLimitsRequest.ts';

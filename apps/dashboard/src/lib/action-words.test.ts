@@ -1,4 +1,4 @@
-// A step in plain words (action-words.ts), as the Test drive says it. Generated text never names a person
+// A step in plain words (action-words.ts), as Try it says it. Generated text never names a person
 // (docs/design/redesign-2026-11.md, Setup picks 1): a reviewer is "the team".
 import type { Automation, HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';

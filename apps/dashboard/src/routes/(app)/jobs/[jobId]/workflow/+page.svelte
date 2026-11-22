@@ -230,10 +230,10 @@
           <WorkflowEditor
             bind:workflow={() => draft.workflow!, (value) => (draft.workflow = value)}
             errors={draft.errors}
-            checking={draft.checking}
             bind:tab={workflowTab.value}
             hrefOf={(tab) => workflowTab.href(tab)}
             {aiUse}
+            finish={draft.dirty ? { label: 'Looks good, save', run: saveWorkflow, disabled: save.isPending } : undefined}
           />
         {/if}
       </div>

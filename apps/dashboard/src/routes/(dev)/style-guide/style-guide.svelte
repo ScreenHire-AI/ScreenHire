@@ -24,7 +24,7 @@
   import UserPlusIcon from '~icons/lucide/user-plus';
   import UserRoundIcon from '~icons/lucide/user-round';
   import UsersIcon from '~icons/lucide/users';
-  import type { ApplicationFileSummary, ApplicationInterview, CurrentOrganization, HiringWorkflow, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, SimulateWorkflowRequest, WorkflowSimulationResult, WorkflowStage } from '@screenhire/api-client';
+  import type { ApplicationFileSummary, ApplicationInterview, CurrentOrganization, HiringWorkflow, HistoryEntry, ScorecardEntry, SignalEvidence as Evidence, WorkflowStage } from '@screenhire/api-client';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import ActionBar from '#lib/components/action-bar.svelte';
@@ -116,10 +116,13 @@
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import { Toggle } from '#lib/components/ui/toggle/index.js';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
-  import GuidedTest from '#lib/components/workflow/guided-test.svelte';
+  import TryItEnd from '#lib/components/workflow/try-it-end.svelte';
+  import TryItStage from '#lib/components/workflow/try-it-stage.svelte';
+  import TryItStart from '#lib/components/workflow/try-it-start.svelte';
   import StageFlow from '#lib/components/workflow/stage-flow.svelte';
   import { formatDate, hour, day, minute } from '#lib/dates.js';
   import type { Tracker, TrackerStep } from '#lib/pipeline-tracker.js';
+  import { trackerAt, type Thing } from '#lib/try-it.js';
   import { applyFormKinds, scorecardKinds } from '#lib/form-builder.js';
   import { pendingState, verificationStateOf } from '#lib/verification.js';
   import { mentionToken, type PickedMention } from '#lib/mentions.js';
@@ -376,7 +379,7 @@
     { id: 'tell', name: 'Tell the team', trigger: { type: 'StageEntered', stageId: 'phone-screen' }, conditions: null, actions: [{ type: 'NotifyTeam', note: 'Screened' }] },
     { id: 'offer', name: 'Tag offered', trigger: { type: 'StageEntered', stageId: 'offer' }, conditions: null, actions: [{ type: 'AddTag', tag: 'offered' }] },
   ];
-  // The guided test's workflow, and an answer in place of the simulate endpoint: every automation of the moment would run.
+  // Try it's workflow: a must-have question, so all four cards show, and a stage with a task and a tag.
   const guideWorkflow: HiringWorkflow = {
     stages: flowStages,
     questionnaire: {
@@ -393,11 +396,12 @@
       },
     ],
   };
-  const guideRun = async (request: SimulateWorkflowRequest): Promise<WorkflowSimulationResult> => ({
-    automations: request.workflow.automations
-      .filter((automation) => automation.trigger.type === request.trigger.type && (automation.trigger.stageId ?? null) === (request.trigger.stageId ?? null))
-      .map((automation) => ({ automationId: automation.id, name: automation.name, outcome: 'Matched' as const, rules: [], actions: automation.actions, reason: null })),
-  });
+  const tryStage = flowStages[1]!;
+  const tryThings: Thing[] = [
+    { kind: 'task', text: 'Adds the tag "screened"', action: 'AddTag' },
+    { kind: 'task', text: 'Tells the team', action: 'NotifyTeam' },
+    { kind: 'decide', text: 'You decide when Jordan moves on.' },
+  ];
   const manyStages: WorkflowStage[] = Array.from({ length: 20 }, (_, index) => ({
     id: `stage-${index + 1}`,
     name: `Stage ${index + 1}`,
@@ -959,15 +963,31 @@
         <div class="max-w-form"><AutomationDemo part="list" /></div>
       </Panel>
 
-      <Panel title="Guided test">
+      <Panel title="Try it">
         <div class="flex flex-col gap-6">
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">One question at a time, with the progress above it; an answer is a card, and pressing it moves on</figcaption>
-            <GuidedTest workflow={guideWorkflow} run={guideRun} />
+            <figcaption class="text-caption text-muted-foreground">Who is applying: a card chooses and starts</figcaption>
+            <TryItStart workflow={guideWorkflow} onchoose={() => {}} onsend={() => {}} />
           </figure>
           <figure class="flex flex-col gap-2">
-            <figcaption class="text-caption text-muted-foreground">A workflow with no automations has nothing to test yet</figcaption>
-            <GuidedTest workflow={{ ...guideWorkflow, automations: [] }} run={guideRun} onadd={() => {}} />
+            <figcaption class="text-caption text-muted-foreground">One stage at a time: the rail, at most three things, one button</figcaption>
+            <TryItStage
+              stage={tryStage}
+              tracker={trackerAt(guideWorkflow, tryStage.id)}
+              things={tryThings}
+              next={flowStages[2]}
+              wait={3}
+              templates={new Map()}
+              organizationName="Brightwater Studio"
+              onnext={() => {}}
+              onwait={() => {}}
+              onsend={() => {}}
+              onrestart={() => {}}
+            />
+          </figure>
+          <figure class="flex flex-col gap-2">
+            <figcaption class="text-caption text-muted-foreground">The end: the process in a line, then publish or change a stage</figcaption>
+            <TryItEnd stages={flowStages} visited={3} emails={2} finish={{ label: 'Looks good, publish', run: () => {} }} onchange={() => {}} onrestart={() => {}} />
           </figure>
         </div>
       </Panel>

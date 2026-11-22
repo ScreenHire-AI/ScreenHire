@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { DefinitionError, EvaluationOutcome, HiringWorkflow } from '@screenhire/api-client';
+  import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
   import { Background, Panel, SvelteFlow, type Edge } from '@xyflow/svelte';
   import { untrack } from 'svelte';
@@ -7,7 +7,7 @@
   import { Button } from '#lib/components/ui/button/index.js';
   import { preferences } from '#lib/preferences.svelte.js';
   import { emailTemplateNames } from '#lib/workflow.js';
-  import { VIEW_INSET, canConnect, pathOf, testedPath, toGraph, type StepNode } from '#lib/workflow-graph.js';
+  import { VIEW_INSET, canConnect, pathOf, toGraph, type StepNode } from '#lib/workflow-graph.js';
   import GraphControls from './graph-controls.svelte';
   import GraphFit from './graph-fit.svelte';
   import GraphKeys from './graph-keys.svelte';
@@ -19,7 +19,7 @@
   // workflow on every change and nothing in it is stored. The stages run left to right and each stage's automations
   // hang beneath it, read down as When, If, Then; every line has an arrowhead and the flow runs one way. With `actions`
   // (the builder) a node is a button that opens what it stands for, and a plus where a condition, an action or an
-  // automation would go adds one. Hovering or focusing a node lights its path; `tested` lights the path a test took.
+  // automation would go adds one. Hovering or focusing a node lights its path.
   // Every node is a tab stop, and the arrow keys move between nodes (GraphKeys). Nothing needs dragging: the wheel or
   // trackpad pans (panOnScroll), the controls zoom and fit, and a link drawn from a "move to a stage" action to a stage
   // is only a shortcut for the action's Stage field (WCAG 2.5.7). A phone does not draw the graph: its tab is the List
@@ -28,16 +28,10 @@
     workflow,
     errors,
     actions,
-    tested,
-    onclear,
   }: {
     workflow: HiringWorkflow;
     errors: readonly DefinitionError[];
     actions?: GraphActions;
-    /** The outcome of each automation in the last test, whose path is lit while nothing is hovered or focused. */
-    tested?: ReadonlyMap<string, EvaluationOutcome>;
-    /** Drops the test's path from the graph. */
-    onclear?: () => void;
   } = $props();
 
   const nodeTypes = { step: StepNodeView };
@@ -51,14 +45,13 @@
   // It starts at the top left at full size until GraphFit has the pane's size to fit the workflow to.
   const initialViewport = { x: VIEW_INSET.left, y: VIEW_INSET.top, zoom: 1 };
 
-  // Which path is lit: the node under the pointer, else the one with the focus, else the path a test took.
+  // Which path is lit: the node under the pointer, else the one with the focus.
   const light = providePathLight();
   let hovered = $state<string | null>(null);
   let focused = $state<string | null>(null);
   const lit = $derived.by(() => {
     const active = hovered ?? focused;
-    if (active) return pathOf(graph, active);
-    return tested && tested.size > 0 ? testedPath(graph, tested) : null;
+    return active ? pathOf(graph, active) : null;
   });
   $effect(() => light.set(lit));
 
@@ -105,12 +98,6 @@
   const onfocusout = () => (focused = null);
 </script>
 
-{#if tested && tested.size > 0 && onclear}
-  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle px-4 py-2">
-    <p>Showing the path of your last test.</p>
-    <Button variant="outline" size="sm" data-graph-clear onclick={onclear}>Clear</Button>
-  </div>
-{/if}
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   bind:this={root}

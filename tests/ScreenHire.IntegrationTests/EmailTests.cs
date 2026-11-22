@@ -134,6 +134,35 @@ public sealed class EmailTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Try_it_sends_a_stages_emails_to_the_signed_in_person_alone_marked_as_tests_and_rate_limited()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        var me = (await owner.Session.CurrentUserAsync(Ct))!.Value.GetProperty("email").GetString()!;
+        var marker = Guid.NewGuid().ToString("N")[..8];
+        (await owner.PutAsync("/v1/email-templates/application-received", Wording($"Thanks {marker}, {{{{ candidateName }}}}", "Hi {{ candidateName }}, we have it.")))
+            .Expect(HttpStatusCode.OK);
+
+        // The rejection email goes too: Try it shows it, so a person may see it in their own inbox.
+        var sent = (await owner.PostAsync("/v1/workflows/test-emails", new JsonObject { ["templateIds"] = new JsonArray("application-received", "application-rejected") }))
+            .Expect(HttpStatusCode.OK);
+        sent.Text("to").Should().Be(me);
+        sent.At("count").GetInt32().Should().Be(2);
+        var received = await WaitForSubjectAsync(me, marker);
+        received.Subject.Should().Be($"[Test] Thanks {marker}, Jordan Lee");
+        received.Text.Should().Contain("Hi Jordan Lee, we have it.");
+
+        // Every request counts against the person's few sends, a refused one included.
+        (await owner.PostAsync("/v1/workflows/test-emails", new JsonObject { ["templateIds"] = new JsonArray("no-such-template") }))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("templateIds");
+        (await owner.PostAsync("/v1/workflows/test-emails", new JsonObject { ["templateIds"] = new JsonArray() }))
+            .Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("templateIds");
+        (await owner.PostAsync("/v1/workflows/test-emails", new JsonObject { ["templateIds"] = new JsonArray() })).Expect(HttpStatusCode.BadRequest);
+        (await owner.PostAsync("/v1/workflows/test-emails", new JsonObject { ["templateIds"] = new JsonArray() })).Expect(HttpStatusCode.BadRequest);
+        (await owner.PostAsync("/v1/workflows/test-emails", new JsonObject { ["templateIds"] = new JsonArray("application-received") }))
+            .Status.Should().Be(HttpStatusCode.TooManyRequests);
+    }
+
+    [Fact]
     public async Task Emailing_a_selection_sends_each_candidate_the_organizations_wording_and_records_it_in_activity()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();

@@ -16,7 +16,6 @@ import {
   nodeHeight,
   pathOf,
   routePath,
-  testedPath,
   toGraph,
   type Graph,
   type StepNode,
@@ -481,28 +480,6 @@ describe('reading a path', () => {
 
   it('lights nothing for a node it does not know', () => {
     expect(pathOf(graph, 'missing').nodes.size).toBe(0);
-  });
-
-  it('lights the path a test took: all of a match, up to the conditions of a miss, only the trigger of a skip', () => {
-    const matched = testedPath(graph, new Map([['advance', 'Matched' as const]]));
-    expect(matched.nodes.has('advance:action:1')).toBe(true);
-    expect(matched.nodes.has('stage:interview')).toBe(true);
-
-    const missed = testedPath(graph, new Map([['advance', 'NotMatched' as const]]));
-    expect([...missed.nodes].sort()).toEqual(['advance:conditions', 'advance:trigger', 'stage:screening']);
-    expect(missed.edges.has('advance:to-conditions')).toBe(true);
-
-    const skipped = testedPath(graph, new Map([['hello', 'Skipped' as const], ['gone', 'Matched' as const]]));
-    expect([...skipped.nodes].sort()).toEqual([LANE_NODE, 'hello:trigger'].sort());
-  });
-
-  it('never lights a plus or its dashed line for a test: they are places to add a step, not steps it took', () => {
-    const matched = testedPath(graph, new Map([['hello', 'Matched' as const]]));
-
-    expect([...matched.nodes].filter((id) => id.includes(':add-'))).toEqual([]);
-    expect([...matched.edges].filter((id) => id.includes(':stub-'))).toEqual([]);
-    expect(matched.nodes.has('hello:action:0')).toBe(true);
-    expect(pathOf(graph, 'hello:trigger').nodes.has('hello:add-action')).toBe(true);
   });
 });
 
