@@ -1017,6 +1017,7 @@ overview waits for the first job, and the empty state says what to do first and 
 | Tables | The date, so the column lines up and sorts | Oct 20, 2026 |
 | Older than 7 days | The date | Oct 3, 2026 |
 | A day coming up, in a line of words (the trial's end) | The day and month in full, no year, in the locale's order | December 5 (en-GB: 5 December) |
+| Days left (the trial) | Calendar days in the person's time zone, the same count in the bell and on Billing's plan card (`calendarDaysUntil`); "ends today" on the last day | Trial: 9 days left |
 | Last updated (T6) | Time ago and who, the exact time on hover; Created until the first change | 2 hours ago by Avery Quinn; Created 2 hours ago by Avery Quinn |
 
 Always the reader's locale. The dashboard uses the language, time zone and date format the person chose on Your account >
