@@ -160,7 +160,7 @@ public sealed class InterviewAvailability(ScreenHireDbContext db, CalendarAccess
     /// as busy time per interviewer (user id), leaving out the interview <paramref name="exceptInterviewId"/>. Read from the
     /// database each call, never from the change tracker, because the booking check runs it after taking the locks.
     /// </summary>
-    public async Task<Dictionary<Guid, List<BusyInterval>>> ConfirmedBusyAsync(
+    private async Task<Dictionary<Guid, List<BusyInterval>>> ConfirmedBusyAsync(
         IReadOnlyCollection<Guid> userIds, DateTimeOffset windowStart, DateTimeOffset windowEnd, Guid exceptInterviewId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(userIds);
@@ -173,6 +173,35 @@ public sealed class InterviewAvailability(ScreenHireDbContext db, CalendarAccess
             select new { attendee.UserId, Start = interview.StartsAt!.Value, End = interview.EndsAt!.Value })
             .ToListAsync(cancellationToken);
         return rows.GroupBy(r => r.UserId).ToDictionary(g => g.Key, g => g.Select(r => new BusyInterval(r.Start, r.End)).ToList());
+    }
+
+    /// <summary>
+    /// Whether ScreenHire's own bookings keep any of these interviewers from <paramref name="start"/> to <paramref name="end"/>:
+    /// an overlap, and with <paramref name="withHours"/> also what their own hours make of those bookings (the buffer
+    /// around each, a day at its maximum, time outside their hours). Read from the database, so the booking check runs it
+    /// after taking the locks, when another booking may have landed since the times were offered.
+    /// </summary>
+    public async Task<bool> BookingsKeepAsync(
+        IReadOnlyList<Guid> userIds, DateTimeOffset start, DateTimeOffset end, Guid exceptInterviewId, bool withHours, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(userIds);
+
+        // A day either side, so a booking just outside the span still counts toward its day's limit and its buffer.
+        var bookings = await ConfirmedBusyAsync(userIds, start.AddDays(-1), end.AddDays(1), exceptInterviewId, cancellationToken);
+        var hours = withHours
+            ? await db.InterviewHours.AsNoTracking().Where(h => userIds.Contains(h.UserId)).ToDictionaryAsync(h => h.UserId, cancellationToken)
+            : new Dictionary<Guid, InterviewHours>();
+        foreach (var userId in userIds)
+        {
+            IReadOnlyList<BusyInterval> booked = bookings.GetValueOrDefault(userId) ?? [];
+            IEnumerable<BusyInterval> busy = hours.GetValueOrDefault(userId) is { } own ? [.. booked, .. own.BusyTime(booked, start, end)] : booked;
+            if (busy.Any(b => b.Start < end && b.End > start))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -83,18 +83,18 @@ public static class IcsWriter
 
             if (!string.IsNullOrEmpty(ev.Url))
             {
-                lines.Add($"URL:{ev.Url}");
+                lines.Add($"URL:{Raw(ev.Url)}");
                 lines.Add($"LOCATION:{Text(ev.Url)}");
             }
 
             if (withPeople && ev.Organizer is { } organizer)
             {
-                lines.Add($"ORGANIZER{Name(organizer)}:mailto:{organizer.Email}");
+                lines.Add($"ORGANIZER{Name(organizer)}:mailto:{Raw(organizer.Email)}");
             }
 
             foreach (var attendee in withPeople ? ev.Attendees ?? [] : [])
             {
-                lines.Add($"ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE{Name(attendee)}:mailto:{attendee.Email}");
+                lines.Add($"ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE{Name(attendee)}:mailto:{Raw(attendee.Email)}");
             }
 
             lines.Add(ev.Cancelled ? "STATUS:CANCELLED" : "STATUS:CONFIRMED");
@@ -135,6 +135,9 @@ public static class IcsWriter
 
         return escaped.ToString();
     }
+
+    // A value written without text escaping (an address, a link), with the control characters that would end its line removed.
+    private static string Raw(string value) => new([.. value.Where(c => !char.IsControl(c))]);
 
     // A person's name as a CN parameter: quoted, with the quotes and control characters a parameter cannot hold removed.
     private static string Name(IcsPerson person) =>

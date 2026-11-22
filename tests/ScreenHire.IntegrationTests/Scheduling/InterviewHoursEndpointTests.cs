@@ -107,6 +107,26 @@ public sealed class InterviewHoursEndpointTests(AppHostFixture fixture)
         limited.Should().NotBeEmpty().And.Contain(s => s.UtcDateTime.Date != booked.UtcDateTime.Date);
     }
 
+    // Both times are offered while nothing is booked; the booking check under the locks is what keeps the buffer.
+    [Fact]
+    public async Task Two_candidates_racing_for_times_inside_each_others_buffer_book_one()
+    {
+        using var world = await InterviewWorld.CreateAsync(fixture);
+        (await world.Owner.PutAsync(HoursPath, Body("UTC", WeekdayHours("09:00", "17:00"), 30, null))).Expect(HttpStatusCode.OK);
+        var alone = new[] { world.Owner.UserId };
+        var (second, secondEmail) = await world.AddApplicationAsync();
+        var (_, firstToken) = await world.ScheduledAsync(interviewers: alone);
+        var (_, secondToken) = await world.ScheduledAsync(second, secondEmail, alone);
+        var firstSlots = await SlotsAsync(world, firstToken);
+        var start = firstSlots.First(s => s >= DateTimeOffset.UtcNow.AddDays(2) && firstSlots.Contains(s.AddMinutes(30)));
+        (await SlotsAsync(world, secondToken)).Should().Contain(start.AddMinutes(30), "both are offered before either books");
+
+        var results = await Task.WhenAll(world.BookAsync(firstToken, start), world.BookAsync(secondToken, start.AddMinutes(30)));
+
+        results.Count(r => r.Status == HttpStatusCode.NoContent).Should().Be(1, "the second half hour is inside the first's 30 minute buffer");
+        results.Single(r => r.Status != HttpStatusCode.NoContent).Text("type").Should().Be("slot_taken");
+    }
+
     [Fact]
     public async Task An_interviewer_with_hours_and_no_calendar_can_be_offered_times_where_one_with_neither_cannot()
     {

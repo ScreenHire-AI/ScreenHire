@@ -131,8 +131,9 @@ public sealed class InterviewBooking(ScreenHireDbContext db, InterviewAvailabili
         // An interviewer may have left while this waited, and writing to their removed row would fail the booking.
         attendees = await LoadAttendeesAsync(interviewId, cancellationToken);
         var end = start + interview.Duration;
-        var taken = await availability.ConfirmedBusyAsync(userIds, start, end, interview.Id, cancellationToken);
-        if (taken.Count > 0)
+        // Our times were offered inside each interviewer's own hours, so the check repeats them: a booking that landed while
+        // this waited can put the time in its buffer or fill the day. A person chose the other options' times (above).
+        if (await availability.BookingsKeepAsync(userIds, start, end, interview.Id, withHours: interview.Option == InterviewOption.OurTimes, cancellationToken))
         {
             return new InterviewBookingResult(InterviewBookingOutcome.SlotTaken, interview, attendees);
         }

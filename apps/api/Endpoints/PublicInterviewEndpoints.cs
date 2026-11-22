@@ -197,6 +197,12 @@ internal static class PublicInterviewEndpoints
             return closed;
         }
 
+        // A body far past the limit is refused before the locks and the grid of allowed times; the exact count is checked below.
+        if (suggestion.Times?.Count > InterviewRequest.MaxSuggestedTimes * 2)
+        {
+            return Problem(StatusCodes.Status409Conflict, "too_many_times", "Choose fewer times", "Choose at most 5 times.");
+        }
+
         var attendeeUsers = await db.InterviewAttendees.AsNoTracking().Where(a => a.InterviewId == interview.Id).Select(a => a.UserId).ToListAsync(cancellationToken);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await InterviewLocks.TakeAsync(db, interview.OrganizationId, attendeeUsers, cancellationToken);
