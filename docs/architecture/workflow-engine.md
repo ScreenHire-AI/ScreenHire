@@ -102,6 +102,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/workflow-summary.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-flow.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-form.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/automation-name.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-sentence.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-blank.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-recipes.svelte
@@ -111,6 +112,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/stage-cards.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-sheet.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-fact-list.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/stage-chips.svelte
   - resource: apps/dashboard/src/lib/components/workflow/try-it-stage.svelte
   - resource: apps/dashboard/src/lib/components/workflow/try-it-email.svelte
   - resource: apps/dashboard/src/lib/components/workflow/problem-notice.svelte
@@ -209,8 +211,10 @@ Organization
   scorecard on its Trial shift stage and emails a "Before your trial shift" questionnaire on entering it. It ships no "Offer an interview"
   automation, because that names interviewers, who are an organization's members: the recruiter offers times from the candidate's page.
   "Trade role with a trial shift" has three versions: the second adds the Trial shift scorecard to its trial stage, and the third names that
-  stage's meeting "trial shift" (`meetingName`), as "Hospitality" does from its version 2 (`AddTrialShiftMeetingNames`). The card copies the
-  newest. Choosing one is `POST /v1/templates` with `copyFromVersionId`; "Start from nothing" is the basic pipeline.
+  stage's meeting "trial shift" (`meetingName`), as "Hospitality" does from its version 2 (`AddTrialShiftMeetingNames`). Every system
+  template's newest version (Software engineer 6, Hourly role 4, Office role 2, Trade role 4, High volume 2, Hospitality 3) is the one before
+  with its automations' short names, because the Pipeline tab lists automations by name: "Right-to-work check", "Verification review" and "New
+  application alert", by automation id, with nothing else changed (`ShortenSystemAutomationNames`). The card copies the newest. Choosing one is `POST /v1/templates` with `copyFromVersionId`; "Start from nothing" is the basic pipeline.
 - **Archived templates.** An organization archives its own hiring template or library scorecard
   (`POST .../archive`, `.../unarchive`): it leaves the pickers, no new job starts from it (`POST /v1/jobs` answers 400),
   and it reads only until restored (409 on an edit). Jobs keep the copy they took, and stages that name an archived
@@ -293,9 +297,10 @@ TimeElapsed triggers → scheduled durable messages, cancelled when the stage is
 
 ## 4. Builder UX (dashboard)
 
-- **Pipeline** (first, SMB-friendly): the stages as cards, each read back as short facts (how soon to respond, the emails
-  it sends, each automation as a short label, the questions), each opening a sheet for its name, time limit, scorecard
-  and automations, with the automations that belong to no stage and the end stages in a row each under them.
+- **Pipeline** (first, SMB-friendly): the stages as a flow of cards, each its name and one row of chips that count what
+  happens there (how soon to respond, its automations, emails and questions, its scorecard), each count opening a list of
+  names, each card opening a sheet for its name, time limit, scorecard and automations, with the automations that belong
+  to no stage and the end stages in a row each under them.
 - **Automations** (the map and the list): the map is the overview, showing triggers → conditions → actions across
   stages in short plain words; a phone gets the list. Pressing an automation edits it as one sentence with blanks, and
   Add automation opens ready-made recipes. Same underlying model; the map is a projection, not a separate format.
@@ -316,7 +321,7 @@ pipeline (design system W13): the job's Edit pipeline, Save pipeline. A workflow
 published version, a closed job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no
 form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (design system section 11, Stage flow). The validation result is a Needs fixes badge beside the page title, shown only when there is a problem, with a Fix button beside it on every tab but Test.
 
-- **Pipeline:** `stage-cards.svelte`, the open stages as cards joined by a line (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`; the end stages keep their place after them), with a plus on the line between cards to insert one. Each card's facts come from `#lib/stage-facts.ts` (`stageFacts`, drawn by `stage-fact-list.svelte`), one a line: "Respond within 3 days" (`respondWithin`, through `timeLimitLabel`), the meeting when its name is not the stage's, each email sent, each form sent (a `form` fact for an automation that only sends forms, "Sends "Screening questionnaire""), each other automation that is on as a short label (`automationLabel`: the condition in short from `ruleShort`, then the steps, "Right to work: No, team looks first"), "Asks 6 questions" on the first stage, and the scorecard. The stage's own reminder is the Respond within line. An automation's line links to `?tab=automations&show=<id>`, which the editor reads to open that automation as a sentence. Under the cards, `anyStageFacts` is the Any stage row and the end stages are the Ends row. The read-only `stage-flow.svelte` draws the same facts as text. The stage's name is a button with a pencil and the tooltip "Edit <stage>", and opens `stage-sheet.svelte`: name, Respond within as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other) with what it means under it ("After that they show as Overdue. Nothing happens to the candidate."), then "When overdue" with the labels of what runs when it passes (`whenOverdue`), or "Nothing yet." with Add a reminder, which adds a `SlaBreached` automation for the stage that tells the team and opens it on the Automations tab (never on a stage a check moves candidates into), scorecard, "What the meeting is called" (on every stage where a team meets a candidate: not Applied, Offer or a terminal stage), the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
+- **Pipeline:** `stage-cards.svelte`, the open stages as cards joined by a line (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`; the end stages keep their place after them), with a plus on the line between cards to insert one. The cards share the panel's width in equal columns from CSS (container units against the number of stages, as `stage-flow.svelte` does), joined by a connector with an arrow. Each card's chips come from `#lib/stage-facts.ts` (`stageChips`, drawn by `stage-chips.svelte`): the time limit ("Respond within 3 days", `respondWithin`, through `timeLimitLabel`), which opens the stage's sheet; the automations that are on, by their own names; the emails it sends, by template name; the questions its forms ask (the application form's on the first stage, plus each form an automation sends on entering it); and the scorecard. No sentence is generated for the card. An automation that only sends forms counts as those forms only while every form it names is still in the workflow; otherwise it counts as an automation by its own name, so a stage where something runs never says nothing happens. Each count opens a popover listing its items, each linking to `?tab=automations&show=<id>`, which the editor reads to open that automation in its sheet, or to `?tab=forms&form=<id>`. A plain click on an item opens it in the page instead (`onshow`, and `onshowform`, which sets the Forms tab's `selected` form in `workflow-editor.svelte`, because that tab is already mounted and reads `form` from the address only once); a modified click follows the link. The stage's own reminder is its time limit and is not counted. A stage with nothing on it says "Nothing happens automatically". Under the cards, `anyStageChips` is the Any stage row and the end stages are the Ends row, outline buttons that open their sheet. The read-only `stage-flow.svelte` draws the same chips, whose lists are text. The stage sheet still lists its automations as short labels (`stageFacts`, `automationLabel` and `whenOverdue`, drawn by `stage-fact-list.svelte`), because the sheet is where the detail is read. The stage's name is a button with a pencil and the tooltip "Edit <stage>", and opens `stage-sheet.svelte`: name, Respond within as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other) with what it means under it ("After that they show as Overdue. Nothing happens to the candidate."), then "When overdue" with the labels of what runs when it passes (`whenOverdue`), or "Nothing yet." with Add a reminder, which adds a `SlaBreached` automation for the stage that tells the team and opens it on the Automations tab (never on a stage a check moves candidates into), scorecard, "What the meeting is called" (on every stage where a team meets a candidate: not Applied, Offer or a terminal stage), the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
   team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
   the workflow: on the Templates page's Scorecards tab (`/templates/scorecards/{id}`), in the form builder
@@ -349,8 +354,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     call") with the automation's name under it, an If node's is its conditions (`ruleTitle`: "Right to work is No",
     "Verification is Review or Verify") and a Then node's the step. A node's accessible name keeps the automation's name
     right after the word, so "When Fast-track referrals" names the trigger node. With the editor the whole node is one
-    button, so it is the node's only tab stop: an automation's node opens the automation as a sentence
-    (`automation-sentence.svelte`) at the node's part (its trigger, its conditions or that action); the Any stage band or a stage
+    button, so it is the node's only tab stop: an automation's node opens the automation's sheet, on the tab chosen last or on Rules when it is
+    too complex for a sentence (`sentenceLimit`), at the node's part (its trigger, its conditions or that action); the Any stage band or a stage
     opens its automations as rows. A version that cannot be edited draws the same nodes as a focusable box with no
     buttons. A phone does not draw the map: the Automations tab is the list there (see **List and sheets**).
   - **Plus buttons.** Where a thing would go there is a plus, only while editing and once the workflow has an
@@ -380,18 +385,21 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   - **Links.** A "move to a stage" action also points at its stage by drawing a link from its right edge to a stage, a
     pointer shortcut for the form's Stage field (`connect`), never the only way (WCAG 2.5.7).
   - A validation message shows on the node its path names, an automation's own messages on its trigger node, as it does
-    under the sentence. Removing an automation is the Remove on its rules form (Edit as rules).
+    under the sentence. Removing an automation is Remove automation on its Rules tab.
   - **List and sheets.** The panel header has a List | Map switch and Add automation (`automations-panel.svelte`); the
     list (`automation-list.svelte`) groups the automations as the map does, by stage and then Any stage, with each one's
-    sentence, and a phone shows only it. One sheet in `workflow-editor.svelte` has three views: a stage's or Any stage's
-    automations as rows, the recipes, and one automation.
+    sentence, and a phone shows only it. One sheet in `workflow-editor.svelte`, one width in every view, has three views: a
+    stage's or Any stage's automations as rows, the recipes, and one automation: its Name and On (`automation-name.svelte`)
+    over two tabs, Sentence and Rules, that edit the same automation. Every automation opens on the tab the person chose
+    last (`preferences.automationView`, in the browser); one too complex for a sentence (`sentenceLimit`: a rejection, or
+    a condition on a fact its trigger does not offer) opens on Rules, and its Sentence tab says why.
   - **The sentence.** `automation-sentence.svelte` reads one automation as "When [someone applies] and [their answer to
     Right to work is No], [ask the team to review] and [add the tag ...]", from `sentenceOf` in
     `#lib/automation-sentence.ts`, which returns text and blanks; each blank holds its choices and an `apply` that returns
     the automation with that choice made, so the definition is the only thing stored and the validator stays the judge.
     The facts are grouped as Their answers, The application and ScreenHire's checks; a fixed list of values is ticked,
-    one value stored as is and two or more as is one of. The sheet has Name, On and Done; Edit as rules swaps in
-    `automation-form.svelte` in place, and Remove is there.
+    one value stored as is and two or more as is one of. The Rules tab is `automation-form.svelte`, When, If and
+    Then as three wells, with Remove automation at its foot.
   - **What a move sets off.** `enteringLines` in the same module says what entering a stage does, one sentence per
     automation that fires on it, in the list's words ("Send the "Moved to the next step" email."). The dashboard asks
     with it before a move (`createMoves`, `move-confirm-dialog.svelte`), unless the person ticked Don't ask again. An
@@ -414,8 +422,9 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     the same trigger and conditions and at least its actions) or one with its id `recipe-<key>` (cut, with a short hash of the key, to the validator's 40 characters), and when adding it
     would create a refused step.
 - **Forms:** the Form cards across the top (`form-cards.svelte`, design system section 11) have a card for the
-  application form and one for each other form, each its name, when it is sent and its question count ("Screening
-  questionnaire", "Sent when they enter Screening", "4 questions"), with New form last. When a form is sent is the form's
+  application form and one for each other form, each two rows: its name with its question count as a badge, then when
+  it is sent as a chip with its icon (`whenShort` and `moment` from `timelineOf`: "When they apply", "Entering Screening",
+  "3 days after Offer", "By hand only"), with New form last. When a form is sent is the form's
   own choice (`form-send-moment.svelte`): When they apply, When they enter a stage, Some days after they enter a stage, or
   Only when sent by hand. Choosing one rewrites the automation behind it (`setSendMoment` in `#lib/forms-timeline.ts`: the
   automations that only send this form go, and one `ApplicationSubmitted`, `StageEntered` or `TimeElapsed` automation

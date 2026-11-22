@@ -97,7 +97,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Edit", Exact = true }).ClickAsync();
 
         // An automation on the verification checks, written as a sentence. Once it reads a check, the choices never offer a
-        // rejection or an email; Edit as rules is where the API's guardrail refuses one.
+        // rejection or an email; the Rules tab is where the API's guardrail refuses one.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
         await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" }).GetByRole(AriaRole.Button, new() { Name = "Add an automation", Exact = true }).ClickAsync();
         var recipes = Page.GetByRole(AriaRole.Dialog, new() { Name = "Add an automation" });
@@ -122,7 +122,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.Keyboard.PressAsync("Escape");
         await Expect(steps).ToBeHiddenAsync();
 
-        await drawer.GetByRole(AriaRole.Button, new() { Name = "Edit as rules" }).ClickAsync();
+        await drawer.GetByRole(AriaRole.Tab, new() { Name = "Rules" }).ClickAsync();
         var firstAction = drawer.GetByRole(AriaRole.Combobox, new() { NameRegex = new Regex("^Action 1") });
         await firstAction.SelectOptionAsync(new SelectOptionValue { Label = "Reject" });
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Reason", Exact = true }).FillAsync("The role needs a verified identity.");
@@ -139,10 +139,14 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
 
-        // The Pipeline tab says it on the first stage, in a few words.
+        // The Pipeline tab counts it on the first stage, and its list names it by its own name.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Group, new() { Name = "Stage 1: Applied" }))
-            .ToContainTextAsync("Verification: Verify, tag needs-review");
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Group, new() { Name = "Stage 1: Applied" })
+            .GetByRole(AriaRole.Button, new() { NameRegex = new Regex("automations? at Applied$") }).ClickAsync();
+        var applied = Page.GetByRole(AriaRole.Dialog, new() { NameRegex = new Regex("automations? at Applied$") });
+        await Expect(applied.GetByRole(AriaRole.Link, new() { Name = "Route for review" })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(applied).ToBeHiddenAsync();
 
         // The graph is the same workflow.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
@@ -162,6 +166,28 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
             var overlaps = box.X < toolbar.X + toolbar.Width && toolbar.X < box.X + box.Width && box.Y < toolbar.Y + toolbar.Height && toolbar.Y < box.Y + box.Height;
             overlaps.Should().BeFalse($"the zoom toolbar should not cover the node \"{await node.GetAttributeAsync("aria-label")}\"");
         }
+
+        // Opened from the map, the automation's sheet starts at its trigger with no tooltip open, on the tab chosen last (Rules,
+        // above). Switching to Sentence changes what is in it, never its width (the owner's walk-through, 2026-11-22).
+        var tooltips = Page.Locator("[data-slot=tooltip-content]");
+        var opened = Page.GetByRole(AriaRole.Dialog, new() { Name = "Route for review" });
+        await automation.ClickAsync();
+        await Expect(opened.GetByRole(AriaRole.Combobox, new() { Name = "Trigger" })).ToBeFocusedAsync();
+        await Expect(opened.GetByRole(AriaRole.Tab, new() { Name = "Rules" })).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(tooltips).ToHaveCountAsync(0);
+        var rulesWidth = (await opened.BoundingBoxAsync())!.Width;
+        await opened.GetByRole(AriaRole.Tab, new() { Name = "Sentence" }).ClickAsync();
+        await Expect(opened.Locator("[data-sentence]")).ToBeVisibleAsync();
+        (await opened.BoundingBoxAsync())!.Width.Should().BeApproximately(rulesWidth, 0.5f);
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(opened).ToBeHiddenAsync();
+        // Enter on the node opens it the same way, now on Sentence: the focus moves after a key, and still no tooltip opens.
+        await automation.FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(opened.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Trigger: ") })).ToBeFocusedAsync();
+        await Expect(tooltips).ToHaveCountAsync(0);
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(opened).ToBeHiddenAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-light");
 
@@ -244,11 +270,11 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Service plumber");
         await ExpectNoProblemsAsync();
 
-        // The Pipeline tab, first, reads each stage back as short facts.
+        // The Pipeline tab, first, counts what happens at each stage in chips, never sentences.
         var stages = Page.GetByRole(AriaRole.Region, new() { Name = "Stages" });
         await Expect(stages).ToContainTextAsync("Trial shift");
         await Expect(stages).ToContainTextAsync("Respond within 5 days");
-        await Expect(stages).ToContainTextAsync("Sends \"Application received\"");
+        await Expect(stages.GetByRole(AriaRole.Button, new() { Name = "1 email at Applied" })).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-pipeline-light");
 
@@ -479,7 +505,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var pipeline = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" });
         await Expect(pipeline.GetByRole(AriaRole.List, new() { Name = "Stages in order" })).ToBeVisibleAsync();
         await Expect(pipeline.Locator("input, select, textarea")).ToHaveCountAsync(0);
-        await Expect(pipeline.GetByRole(AriaRole.Button)).ToHaveCountAsync(0);
+        // Nothing edits: the only buttons are the counts that open their lists.
+        await Expect(pipeline.Locator("button:not([data-chip])")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-screenhire-light");
 
@@ -511,6 +538,9 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await HeaderBand.GetByRole(AriaRole.Button, new() { Name = "More actions" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Menuitem, new() { Name = "Save draft" })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
+        // The pointer still rests on More actions, which shows its tooltip once the menu lets go of the page: a hover, as it
+        // should be. The screenshot is of the page, so the pointer moves off to the title.
+        await Page.GetByRole(AriaRole.Heading, new() { Level = 1 }).HoverAsync();
         await ExpectNoProblemsAsync();
         await ExpectNoSidewaysScrollAsync();
         await ExpectNoAccessibilityViolationsAsync();
@@ -621,7 +651,9 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" })).ToContainTextAsync(new Regex("tag fast-track", RegexOptions.IgnoreCase));
+        await Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Button, new() { Name = "1 automation at Applied" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Dialog, new() { Name = "1 automation at Applied" }).GetByRole(AriaRole.Link, new() { Name = "Fast-track referrals" })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
 
         // The map at a laptop's and a tablet's width, and on a phone, which has the list in its place. The map opens at full size.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();

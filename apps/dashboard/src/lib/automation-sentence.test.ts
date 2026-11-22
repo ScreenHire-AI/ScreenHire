@@ -12,6 +12,7 @@ import {
   readSentence,
   relationChoices,
   ruleHoldsForTags,
+  sentenceLimit,
   sentenceOf,
   thenChoices,
   triggerTitle,
@@ -737,5 +738,26 @@ describe('enteringLines', () => {
 
     expect(lines).toEqual(['Add the tag "Look closer".']);
     expect(lines.join(' ')).not.toMatch(/verif|check/i);
+  });
+});
+
+describe('sentenceLimit', () => {
+  const applies = { type: 'ApplicationSubmitted' } as const;
+  const noRightToWork: AutomationCondition = { fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' };
+
+  it('is null for what a sentence says in full, however many parts it has', () => {
+    const long = automation('long', applies, [mail, { type: 'AddTag', tag: 'a' }, { type: 'AssignReviewer' }, { type: 'NotifyTeam', note: 'b' }], [noRightToWork, noRightToWork, noRightToWork], 'Any');
+    expect(sentenceLimit(flow([long]), 0)).toBeNull();
+    expect(sentenceLimit(flow([automation('queue', applies, [{ type: 'QueueForRejectionReview', reason: 'Not eligible' }], [noRightToWork])]), 0)).toBeNull();
+  });
+
+  it('names a rejection, whose review choice only Rules has', () => {
+    const knockout = { ...automation('knockout', applies, [{ type: 'Reject', reason: 'Not eligible' }], [noRightToWork]), allowAutoReject: true };
+    expect(sentenceLimit(flow([knockout]), 0)).toBe('Too complex for a sentence: it turns someone down, and whether a person reviews first is set on Rules.');
+  });
+
+  it('names a condition on something the trigger does not offer', () => {
+    const stray = automation('stray', applies, [mail], [{ fact: 'answers.gone', operator: 'EqualTo', value: 'yes' }]);
+    expect(sentenceLimit(flow([stray]), 0)).toBe('Too complex for a sentence: a condition checks something this trigger does not offer.');
   });
 });

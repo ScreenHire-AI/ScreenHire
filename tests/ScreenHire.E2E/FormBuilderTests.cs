@@ -10,7 +10,7 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The form builder on a job's own workflow (design system section 11, A7, A8): adding, duplicating, requiring and
-/// reordering and closing questions, the preview a step at a time at phone width and in its own window, and a File question a candidate then answers
+/// reordering and closing questions with the controls on an open question's line at one height, the preview a step at a time at phone width and in its own window, and a File question a candidate then answers
 /// on the careers apply page. Each test signs in as a new person with a new organization and a published job.
 /// </summary>
 public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -24,6 +24,9 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private static readonly byte[] Pdf = Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
     private static readonly string[] Gb = ["GB"];
+
+    /// <summary>The answer kinds the header line is measured with, ending on the question's own kind.</summary>
+    private static readonly string[] AnswerKinds = ["File", "Choice", "Link", "Short text", "Yes or no"];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -53,14 +56,21 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await AddQuestionAsync("Yes or no");
         await OpenText(3).FillAsync(RightToWork);
 
-        // The open question closes from Close question, beside its row menu, and from Done at its foot.
+        // The open question's header line holds its text, its answer kind, its row menu and Done, all one height on one
+        // row, whatever the kind (the owner's walk-through, 2026-11-22). Done there is the question's one Done.
+        foreach (var kind in AnswerKinds)
+        {
+            await questions.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Answer: ") }).ClickAsync();
+            // The open question's menu ticks its kind, so its items are radio items.
+            await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = kind, Exact = true }).ClickAsync();
+            await Expect(questions.GetByRole(AriaRole.Button, new() { Name = $"Answer: {kind}", Exact = true })).ToBeVisibleAsync();
+            await ExpectHeaderLineSharesOneHeightAsync();
+        }
+        await Expect(questions.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true })).ToHaveCountAsync(1);
         var third = questions.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Edit question 3: ") });
-        await questions.GetByRole(AriaRole.Button, new() { Name = "Close question" }).ClickAsync();
+        await questions.Locator("[data-open] [data-question-header]").GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
         await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(0);
         await Expect(third).ToBeFocusedAsync();
-        await third.ClickAsync();
-        await questions.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
-        await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(0);
         await Expect(questions.GetByRole(AriaRole.Button, new() { Name = $"Edit question 1: {Notice}" })).ToContainTextAsync("Required");
         await ExpectOrderAsync(Notice, Start, RightToWork);
         await ExpectNoAccessibilityViolationsAsync();
@@ -203,6 +213,33 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
     // The open question's text box. Only one question is open at a time.
     private ILocator OpenText(int position) =>
         Region("Questions").GetByRole(AriaRole.Textbox, new() { Name = $"Question {position}", Exact = true });
+
+    // The open question's text, answer kind, row menu and Done: one height, one row, as the browser lays them out. A new
+    // kind changes the row's height, and the list's reorder animation scales the rows while it settles, so it settles first.
+    private async Task ExpectHeaderLineSharesOneHeightAsync()
+    {
+        await Page.WaitForFunctionAsync(
+            "() => { const list = document.querySelector('[data-question-row][data-open]')?.closest('ul, ol'); return !!list && list.getAnimations({ subtree: true }).length === 0; }");
+        var header = Region("Questions").Locator("[data-open] [data-question-header]");
+        ILocator[] controls =
+        [
+            header.GetByRole(AriaRole.Textbox),
+            header.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Answer: ") }),
+            header.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Actions for ") }),
+            header.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }),
+        ];
+        var boxes = new List<LocatorBoundingBoxResult>();
+        foreach (var control in controls)
+        {
+            boxes.Add((await control.BoundingBoxAsync())!);
+        }
+
+        boxes.Should().AllSatisfy(box =>
+        {
+            box.Height.Should().BeApproximately(boxes[0].Height, 0.5f);
+            box.Y.Should().BeApproximately(boxes[0].Y, 0.5f);
+        });
+    }
 
     private async Task AddQuestionAsync(string kind)
     {

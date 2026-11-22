@@ -5,11 +5,11 @@
   // A hiring process's forms: the application form, two library forms sent at stages, an equality monitoring form sent
   // when they apply and one sent only by hand. New form opens the library's sheet; here it only says it was pressed.
   const forms: TimelineForm[] = [
-    { id: 'apply', name: 'Application form', when: 'When they apply', questions: 6, library: false, equality: false },
-    { id: 'equality', name: 'Equality monitoring', when: 'Sent when they apply', questions: 4, library: true, equality: true },
-    { id: 'screening', name: 'Screening questionnaire', when: 'Sent when they enter Screening', questions: 5, library: true, equality: false },
-    { id: 'references', name: 'References', when: 'Sent 3 days after they enter Offer', questions: 2, library: true, equality: false },
-    { id: 'availability', name: 'Availability', when: 'Only when sent by hand', questions: 3, library: true, equality: false },
+    { id: 'apply', name: 'Application form', when: 'When they apply', whenShort: 'When they apply', moment: 'apply', questions: 6, library: false, equality: false },
+    { id: 'equality', name: 'Equality monitoring', when: 'Sent when they apply', whenShort: 'When they apply', moment: 'apply', questions: 4, library: true, equality: true },
+    { id: 'screening', name: 'Screening questionnaire', when: 'Sent when they enter Screening', whenShort: 'Entering Screening', moment: 'stage', questions: 5, library: true, equality: false },
+    { id: 'references', name: 'References', when: 'Sent 3 days after they enter Offer', whenShort: '3 days after Offer', moment: 'later', questions: 2, library: true, equality: false },
+    { id: 'availability', name: 'Availability', when: 'Only when sent by hand', whenShort: 'By hand only', moment: 'hand', questions: 3, library: true, equality: false },
   ];
   let selected = $state('apply');
   let pressed = $state(false);

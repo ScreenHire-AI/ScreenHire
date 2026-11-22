@@ -17,17 +17,17 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         var byName = Enumerable.Range(0, 6).ToDictionary(i => list.Text($"{i}.name"), i => list.At($"{i}"));
         byName.Keys.Should().BeEquivalentTo("Software engineer", "Hourly role", "Office role", "Trade role with a trial shift", "High volume", "Hospitality");
         byName["Software engineer"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.SoftwareEngineer);
-        byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion5);
+        byName["Software engineer"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.SoftwareEngineerVersion6);
         byName["Hourly role"].GetProperty("id").GetGuid().Should().Be(SystemTemplates.HourlyRole);
-        byName["Hourly role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HourlyRoleVersion3);
-        byName["Office role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.OfficeRoleVersion1);
-        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.TradeRoleVersion3);
-        byName["High volume"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HighVolumeVersion1);
-        byName["Hospitality"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HospitalityVersion2);
+        byName["Hourly role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HourlyRoleVersion4);
+        byName["Office role"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.OfficeRoleVersion2);
+        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.TradeRoleVersion4);
+        byName["High volume"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HighVolumeVersion2);
+        byName["Hospitality"].GetProperty("latestPublishedVersionId").GetGuid().Should().Be(SystemTemplates.HospitalityVersion3);
         byName.Values.Should().OnlyContain(t => t.GetProperty("isSystem").GetBoolean());
-        byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(5);
-        byName["Hourly role"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
-        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(3);
+        byName["Software engineer"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(6);
+        byName["Hourly role"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(4);
+        byName["Trade role with a trial shift"].GetProperty("latestPublishedVersion").GetInt32().Should().Be(4);
         byName["Trade role with a trial shift"].GetProperty("description").GetString().Should().Be("Plumber, electrician, driver");
         byName["Hospitality"].GetProperty("description").GetString().Should().Be("Barista, line cook, server");
     }
@@ -303,7 +303,7 @@ public sealed class TemplatesApiTests(AppHostFixture fixture)
         publish.Expect(HttpStatusCode.Conflict);
         var after = await recruiter.GetAsync($"/v1/templates/{SystemTemplates.SoftwareEngineer}");
         after.Text("name").Should().Be("Software engineer");
-        after.Count("versions").Should().Be(5, "version 1 and the versions 2 to 5 later migrations shipped");
+        after.Count("versions").Should().Be(6, "version 1 and the versions 2 to 6 later migrations shipped");
     }
 
     [Fact]

@@ -11,7 +11,7 @@
   import { emailTemplateNames, followUpsOf, isTerminal, summarize } from '#lib/workflow.js';
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
   import { sendingOf } from '#lib/forms-timeline.js';
-  import { anyStageFacts, stageFacts } from '#lib/stage-facts.js';
+  import { anyStageChips, stageChips } from '#lib/stage-facts.js';
   import AiUseRow from './ai-use-row.svelte';
   import { rowClass } from './controls.js';
   import ProblemsPanel from './problems-panel.svelte';
@@ -19,7 +19,7 @@
   import QuestionnairePreview from './questionnaire-preview.svelte';
   import ScorecardName from './scorecard-name.svelte';
   import TryIt from './try-it.svelte';
-  import StageFactList from './stage-fact-list.svelte';
+  import StageChips from './stage-chips.svelte';
   import StageFlow from './stage-flow.svelte';
   import AutomationsPanel from './automations-panel.svelte';
 
@@ -47,7 +47,7 @@
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
 
-  const anyStage = $derived(anyStageFacts(workflow, templateNames));
+  const anyStage = $derived(anyStageChips(workflow, templateNames));
   const ends = $derived(workflow.stages.filter((stage) => isTerminal(stage.kind)));
   const questions = $derived(workflow.questionnaire.questions);
   // The preview pages the questions as the candidate meets them: the sections, or the organization's page size.
@@ -63,18 +63,19 @@
 
 {#snippet endStages()}
   <div class="flex flex-col gap-4">
-    {#if anyStage.length > 0}
-      <section aria-labelledby="summary-any-stage" class="flex flex-col gap-1.5 @md:flex-row @md:items-baseline @md:gap-6">
+    {#if anyStage.automations.length > 0}
+      <section aria-labelledby="summary-any-stage" class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
         <h3 id="summary-any-stage" class="shrink-0 text-heading">Any stage</h3>
-        <StageFactList facts={anyStage} />
+        <StageChips chips={anyStage} stageName="any stage" />
       </section>
     {/if}
     {#if ends.length > 0}
-      <section aria-labelledby="summary-ends" class="flex flex-col gap-2">
-        <h3 id="summary-ends" class="text-heading">Ends</h3>
-        <ul class="flex flex-wrap gap-x-8 gap-y-3">
+      <!-- The ends are quiet: each name, and what it sends counted, in one row under the flow. -->
+      <section aria-labelledby="summary-ends" class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <h3 id="summary-ends" class="shrink-0 text-heading">Ends</h3>
+        <ul class="flex flex-wrap items-center gap-x-6 gap-y-2">
           {#each ends as stage (stage.id)}
-            <li class="flex min-w-0 flex-col gap-1"><span class="font-semibold break-words">{stage.name}</span><StageFactList facts={stageFacts(workflow, stage, templateNames)} {stage} /></li>
+            <li class="flex min-w-0 items-center gap-2" data-end-stage><span class="font-semibold break-words">{stage.name}</span><StageChips chips={stageChips(workflow, stage, templateNames)} stageName={stage.name} empty="" /></li>
           {/each}
         </ul>
       </section>
@@ -85,7 +86,7 @@
 <Tabs.Content value="pipeline">
   <div class="flex flex-wrap items-start gap-5">
     <!-- A row of its own, so the stages have the page's width to sit side by side in. -->
-    <Panel title="Stages" footer={ends.length > 0 || anyStage.length > 0 ? endStages : undefined} class="@container flex-[1_1_100%]">
+    <Panel title="Stages" footer={ends.length > 0 || anyStage.automations.length > 0 ? endStages : undefined} class="@container flex-[1_1_100%]">
       <StageFlow {workflow} {templateNames} />
     </Panel>
 

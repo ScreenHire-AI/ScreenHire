@@ -1,6 +1,6 @@
 /**
  * Preferences the dashboard reads everywhere. Those about the device stay in this browser: the colour theme, reduced
- * motion, each table's sort, whether the setup checklist was dismissed for an organization and whether the bell has opened
+ * motion, each table's sort, the tab an automation opens on, whether the setup checklist was dismissed for an organization and whether the bell has opened
  * itself after onboarding. (Skipping a setup step or hiding the checklist is the organization's, saved on the server.) Those about the person, single-key shortcuts and whether a move asks first, live on the server
  * per organization (Your account, docs/architecture/sign-in-and-tenancy.md): the shell applies the saved values
  * (`applyHabits`) and saves each change (`saveHabitsWith`), and this browser's copy stands in until the server answers. The
@@ -32,6 +32,7 @@ const reduceMotionKey = 'screenhire:reduce-motion';
 const sortKey = (table: string) => `screenhire:sort:${table}`;
 const setupTourKey = (userId: string) => `screenhire:setup-tour:${userId}`;
 const pipelineViewKey = 'screenhire:pipeline-view';
+const automationViewKey = 'screenhire:automation-view';
 const activityFiltersKey = 'screenhire:activity-filters';
 
 /** The Activity feed's filters as the person last left them: whose jobs, and which kinds (none is every kind). */
@@ -42,6 +43,9 @@ export interface ActivityFilters {
 
 /** How a job's candidates show: a table or the board. */
 export type PipelineView = 'table' | 'board';
+
+/** How an automation opens in its sheet: as a sentence or as rules. */
+export type AutomationView = 'sentence' | 'rules';
 
 function read(key: string): string | null {
   try {
@@ -200,6 +204,18 @@ class Preferences {
   setPipelineView(view: PipelineView): void {
     this.pipelineView = view;
     write(pipelineViewKey, view);
+  }
+
+  /**
+   * The tab every automation opens on, Sentence or Rules, as the person last chose one: some people think in rules. It is
+   * theirs, in this browser, like the pipeline's table or board. An automation too complex for a sentence opens on Rules
+   * whatever this says, and does not change it.
+   */
+  automationView = $state<AutomationView>(read(automationViewKey) === 'rules' ? 'rules' : 'sentence');
+
+  setAutomationView(view: AutomationView): void {
+    this.automationView = view;
+    write(automationViewKey, view);
   }
 
   /**

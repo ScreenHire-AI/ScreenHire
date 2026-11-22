@@ -53,7 +53,7 @@ describe('form builder', () => {
     const first = edit(/^Edit question 1: /);
     expect(first).toHaveAccessibleName('Edit question 1: Do you have the right to work here? Required Yes or no');
     expect(first).toHaveAttribute('aria-expanded', 'false');
-    // A row that opens in place has a chevron saying so (A9), where the open row's Close question stands.
+    // A row that opens in place has a chevron saying so (A9), where the open row's Done stands.
     expect(first.closest('[data-question-row]')!.querySelector('[data-question-chevron]')).toBeInTheDocument();
     expect(first).toHaveTextContent('Do you have the right to work here? Required');
     expect(within(first).getByText('Required')).toHaveAttribute('data-slot', 'badge');
@@ -125,19 +125,17 @@ describe('form builder', () => {
     await waitFor(() => expect(edit(/^Edit question 3: /)).toHaveFocus());
   });
 
-  it('closes the open question from Close question beside its row menu, and from Done at its foot', async () => {
+  it('closes the open question from Done on its own header line, the one Done it has', async () => {
     const { container } = setup();
     await fireEvent.click(edit(/^Edit question 2: /));
 
-    const close = within(openRow()!).getByRole('button', { name: 'Close question' });
+    const header = openRow()!.querySelector<HTMLElement>('[data-question-header]')!;
+    const done = within(header).getByRole('button', { name: 'Done' });
+    expect(within(openRow()!).getAllByRole('button', { name: 'Done' })).toEqual([done]);
     await expectNoAxeViolations(container);
-    await fireEvent.click(close);
+    await fireEvent.click(done);
     expect(openRow()).toBeNull();
     await waitFor(() => expect(edit(/^Edit question 2: /)).toHaveFocus());
-
-    await fireEvent.click(edit(/^Edit question 2: /));
-    await fireEvent.click(within(openRow()!).getByRole('button', { name: 'Done' }));
-    expect(openRow()).toBeNull();
   });
 
   it("closes the open question on a click on its header outside a control, and keeps it open for a click in a field", async () => {
@@ -171,9 +169,9 @@ describe('form builder', () => {
 
     expect(within(cluster() as HTMLElement).getByRole('button', { name: 'Answer: Short text' })).toBeInTheDocument();
     expect(menu()).toBeInTheDocument();
-    // The order stays: the kind, the row menu, then the chevron.
-    const order = [...cluster().querySelectorAll('button, [data-question-chevron]')].map((element) => element.getAttribute('aria-label'));
-    expect(order).toEqual(['Answer: Short text', 'Actions for What is your notice period?', 'Close question']);
+    // The order stays: the kind, the row menu, then Done where the closed row's chevron stands.
+    const order = [...cluster().querySelectorAll('button, [data-question-chevron]')].map((element) => element.getAttribute('aria-label') ?? element.textContent);
+    expect(order).toEqual(['Answer: Short text', 'Actions for What is your notice period?', 'Done']);
   });
 
   it('changes the answer kind from the answer menu, ticking the current one and keeping the text', async () => {

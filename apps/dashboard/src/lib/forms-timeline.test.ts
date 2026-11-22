@@ -130,7 +130,7 @@ describe('a library form in a workflow', () => {
 describe('timelineOf', () => {
   it('starts with the application form and its question count', () => {
     expect(timelineOf(workflow())).toEqual([
-      { id: 'apply', name: 'Application form', when: 'When they apply', questions: 1, library: false, equality: false },
+      { id: 'apply', name: 'Application form', when: 'When they apply', whenShort: 'When they apply', moment: 'apply', questions: 1, library: false, equality: false },
     ]);
   });
 
@@ -146,6 +146,14 @@ describe('timelineOf', () => {
       ['Trial', 'Sent when they enter Trial shift', 1],
       ['References', 'Sent 3 days after they enter Offer', 1],
       ['Availability', 'Only when sent by hand', 1],
+    ]);
+    // The card's chip says the same in a few words, with the moment for its icon.
+    expect(timelineOf(current).map((form) => [form.whenShort, form.moment])).toEqual([
+      ['When they apply', 'apply'],
+      ['When they apply', 'apply'],
+      ['Entering Trial shift', 'stage'],
+      ['3 days after Offer', 'later'],
+      ['By hand only', 'hand'],
     ]);
   });
 

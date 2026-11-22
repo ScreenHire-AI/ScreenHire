@@ -1,14 +1,20 @@
 <script lang="ts">
   import type { AiUsePolicy, DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { onMount, tick } from 'svelte';
+  import { page } from '$app/state';
+  import { APPLY_FORM_ID } from '#lib/forms-timeline.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
+  import RecordTabs from '#lib/components/record-tabs.svelte';
+  import { sentenceLimit } from '#lib/automation-sentence.js';
+  import { preferences, type AutomationView } from '#lib/preferences.svelte.js';
   import { placeOf, removeAt, withoutStage } from '#lib/workflow.js';
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
   import { LANE_NODE, addAction, addAutomation, addCondition, connect, focusGraphNode, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
   import AutomationList from './automation-list.svelte';
+  import AutomationName from './automation-name.svelte';
   import AutomationRecipes from './automation-recipes.svelte';
   import AutomationSentence from './automation-sentence.svelte';
   import AutomationsPanel from './automations-panel.svelte';
@@ -69,15 +75,28 @@
   }
 
   // The automations sheet is one sheet with three views: a lane's automations as rows, the recipes to add from, and one
-  // automation as a sentence (or, behind Edit as rules, as the full form). The automation is held by id, so editing the
-  // list behind the sheet keeps the same one.
+  // automation, with its Name and On over two tabs, Sentence and Rules, that edit the same automation. The automation is
+  // held by id, so editing the list behind the sheet keeps the same one. The sheet keeps one width in every view, so
+  // switching changes only what is in it.
   let view = $state<'lane' | 'recipes' | 'edit'>('lane');
   let drawerLane = $state<string | null>(null);
   // Opened from the Any stage band (its header or its plus), not from Add automation: Write your own then stays in the band.
   let drawerAny = $state(false);
   let editId = $state<string | null>(null);
-  let asRules = $state(false);
   const editIndex = $derived(workflow.automations.findIndex((automation) => automation.id === editId));
+  // The tab the automation shows: the person's last choice (`preferences`), or Rules for one too complex for a sentence,
+  // whose Sentence tab then says why. Only a click on a tab changes the choice that is remembered.
+  let editView = $state<AutomationView>('sentence');
+  const limit = $derived(editIndex >= 0 ? sentenceLimit(workflow, editIndex) : null);
+  const viewTabs = [
+    { value: 'sentence', label: 'Sentence' },
+    { value: 'rules', label: 'Rules' },
+  ];
+  function chooseView(next: string) {
+    if (next !== 'sentence' && next !== 'rules') return;
+    editView = next;
+    preferences.setAutomationView(next);
+  }
   const laneName = $derived(drawerLane === null ? 'Any stage' : (workflow.stages.find((stage) => stage.id === drawerLane)?.name ?? drawerLane));
   const sheetTitle = $derived(
     view === 'lane' ? `Automations: ${laneName}` : view === 'recipes' ? 'Add an automation' : workflow.automations[editIndex]?.name || 'Untitled automation',
@@ -105,7 +124,7 @@
     drawerLane = place === 'any' ? null : place;
     drawerAny = place === 'any';
     editId = automation.id;
-    asRules = false;
+    editView = sentenceLimit(workflow, index) ? 'rules' : preferences.automationView;
     const wasOpen = drawerOpen;
     view = 'edit';
     focusPath = path;
@@ -163,6 +182,14 @@
   function showAutomation(id: string) {
     tab = 'automations';
     editById(id);
+  }
+
+  // A stage's form item opens that form on the Forms tab. Its link (`?tab=forms&form=<id>`) does the same when loaded,
+  // but the Forms tab is already mounted here and reads `form` only once, so a click chooses it directly.
+  let shownForm = $state(page.url.searchParams.get('form') ?? APPLY_FORM_ID);
+  function showForm(id: string) {
+    tab = 'forms';
+    shownForm = id;
   }
 
   onMount(() => {
@@ -264,7 +291,7 @@
     if (focusGraphNode(document, back.node)) event.preventDefault();
   }
 
-  // Remove automation lives on the full form (Edit as rules), so the sentence's sheet holds only Name, On and Done.
+  // Remove automation lives at the foot of the Rules tab, so the Sentence tab holds only the sentence.
   function removeEdited() {
     if (editIndex < 0) return;
     workflow.automations = removeAt(workflow.automations, editIndex);
@@ -285,6 +312,7 @@
     {automationHref}
     questionsHref={hrefOf('forms')}
     onshow={showAutomation}
+    onshowform={showForm}
   />
 </Tabs.Content>
 <Tabs.Content value="automations">
@@ -301,7 +329,7 @@
   {/if}
 </Tabs.Content>
 <Tabs.Content value="forms">
-  <QuestionnaireBuilder bind:workflow {errors} {aiUse} automationsHref={hrefOf('automations')} {automationHref} {templateId} />
+  <QuestionnaireBuilder bind:workflow bind:selected={shownForm} {errors} {aiUse} automationsHref={hrefOf('automations')} {automationHref} {templateId} />
 </Tabs.Content>
 <Tabs.Content value="test">
   <TryIt bind:workflow {errors} onfix={fix} aiUse={aiUse?.policy} {finish} onchange={openStage} />
@@ -335,7 +363,7 @@
 <Sheet.Root bind:open={drawerOpen}>
   <Sheet.Content
     side="right"
-    class={['w-full overflow-y-auto data-[side=right]:w-full', view === 'edit' && asRules ? 'data-[side=right]:sm:max-w-3xl' : 'data-[side=right]:sm:max-w-xl']}
+    class="w-full overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-2xl"
     aria-describedby={undefined}
     {onOpenAutoFocus}
     {onCloseAutoFocus}
@@ -350,12 +378,26 @@
       {:else if view === 'recipes'}
         <AutomationRecipes bind:workflow lane={drawerLane} onwrite={writeOwn} onedit={editById} />
       {:else if editIndex >= 0}
-        {#if asRules}
-          <AutomationForm bind:automation={workflow.automations[editIndex]!} index={editIndex} {workflow} {errors} onremove={removeEdited} />
-          <div><Button variant="outline" size="lg" onclick={() => (asRules = false)}>Edit as a sentence</Button></div>
-        {:else}
-          <AutomationSentence bind:automation={workflow.automations[editIndex]!} index={editIndex} {workflow} {errors} onrules={() => (asRules = true)} />
-        {/if}
+        <!-- Its own Tabs.Root: the sheet sits inside the page's, whose tabs these are not. Each panel stays in the page for
+             its tab's aria-controls, but only the shown one holds its view, so a data-focus path names one control. -->
+        <Tabs.Root value={editView} onValueChange={chooseView} class="flex flex-col gap-4">
+          <RecordTabs tabs={viewTabs} label="Edit the automation as" class="-mt-2 border-b border-border-subtle" />
+          <AutomationName bind:automation={workflow.automations[editIndex]!} index={editIndex} {errors} />
+          <Tabs.Content value="sentence">
+            {#if editView === 'sentence'}
+              {#if limit}
+                <p data-sentence-limit class="text-body text-muted-foreground">{limit}</p>
+              {:else}
+                <AutomationSentence bind:automation={workflow.automations[editIndex]!} index={editIndex} {workflow} {errors} />
+              {/if}
+            {/if}
+          </Tabs.Content>
+          <Tabs.Content value="rules">
+            {#if editView === 'rules'}
+              <AutomationForm bind:automation={workflow.automations[editIndex]!} index={editIndex} {workflow} {errors} onremove={removeEdited} />
+            {/if}
+          </Tabs.Content>
+        </Tabs.Root>
       {/if}
     </div>
     {#if view === 'edit'}
