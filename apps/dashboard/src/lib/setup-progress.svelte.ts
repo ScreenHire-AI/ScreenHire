@@ -1,5 +1,7 @@
 import type { CurrentUser, OrganizationSetup, SetupStepId } from '@screenhire/api-client';
 import {
+  createGetCalendar,
+  createGetInterviewHours,
   createGetOrganizationBranding,
   createGetOrganizationSendingDomain,
   createGetOrganizationSetup,
@@ -55,6 +57,19 @@ export function createSetupProgress(user: () => CurrentUser | null | undefined) 
   const branding = createGetOrganizationBranding(options);
   const sendingDomain = createGetOrganizationSendingDomain(options);
   const jobs = createListJobs(options);
+  // The Interviewing step is the person's own: a calendar connected, or their own interview hours.
+  // Asked only of an organization that interviews: the step is not there otherwise.
+  const interviewOptions = () => ({ query: { enabled: enabled && choices?.hasInterviewStage === true, staleTime: 60_000 } });
+  const calendar = createGetCalendar(interviewOptions);
+  const hours = createGetInterviewHours(interviewOptions);
+  const interviewing = $derived(
+    calendar.data && hours.data
+      ? {
+          calendarConnected: calendar.data.data.connection != null && calendar.data.data.connection.problem == null,
+          hasHours: hours.data.data.weekly != null,
+        }
+      : undefined,
+  );
 
   const changed = { mutation: { onSuccess: (response: { data: unknown }) => setupChanged(queryClient, response.data as OrganizationSetup) } };
   const skip = createSkipSetupStep(() => changed);
@@ -69,6 +84,7 @@ export function createSetupProgress(user: () => CurrentUser | null | undefined) 
           sendingDomain: sendingDomain.data?.data,
           jobs: jobs.data?.data,
           setup: choices,
+          interviewing,
         })
       : undefined,
   );

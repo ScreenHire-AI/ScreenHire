@@ -23,6 +23,7 @@ export const taskKindLabels: Record<ApplicationTaskKind, string> = {
   Task: 'To-do',
   RejectionReview: 'Rejection review',
   Scorecard: 'Scorecard',
+  ChooseScheduling: 'Scheduling',
 };
 
 /** Who a task is for: "For you", "For the team" or "For Avery Quinn". */

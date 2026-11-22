@@ -26,6 +26,21 @@ public sealed record SendInterviewNewTimes(Guid OrganizationId, Guid Application
     public string IdempotencyKey => $"interview-new-times:{InterviewId}:{SendId}";
 }
 
+/// <summary>
+/// Tells the candidate the team changed how they pick a time, on the link they already have ("We've updated your options").
+/// Like <see cref="SendInterviewInvitation"/>: ids only, and <see cref="SendId"/> becomes the email's timeline entry.
+/// </summary>
+public sealed record SendInterviewOptionsUpdated(Guid OrganizationId, Guid ApplicationId, Guid InterviewId, Guid SendId, Guid? ActorUserId) : ITenantMessage
+{
+    public string IdempotencyKey => $"interview-options-updated:{InterviewId}:{SendId}";
+}
+
+/// <summary>Asks the candidate for more times when none of theirs works for the team, with the team's message on the interview.</summary>
+public sealed record SendInterviewMoreTimes(Guid OrganizationId, Guid ApplicationId, Guid InterviewId, Guid SendId, Guid? ActorUserId) : ITenantMessage
+{
+    public string IdempotencyKey => $"interview-more-times:{InterviewId}:{SendId}";
+}
+
 /// <summary>Which reminder of a booked interview a <see cref="SendInterviewReminder"/> is.</summary>
 public enum InterviewReminderKind
 {

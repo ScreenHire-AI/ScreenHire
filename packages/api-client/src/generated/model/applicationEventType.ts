@@ -30,5 +30,8 @@ export const ApplicationEventType = {
   InterviewRescheduled: 'InterviewRescheduled',
   InterviewCancelled: 'InterviewCancelled',
   InterviewNewTimesOffered: 'InterviewNewTimesOffered',
+  InterviewOptionChanged: 'InterviewOptionChanged',
+  InterviewTimesSuggested: 'InterviewTimesSuggested',
+  InterviewAnotherTimeAsked: 'InterviewAnotherTimeAsked',
   EmailReceived: 'EmailReceived',
 } as const;

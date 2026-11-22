@@ -20,6 +20,39 @@ public enum InterviewStatus
 }
 
 /// <summary>
+/// How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each
+/// interview before the candidate is told and changeable while it waits.
+/// </summary>
+public enum InterviewOption
+{
+    /// <summary>A. Pick from our times: open slots from the interviewers' calendars or the interview's blocks, booked at once.</summary>
+    OurTimes,
+
+    /// <summary>B. Tell us when you're free: the candidate suggests 3 to 5 times within the limits, and the team books one.</summary>
+    TheirTimes,
+
+    /// <summary>C. We'll suggest a time: the team picks one or two times, and the candidate accepts one or asks for another.</summary>
+    OurSuggestion,
+}
+
+/// <summary>
+/// The option an interview is offered with and what it needs. <paramref name="Hours"/> is the hours the times may fall in
+/// (null keeps the request's working hours, weekdays <c>DayStart</c> to <c>DayEnd</c>). <paramref name="UseBlocks"/> (A only)
+/// says the hours are interview blocks the business set, so the interviewers need no calendar. <paramref name="ProposedTimes"/>
+/// are C's hand-picked times; <paramref name="ExtraTimes"/> are one-off times added to A's.
+/// </summary>
+public sealed record InterviewPick(
+    InterviewOption Option,
+    WeeklyHours? Hours = null,
+    bool UseBlocks = false,
+    IReadOnlyList<DateTimeOffset>? ProposedTimes = null,
+    IReadOnlyList<DateTimeOffset>? ExtraTimes = null)
+{
+    /// <summary>Today's way, and every request's before there were options: A from the interviewers' calendars.</summary>
+    public static InterviewPick FromCalendars { get; } = new(InterviewOption.OurTimes);
+}
+
+/// <summary>
 /// One interview offered to one application's candidate (docs/architecture/interview-scheduling.md): who interviews,
 /// how long, the window and working hours the candidate may pick from, and once booked, the time. There is at most one
 /// Open or Booked request per application (a partial unique index); history stays as Cancelled or Expired rows.
@@ -45,6 +78,19 @@ public sealed class InterviewRequest : IApplicationScoped
     public static readonly TimeOnly DefaultDayStart = new(9, 0);
 
     public static readonly TimeOnly DefaultDayEnd = new(17, 0);
+
+    /// <summary>The fewest and most times a candidate suggests (B).</summary>
+    public const int MinSuggestedTimes = 3;
+
+    public const int MaxSuggestedTimes = 5;
+
+    /// <summary>The most times the team picks for the candidate (C).</summary>
+    public const int MaxProposedTimes = 2;
+
+    /// <summary>The most one-off times added to A's.</summary>
+    public const int MaxExtraTimes = 3;
+
+    public const int MaxNoteLength = 500;
 
     public Guid Id { get; init; } = Guid.CreateVersion7();
 
@@ -114,6 +160,37 @@ public sealed class InterviewRequest : IApplicationScoped
     /// </summary>
     public string? MeetingName { get; init; }
 
+    /// <summary>How the candidate picks a time. Every request made before there were options is <see cref="InterviewOption.OurTimes"/>.</summary>
+    public InterviewOption Option { get; private set; }
+
+    /// <summary>The hours the times fall in, any day of the week; null reads as weekdays <see cref="DayStart"/> to <see cref="DayEnd"/> (<see cref="EffectiveHours"/>).</summary>
+    public WeeklyHours? Hours { get; private set; }
+
+    /// <summary>A only: the hours are interview blocks the business set, so an interviewer needs no calendar for times to be offered.</summary>
+    public bool UseBlocks { get; private set; }
+
+    /// <summary>C's times, picked by the team for the candidate to accept.</summary>
+    public IReadOnlyList<DateTimeOffset> ProposedTimes { get; private set; } = [];
+
+    /// <summary>One-off times added to A's offered times (the fallback when nothing is open).</summary>
+    public IReadOnlyList<DateTimeOffset> ExtraTimes { get; private set; } = [];
+
+    /// <summary>B's times, suggested by the candidate for the team to book one.</summary>
+    public IReadOnlyList<DateTimeOffset> CandidateTimes { get; private set; } = [];
+
+    public DateTimeOffset? CandidateTimesAt { get; private set; }
+
+    /// <summary>C: the candidate asked for another time, with an optional note.</summary>
+    public DateTimeOffset? AnotherTimeAskedAt { get; private set; }
+
+    public string? CandidateNote { get; private set; }
+
+    /// <summary>B: the team's message when it asked the candidate for more times.</summary>
+    public string? TeamNote { get; private set; }
+
+    /// <summary>When the team last changed how the candidate picks; null when it never has.</summary>
+    public DateTimeOffset? OptionChangedAt { get; private set; }
+
     public DateTimeOffset CreatedAt { get; init; }
 
     public DateTimeOffset? CancelledAt { get; private set; }
@@ -127,6 +204,12 @@ public sealed class InterviewRequest : IApplicationScoped
 
     /// <summary>The zone the working hours are in; UTC if this host no longer knows the id.</summary>
     public TimeZoneInfo Zone => TryFindZone(TimeZone, out var zone) ? zone : TimeZoneInfo.Utc;
+
+    /// <summary>The hours the times fall in: <see cref="Hours"/>, or weekdays <see cref="DayStart"/> to <see cref="DayEnd"/>.</summary>
+    public WeeklyHours EffectiveHours => Hours ?? WeeklyHours.Weekdays(DayStart, DayEnd);
+
+    /// <summary>The option and what it needs, as it stands.</summary>
+    public InterviewPick Pick => new(Option, Hours, UseBlocks, ProposedTimes, ExtraTimes);
 
     /// <summary>
     /// The first thing wrong with these inputs in plain words, or null when a request can be made from them. The API turns
@@ -168,6 +251,79 @@ public sealed class InterviewRequest : IApplicationScoped
         return dayEnd - dayStart < TimeSpan.FromMinutes(durationMinutes) ? "Working hours are shorter than the interview." : null;
     }
 
+    /// <summary>
+    /// The first thing wrong with offering <paramref name="pick"/> for an interview of <paramref name="durationMinutes"/> in the
+    /// window, in plain words, or null. The window itself is <see cref="Problem"/>'s.
+    /// </summary>
+    public static string? PickProblem(InterviewPick pick, int durationMinutes, DateTimeOffset windowStart, DateTimeOffset windowEnd, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(pick);
+        if (!Enum.IsDefined(pick.Option))
+        {
+            return "Choose how the candidate picks a time.";
+        }
+
+        if (pick.Hours?.Problem(durationMinutes) is { } hours)
+        {
+            return hours;
+        }
+
+        if (pick.UseBlocks && (pick.Option != InterviewOption.OurTimes || pick.Hours is null))
+        {
+            return "Interview blocks need their days and hours.";
+        }
+
+        var proposed = pick.ProposedTimes ?? [];
+        var extra = pick.ExtraTimes ?? [];
+        if (pick.Option == InterviewOption.OurSuggestion)
+        {
+            if (proposed.Count is < 1 or > MaxProposedTimes)
+            {
+                return $"Pick one or {MaxProposedTimes} times for the candidate.";
+            }
+        }
+        else if (proposed.Count > 0)
+        {
+            return "Only We'll suggest a time has picked times.";
+        }
+
+        if (pick.Option != InterviewOption.OurTimes && extra.Count > 0)
+        {
+            return "Only Pick from our times has one-off times.";
+        }
+
+        if (extra.Count > MaxExtraTimes)
+        {
+            return $"Add at most {MaxExtraTimes} one-off times.";
+        }
+
+        var length = TimeSpan.FromMinutes(durationMinutes);
+        foreach (var times in new[] { proposed, extra })
+        {
+            if (times.Distinct().Count() != times.Count)
+            {
+                return "Each time can be picked once.";
+            }
+
+            if (times.Any(t => t.UtcTicks % TimeSpan.TicksPerMinute != 0))
+            {
+                return "Times are in whole minutes.";
+            }
+
+            if (times.Any(t => t <= now))
+            {
+                return "Each time must be in the future.";
+            }
+
+            if (times.Any(t => t < windowStart || t + length > windowEnd))
+            {
+                return "Each time must be inside the days the candidate picks from.";
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>The zone for an IANA id, or false when this host does not know it.</summary>
     public static bool TryFindZone(string? id, out TimeZoneInfo zone)
     {
@@ -200,14 +356,21 @@ public sealed class InterviewRequest : IApplicationScoped
         TimeOnly? dayStart = null,
         TimeOnly? dayEnd = null,
         string? sourceKey = null,
-        string? meetingName = null)
+        string? meetingName = null,
+        InterviewPick? pick = null)
     {
         ArgumentNullException.ThrowIfNull(application);
         var start = dayStart ?? DefaultDayStart;
         var end = dayEnd ?? DefaultDayEnd;
+        pick ??= InterviewPick.FromCalendars;
         if (Problem(durationMinutes, windowStart, windowEnd, timeZone, start, end, now) is { } problem)
         {
             throw new ArgumentException(problem);
+        }
+
+        if (PickProblem(pick, durationMinutes, windowStart, windowEnd, now) is { } pickProblem)
+        {
+            throw new ArgumentException(pickProblem);
         }
 
         if (sourceKey is { Length: > MaxSourceKeyLength })
@@ -237,6 +400,11 @@ public sealed class InterviewRequest : IApplicationScoped
             CreatedByUserId = createdByUserId,
             SourceKey = sourceKey,
             MeetingName = string.IsNullOrWhiteSpace(meetingName) ? null : meetingName.Trim(),
+            Option = pick.Option,
+            Hours = pick.Hours,
+            UseBlocks = pick.UseBlocks,
+            ProposedTimes = Instants(pick.ProposedTimes),
+            ExtraTimes = Instants(pick.ExtraTimes),
             CreatedAt = now,
         };
     }
@@ -311,11 +479,168 @@ public sealed class InterviewRequest : IApplicationScoped
             throw new ArgumentException(problem);
         }
 
+        // Offering new days is A over them, in the interview's own hours.
+        Apply(new InterviewPick(InterviewOption.OurTimes, Hours, UseBlocks), windowStart, windowEnd);
+        NewTimesOfferedAt = now;
+    }
+
+    /// <summary>
+    /// Whether the candidate is choosing a time at <paramref name="now"/>: an Open interview inside its window, or a booked one
+    /// the team asked to move (<see cref="HasPendingNewTimes"/>).
+    /// </summary>
+    public bool IsPicking(DateTimeOffset now) => EffectiveStatus(now) == InterviewStatus.Open || HasPendingNewTimes(now);
+
+    /// <summary>
+    /// Changes how the candidate picks (Change how they pick, on an Open interview), or moves a booked one with any of the
+    /// three options: the booked time stays held until a new one is booked, as <see cref="OfferNewTimes"/> does. The old
+    /// option's state goes (the candidate's times and both notes); the candidate's link stays the same.
+    /// </summary>
+    public void ChangeOption(InterviewPick pick, DateTimeOffset windowStart, DateTimeOffset windowEnd, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(pick);
+        var status = EffectiveStatus(now);
+        if (status is not (InterviewStatus.Open or InterviewStatus.Booked))
+        {
+            throw new InvalidOperationException("Only an open or booked interview can change how the candidate picks.");
+        }
+
+        if (ChangeProblem(pick, windowStart, windowEnd, now) is { } problem)
+        {
+            throw new ArgumentException(problem);
+        }
+
+        Apply(pick, windowStart, windowEnd);
+        OptionChangedAt = now;
+        if (status == InterviewStatus.Booked)
+        {
+            NewTimesOfferedAt = now;
+        }
+    }
+
+    /// <summary>The first thing wrong with <see cref="ChangeOption"/> to <paramref name="pick"/> over the window, in plain words, or null.</summary>
+    public string? ChangeProblem(InterviewPick pick, DateTimeOffset windowStart, DateTimeOffset windowEnd, DateTimeOffset now) =>
+        Problem(DurationMinutes, windowStart, windowEnd, TimeZone, DayStart, DayEnd, now)
+            ?? PickProblem(pick, DurationMinutes, windowStart, windowEnd, now);
+
+    /// <summary>
+    /// The candidate suggests the times they are free (B). <paramref name="allowed"/> is every time within the limits (the
+    /// window, the hours and the minimum notice, on the step grid), and each suggestion must be one of them.
+    /// </summary>
+    public void SuggestTimes(IReadOnlyList<DateTimeOffset> times, IReadOnlyCollection<DateTimeOffset> allowed, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(times);
+        ArgumentNullException.ThrowIfNull(allowed);
+        if (Option != InterviewOption.TheirTimes || !IsPicking(now))
+        {
+            throw new InvalidOperationException("Only an interview waiting for the candidate's times takes them.");
+        }
+
+        if (SuggestionProblem(times, allowed) is { } problem)
+        {
+            throw new ArgumentException($"The suggested times were refused: {problem}.");
+        }
+
+        CandidateTimes = [.. times.Select(t => t.ToUniversalTime()).Order()];
+        CandidateTimesAt = now;
+        TeamNote = null;
+    }
+
+    /// <summary>
+    /// Why <paramref name="times"/> are not a set of suggestions, or null. A candidate suggests <see cref="MinSuggestedTimes"/>
+    /// to <see cref="MaxSuggestedTimes"/> times, each one allowed, or every allowed time when there are fewer than three.
+    /// </summary>
+    public static SuggestionFault? SuggestionProblem(IReadOnlyList<DateTimeOffset> times, IReadOnlyCollection<DateTimeOffset> allowed)
+    {
+        ArgumentNullException.ThrowIfNull(times);
+        ArgumentNullException.ThrowIfNull(allowed);
+        if (times.Count < Math.Max(1, Math.Min(MinSuggestedTimes, allowed.Count)))
+        {
+            return SuggestionFault.TooFew;
+        }
+
+        if (times.Count > MaxSuggestedTimes)
+        {
+            return SuggestionFault.TooMany;
+        }
+
+        return times.Distinct().Count() != times.Count || times.Any(t => !allowed.Contains(t)) ? SuggestionFault.NotOffered : null;
+    }
+
+    /// <summary>B: none of the candidate's times works, so the team asks for more, with a short message.</summary>
+    public void AskForMoreTimes(string? note, DateTimeOffset now)
+    {
+        if (Option != InterviewOption.TheirTimes || !IsPicking(now) || CandidateTimes.Count == 0)
+        {
+            throw new InvalidOperationException("Only an interview with the candidate's times can ask for more.");
+        }
+
+        TeamNote = CleanNote(note);
+        CandidateTimes = [];
+        CandidateTimesAt = null;
+        OptionChangedAt = now;
+    }
+
+    /// <summary>C: the candidate cannot make the team's times and asks for another, with an optional note.</summary>
+    public void AskForAnotherTime(string? note, DateTimeOffset now)
+    {
+        if (Option != InterviewOption.OurSuggestion || !IsPicking(now) || AnotherTimeAskedAt is not null)
+        {
+            throw new InvalidOperationException("Only an interview with the team's times can be asked for another.");
+        }
+
+        AnotherTimeAskedAt = now;
+        CandidateNote = CleanNote(note);
+    }
+
+    /// <summary>
+    /// Whether the next step is the team's at <paramref name="now"/>: the candidate sent their times (B) or asked for another
+    /// time (C), and nothing is booked from it yet.
+    /// </summary>
+    public bool WaitsForTeam(DateTimeOffset now) =>
+        IsPicking(now) && ((Option == InterviewOption.TheirTimes && CandidateTimes.Count > 0)
+            || (Option == InterviewOption.OurSuggestion && AnotherTimeAskedAt is not null));
+
+    /// <summary>
+    /// The times the option itself names: the candidate's for B (the team books one), the team's for C (the candidate accepts
+    /// one, until they ask for another), and the one-off times for A, whose other times come from calendars and hours.
+    /// </summary>
+    public IReadOnlyList<DateTimeOffset> NamedTimes() => Option switch
+    {
+        InterviewOption.TheirTimes => CandidateTimes,
+        InterviewOption.OurSuggestion => AnotherTimeAskedAt is null ? ProposedTimes : [],
+        _ => ExtraTimes,
+    };
+
+    private void Apply(InterviewPick pick, DateTimeOffset windowStart, DateTimeOffset windowEnd)
+    {
+        Option = pick.Option;
+        Hours = pick.Hours;
+        UseBlocks = pick.UseBlocks;
+        ProposedTimes = Instants(pick.ProposedTimes);
+        ExtraTimes = Instants(pick.ExtraTimes);
+        CandidateTimes = [];
+        CandidateTimesAt = null;
+        AnotherTimeAskedAt = null;
+        CandidateNote = null;
+        TeamNote = null;
         WindowStart = windowStart.ToUniversalTime();
         WindowEnd = windowEnd.ToUniversalTime();
         LookupStart = DateTimeOffset.Compare(LookupStart, WindowStart) <= 0 ? LookupStart : WindowStart;
         LookupEnd = DateTimeOffset.Compare(LookupEnd, WindowEnd) >= 0 ? LookupEnd : WindowEnd;
-        NewTimesOfferedAt = now;
+    }
+
+    private static List<DateTimeOffset> Instants(IReadOnlyList<DateTimeOffset>? times) => [.. (times ?? []).Select(t => t.ToUniversalTime()).Order()];
+
+    // A note from a person: trimmed, blank is none, and never longer than the column.
+    private static string? CleanNote(string? note)
+    {
+        var trimmed = note?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        return trimmed.Length > MaxNoteLength ? throw new ArgumentException($"Keep the message to {MaxNoteLength} characters.") : trimmed;
     }
 
     /// <summary>Cancels an Open or Booked interview. A booked one keeps its time as history.</summary>
@@ -378,6 +703,16 @@ public sealed class InterviewRequest : IApplicationScoped
     }
 }
 
+/// <summary>Why a candidate's suggested times were refused.</summary>
+public enum SuggestionFault
+{
+    TooFew,
+    TooMany,
+
+    /// <summary>A time is repeated, or not within the limits (taken out since the page was drawn, or never in them).</summary>
+    NotOffered,
+}
+
 /// <summary>Where one interviewer's calendar event stands.</summary>
 public enum InterviewSyncStatus
 {
@@ -429,6 +764,12 @@ public sealed class InterviewAttendee : IApplicationScoped
     /// </summary>
     public DateTimeOffset? RemindedForStart { get; private set; }
 
+    /// <summary>
+    /// The revision this interviewer was last emailed the calendar invitation (.ics) for, when their own calendar did not get
+    /// the event. A redelivered message finds it and sends nothing; a move or a cancellation is a new revision.
+    /// </summary>
+    public int? InvitedRevision { get; private set; }
+
     public static InterviewAttendee Create(InterviewRequest interview, Guid userId, bool isOrganizer, CalendarProvider provider)
     {
         ArgumentNullException.ThrowIfNull(interview);
@@ -464,6 +805,18 @@ public sealed class InterviewAttendee : IApplicationScoped
 
     /// <summary>Records that the reminder for the interview starting at <paramref name="start"/> was sent.</summary>
     public void MarkReminded(DateTimeOffset start) => RemindedForStart = start;
+
+    /// <summary>Records that the invitation for <paramref name="revision"/> was emailed.</summary>
+    public void MarkInvited(int revision) => InvitedRevision = revision;
+
+    /// <summary>
+    /// The interviewer has no calendar to write to (ScreenHire's calendar, <see cref="CalendarProvider.ScreenHire"/>): the
+    /// invitation emailed to them is their event, so there is nothing to sync.
+    /// </summary>
+    public void MarkOnScreenHireCalendar() => MarkSynced(CalendarProvider.ScreenHire, IcsUid(InterviewId));
+
+    /// <summary>The UID every calendar invitation for an interview carries, and the event id of an interviewer on ScreenHire's calendar.</summary>
+    public static string IcsUid(Guid interviewId) => $"interview-{interviewId:N}";
 
     public void MarkFailed(string problem)
     {

@@ -12,7 +12,7 @@
   import { describeError, invalidatePath } from '#lib/query.js';
   import { slackProblems } from '#lib/slack.js';
 
-  // A person's own Slack account (docs/architecture/slack.md), a section of Your account > Connected accounts: link it with
+  // A person's own Slack account (docs/architecture/slack.md), a section of Your account > Calendar and accounts: link it with
   // Sign in with Slack, or unlink it. Which direct messages they get is the Slack column of their notification grid. Every
   // member has it while the organization's workspace is connected; managing the workspace is Settings > Slack.
   let {

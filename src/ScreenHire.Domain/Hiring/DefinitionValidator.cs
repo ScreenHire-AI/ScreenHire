@@ -162,6 +162,7 @@ public static partial class DefinitionValidator
             }
 
             ValidateMeetingName(stage, stagePath, stageName, errors);
+            ValidateStageScheduling(stage, stagePath, stageName, errors);
             ValidateStageScorecard(stage, stagePath, template, errors);
         }
 
@@ -1092,7 +1093,10 @@ public static partial class DefinitionValidator
             ActionType.AddTag => (ActionField.Tag, ActionField.None),
             ActionType.AssignReviewer => (ActionField.None, ActionField.AssigneeUserId),
             ActionType.NotifyTeam => (ActionField.Note, ActionField.None),
-            ActionType.ScheduleInterview => (ActionField.InterviewerUserIds | ActionField.InterviewMinutes | ActionField.InterviewWindowDays | ActionField.InterviewTimeZone, ActionField.None),
+            ActionType.ScheduleInterview when action.InterviewMode == InterviewMode.Choose => (ActionField.InterviewMode, ActionField.None),
+            ActionType.ScheduleInterview => (
+                ActionField.InterviewerUserIds | ActionField.InterviewMinutes | ActionField.InterviewWindowDays | ActionField.InterviewTimeZone,
+                ActionField.InterviewMode | ActionField.InterviewOption),
             ActionType.CreateTask => (ActionField.Note, ActionField.None),
             ActionType.CallWebhook => (ActionField.Url, ActionField.None),
             ActionType.QueueForRejectionReview => (ActionField.Reason, ActionField.None),
@@ -1114,6 +1118,8 @@ public static partial class DefinitionValidator
         present |= action.InterviewMinutes is not null ? ActionField.InterviewMinutes : ActionField.None;
         present |= action.InterviewWindowDays is not null ? ActionField.InterviewWindowDays : ActionField.None;
         present |= action.InterviewTimeZone is not null ? ActionField.InterviewTimeZone : ActionField.None;
+        present |= action.InterviewMode is not null ? ActionField.InterviewMode : ActionField.None;
+        present |= action.InterviewOption is not null ? ActionField.InterviewOption : ActionField.None;
 
         foreach (var field in Enum.GetValues<ActionField>().Where(f => f != ActionField.None))
         {
@@ -1237,6 +1243,18 @@ public static partial class DefinitionValidator
         if (action.InterviewTimeZone is not null && !InterviewRequest.TryFindZone(action.InterviewTimeZone, out _))
         {
             errors.Add(new(Join(path, "interviewTimeZone"), $"The time zone of {step.Phrase} is not recognised. Choose one from the list."));
+        }
+
+        if (action.InterviewMode is { } mode && !Enum.IsDefined(mode))
+        {
+            errors.Add(new(Join(path, "interviewMode"), $"What {step.Phrase} does is not recognised. Choose Send or Create a task."));
+        }
+
+        if (action.InterviewOption is { } option && (!Enum.IsDefined(option) || option == InterviewOption.OurSuggestion))
+        {
+            errors.Add(new(Join(path, "interviewOption"), option == InterviewOption.OurSuggestion
+                ? $"{Cap(step.Phrase)} cannot suggest times, because a person picks them. Choose another way, or create a task to choose."
+                : $"How the candidate picks a time in {step.Phrase} is not recognised. Choose one."));
         }
     }
 
@@ -1482,6 +1500,71 @@ public static partial class DefinitionValidator
         }
     }
 
+    // The shape of a stage's scheduling default. That its people are members and its team exists is checked where there is
+    // a database (the API at save); this class has none.
+    private static void ValidateStageScheduling(WorkflowStage stage, string stagePath, string stageName, List<DefinitionError> errors)
+    {
+        if (stage.Scheduling is not { } scheduling)
+        {
+            return;
+        }
+
+        var path = Join(stagePath, "scheduling");
+        if (!Enum.IsDefined(stage.Kind) || stage.Kind.IsTerminal() || stage.Kind is StageKind.Applied or StageKind.Offer)
+        {
+            errors.Add(new(path, $"{Cap(stageName)} holds no interviews, so it has no scheduling default. Remove it."));
+            return;
+        }
+
+        if (scheduling.Option is { } option && !Enum.IsDefined(option))
+        {
+            errors.Add(new(Join(path, "option"), $"How candidates pick a time in {stageName} is not recognised. Choose one."));
+        }
+
+        if (scheduling.InterviewerUserIds is { } people)
+        {
+            if (scheduling.InterviewerTeamId is not null)
+            {
+                errors.Add(new(Join(path, "interviewerTeamId"), $"The interviewers of {stageName} are either people or a team. Choose one."));
+            }
+
+            if (people.Count is < 1 or > MaxInterviewers || people.Distinct().Count() != people.Count || people.Contains(Guid.Empty))
+            {
+                errors.Add(new(Join(path, "interviewerUserIds"), $"{Cap(stageName)} needs between 1 and {MaxInterviewers} different interviewers. Choose who should interview."));
+            }
+        }
+
+        if (scheduling.InterviewerTeamId == Guid.Empty)
+        {
+            errors.Add(new(Join(path, "interviewerTeamId"), $"The team of {stageName} is not recognised. Choose one."));
+        }
+
+        if (scheduling.DurationMinutes is { } minutes && !InterviewRequest.AllowedDurations.Contains(minutes))
+        {
+            errors.Add(new(Join(path, "durationMinutes"),
+                $"The interview length in {stageName} must be {string.Join(", ", InterviewRequest.AllowedDurations)} minutes. Choose one."));
+        }
+
+        if (scheduling.WindowDays is < 1 or > MaxInterviewWindowDays)
+        {
+            errors.Add(new(Join(path, "windowDays"), $"How far ahead candidates pick in {stageName} must be between 1 and {MaxInterviewWindowDays} days. Change the number."));
+        }
+
+        if (scheduling.Hours?.Problem(scheduling.DurationMinutes) is { } hours)
+        {
+            errors.Add(new(Join(path, "hours"), $"The hours in {stageName}: {hours}"));
+        }
+        else if (scheduling.UseBlocks && scheduling.Hours is null)
+        {
+            errors.Add(new(Join(path, "hours"), $"Interview blocks in {stageName} need their days and hours. Add them, or use the interviewers' calendars."));
+        }
+
+        if (scheduling.UseBlocks && scheduling.Option is { } blockOption && blockOption != InterviewOption.OurTimes)
+        {
+            errors.Add(new(Join(path, "useBlocks"), $"Interview blocks in {stageName} are for Pick from our times. Turn them off, or choose that option."));
+        }
+    }
+
     private static bool IsNotPlain(char c) =>
         c is '<' or '>' ||
         char.IsControl(c) ||
@@ -1595,6 +1678,8 @@ public static partial class DefinitionValidator
         ActionField.InterviewMinutes => "interviewMinutes",
         ActionField.InterviewWindowDays => "interviewWindowDays",
         ActionField.InterviewTimeZone => "interviewTimeZone",
+        ActionField.InterviewMode => "interviewMode",
+        ActionField.InterviewOption => "interviewOption",
         _ => field.ToString(),
     };
 
@@ -1614,6 +1699,8 @@ public static partial class DefinitionValidator
         ActionField.InterviewMinutes => ("an interview length", "interview length", "Choose one"),
         ActionField.InterviewWindowDays => ("a number of days for the candidate to pick a time", "number of days to pick a time", "Type a number"),
         ActionField.InterviewTimeZone => ("a time zone", "time zone", "Choose one"),
+        ActionField.InterviewMode => ("a choice of what it does", "choice of what it does", "Choose one"),
+        ActionField.InterviewOption => ("a way for the candidate to pick a time", "way to pick a time", "Choose one"),
         _ => (field.ToString(), field.ToString(), "Fill it in"),
     };
 
@@ -1634,6 +1721,8 @@ public static partial class DefinitionValidator
         InterviewMinutes = 1024,
         InterviewWindowDays = 2048,
         InterviewTimeZone = 4096,
+        InterviewMode = 8192,
+        InterviewOption = 16384,
     }
 
     /// <summary>

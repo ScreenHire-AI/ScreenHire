@@ -8,6 +8,13 @@ public enum CalendarProvider
     Google,
     Microsoft,
     Sandbox,
+
+    /// <summary>
+    /// ScreenHire's own calendar, for a member with interview hours and no Google or Outlook calendar
+    /// (<see cref="InterviewHours"/>). Never a connection: it names an interviewer whose event is the .ics invitation, so no
+    /// provider is called for them.
+    /// </summary>
+    ScreenHire,
 }
 
 /// <summary>Why a connection stopped working until the member connects again.</summary>

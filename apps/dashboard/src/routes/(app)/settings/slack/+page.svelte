@@ -47,7 +47,7 @@
 
   // Settings > Slack (docs/architecture/slack.md), on the settings template: connect the organization's workspace,
   // pick the channel and what posts there, and disconnect it. Each person links their own account on Your account >
-  // Connected accounts (SlackConnection), so this page is the workspace's alone. Disconnecting is for good, so it confirms (A2).
+  // Calendar and accounts (SlackConnection), so this page is the workspace's alone. Disconnecting is for good, so it confirms (A2).
   const slackPath = '/v1/slack';
   const queryClient = useQueryClient();
   const settled = () => invalidatePath(queryClient, slackPath);

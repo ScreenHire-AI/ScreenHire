@@ -116,8 +116,10 @@ public sealed record OrganizationProfile(
 /// The organization's own choices about the dashboard's setup checklist. <c>skippedSteps</c> are the steps someone said the
 /// organization does not need, in the order they were skipped; <c>hidden</c> says someone hid the whole checklist. Both hold
 /// for every Owner and Admin on every device. Whether a step is done comes from the organization's data, not from here.
+/// <c>hasInterviewStage</c> says a job has a stage that holds interviews (of the interview kind, or with a scheduling
+/// default), so the checklist shows its Interviewing step.
 /// </summary>
-public sealed record OrganizationSetup(bool Hidden, IReadOnlyList<SetupStepId> SkippedSteps);
+public sealed record OrganizationSetup(bool Hidden, IReadOnlyList<SetupStepId> SkippedSteps, bool HasInterviewStage = false);
 
 /// <summary>
 /// Takes one step off the setup checklist for the organization. Skipping a step already skipped changes nothing. Nullable

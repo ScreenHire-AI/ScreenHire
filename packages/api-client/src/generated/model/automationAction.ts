@@ -5,6 +5,8 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ActionType } from './actionType.ts';
+import type { InterviewMode } from './interviewMode.ts';
+import type { InterviewOption } from './interviewOption.ts';
 
 /**
  * One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks
@@ -38,4 +40,6 @@ export interface AutomationAction {
   interviewWindowDays?: number | null;
   /** @nullable */
   interviewTimeZone?: string | null;
+  interviewMode?: null | InterviewMode;
+  interviewOption?: null | InterviewOption;
 }

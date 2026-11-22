@@ -3,7 +3,7 @@
 // `interviewBook`, `interviewReschedule` and `interviewCancel` actions, so the page ships no JavaScript and collects
 // nothing but the choice (no telemetry, no device check). Every time is written on the server with Intl in the zone the
 // candidate chose, so the page needs no script to convert it. Server-only where it calls the API.
-import { bookPublicInterview, cancelPublicInterview, reschedulePublicInterview } from './api';
+import { askPublicInterviewAnotherTime, bookPublicInterview, cancelPublicInterview, reschedulePublicInterview, suggestPublicInterviewTimes } from './api';
 import { text } from './apply';
 import { forwardedFor } from './apply-server';
 import { isToken } from './questionnaire';
@@ -24,9 +24,14 @@ export type InterviewOutcome =
   | 'busy'
   | 'error'
   | 'closed'
-  | 'not-found';
+  | 'not-found'
+  | 'suggested'
+  | 'another-asked'
+  | 'too-few'
+  | 'too-many'
+  | 'not-offered';
 
-export type InterviewAction = 'book' | 'reschedule' | 'cancel';
+export type InterviewAction = 'book' | 'reschedule' | 'cancel' | 'suggest' | 'another-time';
 
 /** What an action hands the page: how it went, and the view to come back to (the zone and whether the time picker is open). */
 export interface InterviewResult {
@@ -48,6 +53,11 @@ const SHOWN: readonly InterviewOutcome[] = [
   'unavailable',
   'busy',
   'error',
+  'suggested',
+  'another-asked',
+  'too-few',
+  'too-many',
+  'not-offered',
 ];
 
 /** The outcome an address carries, or null when it carries none the page knows. */
@@ -293,6 +303,16 @@ export function noticeFor(outcome: InterviewOutcome | null, meeting: string = de
       return { kind: 'problem', message: 'Too many tries from your network. Wait a minute, then try again.' };
     case 'error':
       return { kind: 'problem', message: 'Something went wrong on our side. Try again in a moment.' };
+    case 'suggested':
+      return { kind: 'success', message: 'We sent your times to the team. They will book one and email you.' };
+    case 'another-asked':
+      return { kind: 'success', message: 'We told the team. They will be in touch with other times.' };
+    case 'too-few':
+      return { kind: 'problem', message: 'Choose at least 3 times.' };
+    case 'too-many':
+      return { kind: 'problem', message: 'Choose at most 5 times.' };
+    case 'not-offered':
+      return { kind: 'problem', message: 'The team changed what you can choose. Look at the page again.' };
     default:
       return null;
   }
@@ -308,7 +328,7 @@ const problemCode = (problem: unknown): string => {
 export function outcomeOf(action: InterviewAction, status: number, problem?: unknown): InterviewOutcome {
   switch (status) {
     case 204:
-      return action === 'book' ? 'booked' : action === 'reschedule' ? 'rescheduled' : 'cancelled';
+      return { book: 'booked', reschedule: 'rescheduled', cancel: 'cancelled', suggest: 'suggested', 'another-time': 'another-asked' }[action] as InterviewOutcome;
     case 404:
       return 'not-found';
     case 410:
@@ -327,6 +347,12 @@ export function outcomeOf(action: InterviewAction, status: number, problem?: unk
           return 'already-booked';
         case 'not_booked':
           return 'not-booked';
+        case 'too_few_times':
+          return 'too-few';
+        case 'too_many_times':
+          return 'too-many';
+        case 'not_offered':
+          return 'not-offered';
         default:
           return 'error';
       }
@@ -349,6 +375,20 @@ export async function changeInterview(action: InterviewAction, form: FormData, c
   try {
     if (action === 'cancel') {
       const response = await cancelPublicInterview(organization, token, forwarded);
+      return { outcome: outcomeOf(action, response.status, response.status === 409 || response.status === 410 ? response.data : undefined), ...view };
+    }
+
+    if (action === 'suggest') {
+      // Every ticked time, in any day's box: they are all one form.
+      const times = form.getAll('times').flatMap((value) => (typeof value === 'string' && instantFrom(value) ? [instantFrom(value)!] : []));
+      if (times.length === 0) return { outcome: 'too-few', ...view };
+      const response = await suggestPublicInterviewTimes(organization, token, { times }, forwarded);
+      return { outcome: outcomeOf(action, response.status, response.status === 409 || response.status === 410 ? response.data : undefined), ...view };
+    }
+
+    if (action === 'another-time') {
+      const note = text(form, 'note').trim().slice(0, 500);
+      const response = await askPublicInterviewAnotherTime(organization, token, { note: note || null }, forwarded);
       return { outcome: outcomeOf(action, response.status, response.status === 409 || response.status === 410 ? response.data : undefined), ...view };
     }
 

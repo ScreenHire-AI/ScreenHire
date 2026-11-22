@@ -306,6 +306,18 @@ public sealed class JobApplication : IJobScoped
     public ApplicationEvent InterviewNewTimesOffered(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId) =>
         InterviewEntry(ApplicationEventType.InterviewNewTimesOffered, interview, now, actorUserId);
 
+    /// <summary>The timeline entry for changing how the candidate picks a time for an open interview.</summary>
+    public ApplicationEvent InterviewOptionChanged(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId) =>
+        InterviewEntry(ApplicationEventType.InterviewOptionChanged, interview, now, actorUserId);
+
+    /// <summary>The timeline entry for the candidate's suggested times; the candidate has no actor.</summary>
+    public ApplicationEvent InterviewTimesSuggested(InterviewRequest interview, DateTimeOffset now) =>
+        InterviewEntry(ApplicationEventType.InterviewTimesSuggested, interview, now, actorUserId: null);
+
+    /// <summary>The timeline entry for the candidate asking for another time than the team's.</summary>
+    public ApplicationEvent InterviewAnotherTimeAsked(InterviewRequest interview, DateTimeOffset now) =>
+        InterviewEntry(ApplicationEventType.InterviewAnotherTimeAsked, interview, now, actorUserId: null);
+
     private ApplicationEvent InterviewEntry(ApplicationEventType type, InterviewRequest interview, DateTimeOffset now, Guid? actorUserId)
     {
         ArgumentNullException.ThrowIfNull(interview);

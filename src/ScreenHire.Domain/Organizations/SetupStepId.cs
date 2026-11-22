@@ -11,4 +11,7 @@ public enum SetupStepId
     Job,
     Team,
     Email,
+
+    /// <summary>Connect a calendar or set interview hours: shown once a job has a stage that holds interviews.</summary>
+    Interviewing,
 }

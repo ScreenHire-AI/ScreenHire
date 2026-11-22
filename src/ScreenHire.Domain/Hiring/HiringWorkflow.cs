@@ -1,4 +1,5 @@
 using ScreenHire.Domain.Jobs;
+using ScreenHire.Domain.Scheduling;
 
 namespace ScreenHire.Domain.Hiring;
 
@@ -166,6 +167,8 @@ public sealed record HiringTemplateDefinition(HiringWorkflow Workflow, PostingDe
 /// <c>meetingName</c>: Optional: what the meeting held in this stage is called, in plain words and lower case, such as
 /// "trial shift" or "phone screen" (at most 40 characters). The invitation and reminder emails, the candidate's booking
 /// page, the candidate's page and the calendar event use it. Without one the meeting is called "interview".
+/// <c>scheduling</c>: Optional: how interviews in this stage are usually offered, so the Schedule interview sheet opens ready
+/// (docs/architecture/interview-scheduling.md, "Stage defaults").
 /// </remarks>
 public sealed record WorkflowStage(
     string Id,
@@ -174,7 +177,8 @@ public sealed record WorkflowStage(
     int? SlaDays = null,
     Scorecard? Scorecard = null,
     string? ScorecardTemplateId = null,
-    string? MeetingName = null)
+    string? MeetingName = null,
+    StageScheduling? Scheduling = null)
 {
     /// <summary>What a meeting is called when its stage names none.</summary>
     public const string DefaultMeetingName = "interview";
@@ -199,6 +203,28 @@ public sealed record WorkflowStage(
     /// </summary>
     public DateTimeOffset? SlaDueAt(DateTimeOffset enteredAt) => HasSla() ? enteredAt.AddDays(SlaDays!.Value) : null;
 }
+
+/// <summary>
+/// How an interview in a stage is usually offered: the Schedule interview sheet starts from it, and a
+/// <see cref="ActionType.ScheduleInterview"/> action with no option of its own sends with its option. Every member is optional.
+/// </summary>
+/// <remarks>
+/// <c>option</c>: How the candidate picks a time (pick from our times, tell us when you're free, or we'll suggest a time).
+/// <c>interviewerUserIds</c>: The stage's interviewers by user id, the first the organizer (one to five). Not with <c>interviewerTeamId</c>.
+/// <c>interviewerTeamId</c>: A named team whose members interview in this stage. A team stays current as people come and go.
+/// <c>durationMinutes</c>: The interview's length, one of the lengths a request allows.
+/// <c>windowDays</c>: How many days ahead the candidate may pick from (1 to 60).
+/// <c>hours</c>: The hours times are offered in, any day of the week; with <c>useBlocks</c> they are interview blocks and
+/// the interviewers need no calendar.
+/// </remarks>
+public sealed record StageScheduling(
+    InterviewOption? Option = null,
+    IReadOnlyList<Guid>? InterviewerUserIds = null,
+    Guid? InterviewerTeamId = null,
+    int? DurationMinutes = null,
+    int? WindowDays = null,
+    WeeklyHours? Hours = null,
+    bool UseBlocks = false);
 
 /// <summary>
 /// A job's copy of a library scorecard: the questions a reviewer answers for a stage, then an overall
@@ -508,6 +534,10 @@ public enum ConditionOperator
 /// <c>interviewMinutes</c>: For <see cref="ActionType.ScheduleInterview"/>: the interview's length, one of the lengths a request allows.
 /// <c>interviewWindowDays</c>: For <see cref="ActionType.ScheduleInterview"/>: how many days from the run the candidate has to pick a time (1 to 60).
 /// <c>interviewTimeZone</c>: For <see cref="ActionType.ScheduleInterview"/>: the IANA zone of the working hours and the candidate page's default.
+/// <c>interviewMode</c>: For <see cref="ActionType.ScheduleInterview"/>, optional: <see cref="InterviewMode.Send"/> (the default) offers the
+/// interview; <see cref="InterviewMode.Choose"/> gives the team a task to choose how the candidate schedules, and needs no other field.
+/// <c>interviewOption</c>: For <see cref="ActionType.ScheduleInterview"/> in Send, optional: how the candidate picks a time; without it,
+/// the stage's default option, else pick from our times. We'll suggest a time needs a person, so an action cannot send it.
 /// </remarks>
 public sealed record AutomationAction(
     ActionType Type,
@@ -523,7 +553,19 @@ public sealed record AutomationAction(
     IReadOnlyList<Guid>? InterviewerUserIds = null,
     int? InterviewMinutes = null,
     int? InterviewWindowDays = null,
-    string? InterviewTimeZone = null);
+    string? InterviewTimeZone = null,
+    InterviewMode? InterviewMode = null,
+    InterviewOption? InterviewOption = null);
+
+/// <summary>What a <see cref="ActionType.ScheduleInterview"/> action does.</summary>
+public enum InterviewMode
+{
+    /// <summary>Offers the candidate an interview with the action's interviewers.</summary>
+    Send,
+
+    /// <summary>Gives the team a task, "Choose how the candidate schedules", and offers nothing.</summary>
+    Choose,
+}
 
 public enum ActionType
 {

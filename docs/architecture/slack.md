@@ -93,7 +93,7 @@ events, after asking Slack for the channel: an unknown, archived or uninvited pr
 
 ## Each person's account
 
-Every member links their own account on Your account > Connected accounts (`SlackConnection`), shown while the workspace is
+Every member links their own account on Your account > Calendar and accounts (`SlackConnection`), shown while the workspace is
 connected. Linking uses Sign in with Slack (OpenID Connect, `openid profile`, with `team` set to the workspace) through
 the same callback: `POST /v1/slack/account/link` takes the page to come back to, and the outcome returns as
 `?slack-account=`. An account from another workspace is refused (`wrong-workspace`). A Slack account links to one
@@ -199,7 +199,7 @@ with the workspace), `slack_messages` and `slack_sandbox_messages`.
 | `Slack/*Tests` (unit) | the wording and escaping, error codes, the Web API client against a stub handler, the token and state protection, the modes and the sandbox gate |
 | `Slack/SlackTests` (integration) | the install and link round trips through the sandbox, the state and cookie checks, permissions, channel validation, a post for each event and none when it is off, one post for a replayed event, recorded problems, direct messages and when they are not sent, disconnecting, tenant isolation |
 | `DevelopmentDemoTests` (integration) | with Slack off, `available` is false and the routes are 404s |
-| `SlackTests` (end to end) | connecting the sandbox from the page, picking a channel, linking from Connected accounts as an Owner and as a Recruiter, disconnecting through the dialog; Send test message and a published job each reach #hiring, read back from the sandbox workspace through `SlackSandbox` (`GET /v1/slack/sandbox/messages`), not taken from the page's word. The states: no workspace (Add to Slack, and the rest of the app untouched); a channel archived or deleted in Slack (Not posting, what is wrong, pick another channel, and posts arrive); a revoked token (Disconnected, Reconnect, the channel kept, hiring work unaffected); a post that fails once and is retried (one message, no problem on the page, and a failed Send test message says to try again); a member with no linked account (no direct message, and Link my Slack account on Connected accounts turns them on) |
+| `SlackTests` (end to end) | connecting the sandbox from the page, picking a channel, linking from Calendar and accounts as an Owner and as a Recruiter, disconnecting through the dialog; Send test message and a published job each reach #hiring, read back from the sandbox workspace through `SlackSandbox` (`GET /v1/slack/sandbox/messages`), not taken from the page's word. The states: no workspace (Add to Slack, and the rest of the app untouched); a channel archived or deleted in Slack (Not posting, what is wrong, pick another channel, and posts arrive); a revoked token (Disconnected, Reconnect, the channel kept, hiring work unaffected); a post that fails once and is retried (one message, no problem on the page, and a failed Send test message says to try again); a member with no linked account (no direct message, and Link my Slack account on Calendar and accounts turns them on) |
 
 ## Not built
 

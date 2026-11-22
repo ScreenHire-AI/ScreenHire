@@ -86,6 +86,15 @@ public enum ApplicationEventType
     /// <summary>A person offered the candidate new times for a booked interview. The booked time stays until the candidate picks one; <c>startsAt</c> is that held time.</summary>
     InterviewNewTimesOffered,
 
+    /// <summary>A person changed how the candidate picks a time for an open interview (the link stays the same).</summary>
+    InterviewOptionChanged,
+
+    /// <summary>The candidate sent the times they are free (tell us when you're free), for the team to book one.</summary>
+    InterviewTimesSuggested,
+
+    /// <summary>The candidate could not make the team's times (we'll suggest a time) and asked for another.</summary>
+    InterviewAnotherTimeAsked,
+
     /// <summary>The candidate answered an email: their reply, kept as an <see cref="InboundEmail"/>.</summary>
     EmailReceived,
 }

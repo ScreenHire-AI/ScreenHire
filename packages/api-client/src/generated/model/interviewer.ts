@@ -10,11 +10,14 @@ import type { CalendarProvider } from './calendarProvider.ts';
  * A member who can interview for a job: one who sees it (everyone who sees all jobs, and the members on its hiring team).
  * `calendarConnected` is true when their calendar is connected and works here, so ScreenHire can read when they are
  * busy and put the interview in it; an interview cannot be offered with someone who has none. `calendarProvider`
- * says which calendar it is, and is null when `calendarConnected` is false.
+ * says which calendar it is, and is null when `calendarConnected` is false. `hasHours` is true when they set their
+ * own interview hours, which is ScreenHire's calendar for someone with no connected one: either makes them someone times can
+ * be offered from.
  */
 export interface Interviewer {
   userId: string;
   displayName: string;
   calendarConnected: boolean;
   calendarProvider: null | CalendarProvider;
+  hasHours?: boolean;
 }
