@@ -5,6 +5,7 @@ import { expectNoAxeViolations } from '../../test-support/axe.js';
 import WithTooltips from '../../test-support/with-tooltips.svelte';
 import ActivityList from './activity-list.svelte';
 import RelativeTime from './relative-time.svelte';
+import { pressTab } from '../../test-support/keyboard.js';
 
 const now = Date.parse('2026-10-20T12:00:00Z');
 const tooltip = () => document.querySelector('[data-slot="tooltip-content"]');
@@ -62,6 +63,7 @@ describe('relative time', () => {
     const time = screen.getByText('2 hours ago');
     expect(time).toHaveAttribute('tabindex', '0');
     expect(time).not.toHaveAttribute('type');
+    await pressTab();
     await fireEvent.focus(time);
     // The tooltip describes the time it belongs to.
     expect(document.getElementById(time.getAttribute('aria-describedby')!)).toHaveTextContent('Oct 20, 2026, 10:00 AM');
