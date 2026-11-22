@@ -56,6 +56,62 @@ public sealed class ShellTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(Page.GetByRole(AriaRole.Heading, new() { Level = 1 })).ToHaveTextAsync("Candidates");
     }
 
+    // The owner's fourth walk-through (2026-11-21): in the rail every view showed the same filter icon. Each built-in view now
+    // has its own icon, a saved view the first letter of its name in a square, and a divider sets the views apart.
+    [Fact]
+    public async Task At_800px_each_view_in_the_icon_rail_has_its_own_mark_and_its_name_in_a_tooltip()
+    {
+        var email = ApiSession.NewEmail("e2e-rail");
+        using (var session = new ApiSession(Fixture))
+        {
+            await session.SignInWithDevSsoAsync(email, Ct);
+            await ReadAsync(await session.PostAsync("/v1/auth/onboarding", new { name = "Riley Harper", organizationName = "Harbour Lane Studio", slug = $"test-{Guid.NewGuid():N}" }, Ct), HttpStatusCode.OK);
+            await ReadAsync(await session.PostAsync(
+                "/v1/views",
+                new
+                {
+                    name = "Referrals",
+                    scope = "Candidates",
+                    jobId = (Guid?)null,
+                    shared = false,
+                    filters = new
+                    {
+                        baseView = (string?)null,
+                        jobIds = Array.Empty<Guid>(),
+                        stages = Array.Empty<string>(),
+                        authenticity = (string?)null,
+                        aiAssistance = (string?)null,
+                        tag = "referral",
+                        sortColumn = (string?)null,
+                        sortDescending = false,
+                    },
+                },
+                Ct), HttpStatusCode.Created);
+        }
+        await Page.SetViewportSizeAsync(800, 1024);
+        await SignInAsync(email);
+
+        var main = Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" });
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Expand sidebar" })).ToBeVisibleAsync();
+        var icons = new List<string?>();
+        foreach (var name in new[] { "To review", "To verify", "Overdue", "New today", "Not screened", "Interviewing" })
+        {
+            var icon = main.GetByRole(AriaRole.Link, new() { Name = name, Exact = true }).Locator("svg");
+            await Expect(icon).ToBeVisibleAsync();
+            icons.Add(await icon.GetAttributeAsync("data-icon"));
+        }
+        icons.Should().Equal("eye", "id-card", "clock-alert", "calendar-plus", "inbox", "messages-square");
+
+        var saved = main.GetByRole(AriaRole.Link, new() { Name = "Referrals", Exact = true });
+        await Expect(saved.Locator("[data-view-letter]")).ToHaveTextAsync("R");
+        await Expect(main.GetByTestId("rail-views-divider")).ToBeVisibleAsync();
+
+        await saved.HoverAsync();
+        await Expect(Page.Locator("[data-slot='tooltip-content'][data-state='instant-open'], [data-slot='tooltip-content'][data-state='delayed-open']")).ToContainTextAsync("Referrals");
+        await ExpectNoSidewaysScrollAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+    }
+
     [Fact]
     public async Task At_390px_the_sidebar_is_a_sheet_behind_the_menu_button_and_a_detail_page_shows_Back()
     {
