@@ -171,6 +171,8 @@
     getRowId: (row) => row.id,
   });
   const rows = $derived(table.getRowModel().rows);
+  // A phone has no Applications column, so the count joins the date under the board's name.
+  const applicationWords = (count: number) => `${count} ${count === 1 ? 'application' : 'applications'}`;
   const numeric = (id: string) => id === 'posted' || id === 'applications' || id === 'updatedAt';
 
   // Customize opens a sheet for one board. From the menu it opens once the menu has closed and given focus back, so the
@@ -364,8 +366,9 @@
       {/if}
     </span>
     {#if posted && board.posting}
+      {@const count = countOf(row)}
       <span class="flex flex-col text-caption text-muted-foreground md:hidden">
-        <span>Posted <DateText at={posted} /></span>
+        <span>Posted <DateText at={posted} />{#if count !== null}, {applicationWords(count)}{/if}</span>
         <span>Updated <DateText at={board.posting.updatedAt} /></span>
       </span>
     {/if}
@@ -386,8 +389,9 @@
         </Hint>
       {/if}
     </span>
+    {@const count = countOf(row)}
     <span class="flex flex-col text-caption text-muted-foreground md:hidden">
-      <span>Posted {formatDay(posting.postedOn)}</span>
+      <span>Posted {formatDay(posting.postedOn)}{#if count !== null}, {applicationWords(count)}{/if}</span>
       <span>Updated <DateText at={posting.updatedAt} /></span>
     </span>
   {/if}

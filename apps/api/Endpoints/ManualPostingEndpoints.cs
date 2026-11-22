@@ -67,8 +67,8 @@ internal static class ManualPostingEndpoints
             [.. postings.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id).Select(p => p.ToStatus(target))]));
     }
 
-    // One count per link the job's applications came through. The careers page counts the applications with no board tag
-    // that came neither through the organization's own site nor from a recruiter; Google for Jobs and the public job-board
+    // One count per link the job's applications came through, as Reports counts sources: one through the organization's own
+    // site is that site's, whatever its tag, and one from a recruiter has no link. The careers page counts the rest with no tag; Google for Jobs and the public job-board
     // API send candidates to that same untagged page, so theirs are among them.
     private static async Task<Results<Ok<List<SourceApplications>>, NotFound>> ListSourceApplications(
         Guid jobId, ScreenHireDbContext db, CancellationToken cancellationToken)
@@ -79,7 +79,7 @@ internal static class ManualPostingEndpoints
         }
 
         var rows = await db.Applications.AsNoTracking()
-            .Where(a => a.JobId == jobId && a.Source == ApplicationSource.CareersSite && (a.SourceBoard != null || a.SourceSite == null))
+            .Where(a => a.JobId == jobId && a.Source == ApplicationSource.CareersSite && a.SourceSite == null)
             .GroupBy(a => a.SourceBoard)
             .Select(g => new { Board = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);
