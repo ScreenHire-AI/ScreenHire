@@ -45,6 +45,7 @@ internal static partial class PersonalInfoScan
         ("private key", PrivateKey()),
         ("google api key", GoogleKey()),
         ("jwt", Jwt()),
+        ("screenhire api key", ScreenHireApiKey()),
     ];
 
     /// <summary>
@@ -323,6 +324,13 @@ internal static partial class PersonalInfoScan
     /// <summary>ScreenHire's endpoint secret (<c>WebhookSignature.SecretPrefix</c>).</summary>
     [GeneratedRegex(@"\bshws_(?<body>\w+)")]
     private static partial Regex ScreenHireWebhookSecret();
+
+    /// <summary>
+    /// An organization API key exactly as <c>ApiKeyTokens</c> makes one (ADR-0011): prefix, organization and secret in
+    /// lower-case hex. The malformed keys <c>ApiKeyTokensTests</c> refuses do not match.
+    /// </summary>
+    [GeneratedRegex(@"\bshk_[0-9a-f]{8}_[0-9a-f]{32}_[0-9a-f]{64}(?![A-Za-z0-9_])")]
+    private static partial Regex ScreenHireApiKey();
 
     [GeneratedRegex(@"[A-Za-z0-9]{24,}")]
     private static partial Regex KeyLikeRun();
