@@ -22,7 +22,7 @@
   import { modelProblemMessages, modelProviderLabels } from '#lib/verification-settings.js';
   import { createVerificationSettingsSave, savedMessage } from '#lib/verification-settings-save.js';
 
-  // Whose key runs the AI check, on the AI use tab (verification-engine.md 10.11): ScreenHire's, or the organization's own
+  // Whose key runs the AI check, on Settings > Integrations > AI model (verification-engine.md 10.11): ScreenHire's, or the organization's own
   // provider, key and model. It saves only these fields; whether the check runs at all is "Compare each application's sources"
   // on the Checks tab. The API key is write-only: the box is never filled from the server, and an empty box keeps the saved key.
   let { detail }: { detail: OrganizationVerificationSettings } = $props();

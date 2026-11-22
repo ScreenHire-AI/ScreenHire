@@ -2,7 +2,7 @@
   import DownloadIcon from '~icons/lucide/download';
   import { SvelteSet } from 'svelte/reactivity';
   import type { AiKeySource, CheckGroup, ListVerificationActivityParams, VerificationActivityOutcome } from '@screenhire/api-client';
-  import { getExportVerificationActivityUrl } from '@screenhire/api-client/svelte-query';
+  import { createGetAiUsageSummary, getExportVerificationActivityUrl } from '@screenhire/api-client/svelte-query';
   import Panel from '#lib/components/panel.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as Table from '#lib/components/ui/table/index.js';
@@ -10,17 +10,26 @@
   import { selectClass } from '#lib/components/workflow/controls.js';
   import { cn } from '#lib/utils.js';
   import { activityGroupLabels, activityOutcomeFilters, activityOutcomeLabels } from '#lib/activity-log.js';
+  import { aiCallsText } from '#lib/billing.js';
   import { keySourceLabels } from '#lib/ai-usage.js';
-  import { canSeeUsage } from '#lib/verification-area.js';
+  import { aiUseAddress, canSeeUsage } from '#lib/verification-area.js';
   import type { PageProps } from './$types';
 
   // The Activity log tab: every run of the checks, newest first, one row per application per run, each opening to its checks
   // and the model calls the AI check made, with the provider's own request id so a bill can be compared with the provider's
   // dashboard. Everyone who sees verification reads what ran; a call's model, cost and request id, the key filter and the CSV
-  // (one line per check, every column) are for who can see AI usage. Never about a candidate.
+  // (one line per check, every column) are for who can see AI usage, and so is the one line above the log with this month's
+  // calls, which links to Billing's AI use section. Never about a candidate.
   let { data }: PageProps = $props();
 
   const usage = $derived(canSeeUsage(data.user));
+  // The same query as Billing's AI use section opens with (this month, in the browser's time zone), so the two share it.
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const month = createGetAiUsageSummary(
+    () => ({ timeZone }),
+    () => ({ query: { enabled: usage } }),
+  );
+  const monthCalls = $derived(usage ? month.data?.data.totals.calls : undefined);
 
   const ranges = [
     { value: '', label: 'Any time', days: null },
@@ -61,6 +70,15 @@
 <svelte:head>
   <title>Activity log · Verification · ScreenHire</title>
 </svelte:head>
+
+<!-- Quiet and only once it is known: nothing while it loads or if it fails, so the log never waits on it. -->
+{#if monthCalls !== undefined}
+  <p class="text-muted-foreground" data-month-calls>
+    This month: <a href={aiUseAddress} class="text-foreground underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
+      >{aiCallsText(monthCalls)}</a
+    >
+  </p>
+{/if}
 
 <Panel label="Activity" flush>
   {#snippet actions()}

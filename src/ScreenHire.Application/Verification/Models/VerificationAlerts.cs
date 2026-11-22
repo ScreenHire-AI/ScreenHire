@@ -68,10 +68,10 @@ public static class AiUsageAlertWording
     public static string Body(AiUsageAlertKind kind, int percent, string organization) => kind switch
     {
         AiUsageAlertKind.Budget =>
-            $"{organization} has used {percent}% of this month's AI budget. The budget only warns. Set a cap in Verification to pause the AI checks at a limit.",
+            $"{organization} has used {percent}% of this month's AI budget. The budget only warns. Set a cap in Billing to pause the AI checks at a limit.",
         AiUsageAlertKind.Cap =>
             $"{organization} reached its monthly AI cap, so the AI checks are paused until next month or until the cap is raised. The rule-based checks keep running, and a paused check is never a mark against a candidate.",
-        _ => $"{organization} used much more AI yesterday than on a usual day. Open Usage in Verification to see which calls.",
+        _ => $"{organization} used much more AI yesterday than on a usual day. Open AI use in Billing to see which calls.",
     };
 
     public static EmailMessage Email(string to, AiUsageAlertKind kind, int percent, string organization, Uri link)
@@ -184,9 +184,9 @@ public static partial class NotifyAiUsageHandler
             AiUsageAlertKind.Cap => (NotificationKinds.AiUsageCap, new Dictionary<string, string>()),
             _ => (NotificationKinds.AiUsageSpike, new Dictionary<string, string> { ["day"] = message.Key.Split(':')[0] }),
         };
-        outgoing.Add(new RaiseNotification(message.OrganizationId, Permission.ViewAiUsage, kind, message.Key, payload, "/verification/ai-use"));
+        outgoing.Add(new RaiseNotification(message.OrganizationId, Permission.ViewAiUsage, kind, message.Key, payload, "/settings/billing#ai-use"));
 
-        var link = links.Value.Url("/verification/ai-use");
+        var link = links.Value.Url("/settings/billing#ai-use");
         var organization = await db.Organizations.AsNoTracking().Where(o => o.Id == message.OrganizationId).Select(o => o.Name).SingleOrDefaultAsync(cancellationToken);
         if (link is null || organization is null)
         {

@@ -120,18 +120,18 @@ describe('the Overview tab', () => {
     expect(screen.queryByText(/still being checked/)).not.toBeInTheDocument();
   });
 
-  it('shows the AI usage against the budget, with a link to AI use, for who can see usage', async () => {
+  it("shows the AI usage against the budget, with a link to Billing's AI use section, for who can see usage", async () => {
     renderPage(overview);
 
-    expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Spending limits' })).toBeInTheDocument();
     expect(screen.getAllByText('420 tokens of 2,000,000 tokens').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'See AI use' })).toHaveAttribute('href', '/verification/ai-use');
+    expect(screen.getByRole('link', { name: 'See AI use' })).toHaveAttribute('href', '/settings/billing#ai-use');
   });
 
   it('shows the budget in billed dollars where the deployment prices its model, with no estimate to explain', async () => {
     renderPage(overview, user, true, dollarLimits);
 
-    expect(await screen.findByRole('heading', { name: 'Monthly limits' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Spending limits' })).toBeInTheDocument();
     expect((await screen.findAllByText('$0.07 of $3.84')).length).toBeGreaterThan(0);
     expect(screen.queryByText(/estimate/)).not.toBeInTheDocument();
     expect(screen.queryByText(/tokens of/)).not.toBeInTheDocument();
@@ -142,7 +142,7 @@ describe('the Overview tab', () => {
       renderPage(overview, userAs(role), false);
 
       expect(await screen.findByText('Applications checked')).toBeInTheDocument();
-      expect(screen.queryByRole('heading', { name: 'Monthly limits' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Spending limits' })).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: 'See AI use' })).not.toBeInTheDocument();
     });
   });

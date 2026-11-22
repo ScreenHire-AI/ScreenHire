@@ -12,8 +12,8 @@
 
   // The Verification area (design system section 7, Area): one header band and one tab strip for its pages, then the tab's
   // own page under it. Everyone who sees verification has the area; each tab is in the strip only for a role that may use it,
-  // never shown disabled (A3), and a tab's address checks the same (the tab's +page.ts). The four tabs that show the saved
-  // settings carry Last updated and History on the title's row, so the band is one height on every tab (S8).
+  // never shown disabled (A3), and a tab's address checks the same (the tab's +page.ts). Checks, the tab that shows the saved
+  // settings, carries Last updated and History on the title's row, and the band is one height on every tab (S8).
   let { data, children }: LayoutProps = $props();
 
   const visibleTabs = $derived(tabsFor(data.user));

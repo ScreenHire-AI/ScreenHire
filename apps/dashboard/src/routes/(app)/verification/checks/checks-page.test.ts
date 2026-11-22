@@ -121,13 +121,12 @@ describe('the Checks tab', () => {
     expect(within(duplicates).getByRole('textbox', { name: 'Trusted email domains' })).toBeInTheDocument();
     expect(within(duplicates).getByRole('combobox', { name: 'Device check' })).toBeInTheDocument();
     expect(duplicates).toHaveTextContent('It also affects Form activity');
-    // The Verification suggested alert sits on this tab, by email and Slack, with the app always ticked.
-    const grid = screen.getByRole('table', { name: 'Verification alerts' });
-    expect(within(grid).getByRole('checkbox', { name: 'Verification suggested by email' })).toBeInTheDocument();
-    expect(within(grid).getByText(/Always\./)).toBeInTheDocument();
+    // The alerts are Settings > Notification defaults' and each person's own, never a feature's tab.
+    expect(screen.queryByRole('table', { name: 'Verification alerts' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Notifications' })).not.toBeInTheDocument();
   });
 
-  it('saves a group turned off, the policy, the consistency check and the alert in one Save, keeping the AI usage alert and the key', async () => {
+  it('saves a group turned off, the policy and the consistency check in one Save, keeping the alerts and the key as saved', async () => {
     const bodies = renderPage(
       ownKey({ trustedNetworks: ['203.0.113.0/24'], alerts: { suggestedEmail: false, suggestedSlack: false, budgetEmail: false, budgetSlack: true } }),
     );
@@ -135,7 +134,6 @@ describe('the Checks tab', () => {
     await openRow('Answers');
     await fireEvent.change(screen.getByRole('combobox', { name: 'AI use while applying' }), { target: { value: 'NotAllowed' } });
     await fireEvent.click(screen.getByRole('switch', { name: "Compare each application's sources" }));
-    await fireEvent.click(screen.getByRole('checkbox', { name: 'Verification suggested by email' }));
 
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -145,7 +143,7 @@ describe('the Checks tab', () => {
       defaultAiUse: 'NotAllowed',
       llmConsistencyCheck: true,
       trustedNetworks: ['203.0.113.0/24'],
-      alerts: { suggestedEmail: true, suggestedSlack: false, budgetEmail: false, budgetSlack: true },
+      alerts: { suggestedEmail: false, suggestedSlack: false, budgetEmail: false, budgetSlack: true },
       modelSource: 'OwnKey',
       model: 'claude-test',
       apiKey: null,
@@ -210,15 +208,6 @@ describe('the Checks tab', () => {
 
     expect(await within(section('Network')).findByRole('textbox', { name: 'Trusted networks' })).toBeInTheDocument();
   });
-
-  it('shows Slack only once Slack is connected', async () => {
-    renderPage(settingsWith({ slackConnected: false }));
-
-    const grid = await screen.findByRole('table', { name: 'Verification alerts' });
-    expect(within(grid).queryByRole('columnheader', { name: 'Slack' })).not.toBeInTheDocument();
-    expect(document.body).not.toHaveTextContent(/slack/i);
-  });
-
   it('says why when the API refuses the save', async () => {
     stubSettings(settingsWith(), {
       'GET /v1/verification/overview': () => Response.json(overview()),

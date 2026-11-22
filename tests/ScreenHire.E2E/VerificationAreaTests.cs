@@ -1,25 +1,23 @@
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The Verification area in a real browser: four tabs under one header band, each at its own path. An owner walks all of them,
+/// The Verification area in a real browser: three tabs under one header band, each at its own path. An owner walks all of them,
 /// sees every check group's row and Save on one 1440x900 screen, turns a group off and changes the AI-use policy on Checks with
-/// one Save and finds both saved after a reload; an old
-/// tab's address lands on the tab that holds its settings now; a Recruiter has the three tabs their role may use, sees plain text
-/// instead of switches, and is sent back to the Overview from AI use. Each test that makes an organization signs in as a new owner
-/// of a new one.
+/// one Save and finds both saved after a reload; the old AI use tab's address lands on Billing's AI use section, in view, whose
+/// key link opens Settings > Integrations > AI model; an old tab's address lands on the tab that holds its settings now; a
+/// Recruiter has the same three tabs, sees plain text instead of switches, and is sent back to the Overview from AI use. Each
+/// test that makes an organization signs in as a new owner of a new one.
 /// </summary>
 public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixture)
 {
-    private static readonly string[] EveryTab = ["Overview", "Activity log", "Checks", "AI use"];
-
-    private static readonly string[] ReadOnlyTabs = ["Overview", "Activity log", "Checks"];
+    private static readonly string[] EveryTab = ["Overview", "Activity log", "Checks"];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private ILocator Tabs => Page.GetByRole(AriaRole.Tablist, new() { Name = "Verification pages" }).GetByRole(AriaRole.Tab);
 
     [Fact]
-    public async Task An_owner_walks_the_four_tabs_and_a_group_and_the_policy_saved_together_on_Checks_stay_saved()
+    public async Task An_owner_walks_the_three_tabs_and_a_group_and_the_policy_saved_together_on_Checks_stay_saved()
     {
         await SignInAsNewOwnerAsync();
         await Page.SetViewportSizeAsync(1440, 900);
@@ -34,6 +32,7 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await OpenTabAsync("Activity log", "/verification/activity");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Activity table" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Export CSV" })).ToBeVisibleAsync();
+        await Expect(Page.Locator("[data-month-calls]")).ToHaveTextAsync("This month: 0 AI calls");
         await Page.GetByRole(AriaRole.Combobox, new() { Name = "Filter by outcome" }).SelectOptionAsync(new SelectOptionValue { Value = "Found" });
         await Expect(Page.GetByText("No activity matches.")).ToBeVisibleAsync();
         await ExpectNoAccessibilityViolationsAsync();
@@ -65,9 +64,18 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await answers.GetByRole(AriaRole.Button, new() { Expanded = false }).ClickAsync();
         await Expect(answers.GetByRole(AriaRole.Combobox, new() { Name = "AI use while applying", Exact = true })).ToHaveValueAsync("NotAllowed");
 
-        await OpenTabAsync("AI use", "/verification/ai-use");
+        // The AI use tab moved out of the area: its old address, which alert emails still carry, lands on Billing's AI use section,
+        // brought into view under the trial's plan panels.
+        await GoToAsync("dashboard", "/verification/ai-use");
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/billing#ai-use"));
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "AI use", Exact = true })).ToBeInViewportAsync();
         await Expect(Page.GetByText("Model calls", new() { Exact = true })).ToBeVisibleAsync();
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Monthly limits" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Spending limits" })).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+
+        // Whose key runs the AI check is an integration now.
+        await Page.GetByRole(AriaRole.Link, new() { Name = "Use your own key" }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(DashboardUrl("/settings/ai-model"));
         await Expect(Page.GetByRole(AriaRole.Radio, new() { Name = "ScreenHire's key" })).ToBeCheckedAsync();
         await ExpectNoAccessibilityViolationsAsync();
 
@@ -78,7 +86,7 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
     }
 
     [Fact]
-    public async Task The_owners_phone_has_the_same_four_tabs_and_no_sideways_page_scroll()
+    public async Task The_owners_phone_has_the_same_three_tabs_and_no_sideways_page_scroll()
     {
         await SignInAsNewOwnerAsync();
         await Page.SetViewportSizeAsync(390, 844);
@@ -98,7 +106,7 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
     }
 
     [Fact]
-    public async Task A_recruiter_has_three_tabs_with_text_instead_of_switches_and_is_sent_back_from_AI_use()
+    public async Task A_recruiter_has_the_three_tabs_with_text_instead_of_switches_and_is_sent_back_from_AI_use()
     {
         const string recruiter = "jordan@brightwater.example.com"; // the seeded Brightwater Recruiter (DevSso/config.json)
         await SignInAsync(recruiter);
@@ -106,7 +114,7 @@ public sealed class VerificationAreaTests(E2EFixture fixture) : BrowserTest(fixt
         await GoToAsync("dashboard", "/verification");
 
         await Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" }).GetByRole(AriaRole.Link, new() { Name = "Verification", Exact = true })).ToBeVisibleAsync();
-        await Expect(Tabs).ToHaveTextAsync(ReadOnlyTabs);
+        await Expect(Tabs).ToHaveTextAsync(EveryTab);
         await Expect(Page.GetByText("Applications checked")).ToBeVisibleAsync();
 
         await OpenTabAsync("Activity log", "/verification/activity");

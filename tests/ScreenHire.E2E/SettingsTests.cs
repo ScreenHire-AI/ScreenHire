@@ -127,7 +127,7 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
         // that list, not the one before the answer, is what keeps this from depending on which comes first. Email domain may
         // carry its mark after its name, so each entry is matched by its start.
         await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(
-            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Tags\s*$"), new Regex("^Email domain"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
+            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Tags\s*$"), new Regex(@"^Notification defaults\s*$"), new Regex("^Email domain"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
         await Expect(organization.GetByRole(AriaRole.Link, new() { Name = "Branding" })).ToHaveCountAsync(0);
         var team = await FrameAsync();
 
@@ -175,11 +175,11 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
         // arrives with the shell's answer. Email domain is optional, so an organization with none shows no mark beside it.
         var menu = Page.GetByRole(AriaRole.Navigation, new() { Name = "Settings", Exact = true });
         var integrations = menu.GetByRole(AriaRole.List, new() { Name = "Integrations", Exact = true });
-        await Expect(integrations.GetByRole(AriaRole.Link)).ToHaveTextAsync(["Slack", "MCP server", "Webhooks", "API keys"]);
+        await Expect(integrations.GetByRole(AriaRole.Link)).ToHaveTextAsync(["AI model", "Slack", "MCP server", "Webhooks", "API keys"]);
         await Expect(menu.GetByRole(AriaRole.List, new() { Name = "Careers site", Exact = true }).GetByRole(AriaRole.Link)).ToHaveTextAsync(["Careers page", "Branding"]);
         var organization = menu.GetByRole(AriaRole.List, new() { Name = "Organization", Exact = true });
         await Expect(organization.GetByRole(AriaRole.Link)).ToHaveTextAsync(
-            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Tags\s*$"), new Regex(@"^Email domain\s*$"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
+            [new Regex(@"^General\s*$"), new Regex(@"^Team\s*$"), new Regex(@"^Roles\s*$"), new Regex(@"^Tags\s*$"), new Regex(@"^Notification defaults\s*$"), new Regex(@"^Email domain\s*$"), new Regex(@"^Data requests\s*$"), new Regex(@"^Billing\s*$")]);
         await Expect(menu.Locator("[data-setting-mark]")).ToHaveCountAsync(0);
         await ExpectNoAccessibilityViolationsAsync();
 
@@ -235,9 +235,9 @@ public sealed class SettingsTests(E2EFixture fixture) : SettingsArea(fixture)
 
         (string Area, (string Path, string Title, bool HasFact)[] Pages)[] sections =
         [
-            ("Organization", [("/settings/organization", "General", true), ("/settings/team", "Team", true), ("/settings/roles", "Roles", false), ("/settings/sending-domain", "Email domain", true), ("/settings/data-requests", "Data requests", false)]),
+            ("Organization", [("/settings/organization", "General", true), ("/settings/team", "Team", true), ("/settings/roles", "Roles", false), ("/settings/notification-defaults", "Notification defaults", true), ("/settings/sending-domain", "Email domain", true), ("/settings/data-requests", "Data requests", false)]),
             ("Careers site", [("/settings/careers-site", "Careers page", true), ("/settings/branding", "Branding", true)]),
-            ("Integrations", [("/settings/mcp-server", "MCP server", false), ("/settings/webhooks", "Webhooks", false), ("/settings/api-keys", "API keys", false)]),
+            ("Integrations", [("/settings/ai-model", "AI model", true), ("/settings/mcp-server", "MCP server", false), ("/settings/webhooks", "Webhooks", false), ("/settings/api-keys", "API keys", false)]),
         ];
         foreach (var (area, pages) in sections)
         {

@@ -347,7 +347,7 @@ so its AI line and the meter agree to the micro-dollar for calls past the trial 
 **One amount for AI use.** A customer sees one amount for AI use, the amount they pay, and never the provider's price or the margin
 (the owner's walk-through, 2026-11-21). `AiCharge.Billed` is that amount for one call: on ScreenHire's key `AiCharge.Micros` in dollars, the
 figure the meter is sent; on the organization's own key the provider's price, which that provider charges and ScreenHire never bills, so
-it is labelled "Charged by your provider (estimate)". The AI use tab, its by-day and by-model tables, the call list, the Activity log, both
+it is labelled "Charged by your provider (estimate)". Billing's AI use section, its by-day and by-model tables, the call list, the Activity log, both
 CSVs, the budget and the cap and the Billing page all show it (`AiUsageQueries.BilledAmount` in SQL). The margin is
 `BillingOptions.AiMarginInForce`: `Ai:Margin` while AI use is billed (`AiMetered`: the sandbox, or Stripe with `Ai:StripePriceId` set), and 0 otherwise, because nobody is billed for it then. The ledger keeps
 the provider's price, so a margin changed later reprices what is shown but never what was reported.
@@ -402,7 +402,7 @@ takes that customer's meter events, so the calls are recorded as `Reported`, but
 with provider `Sandbox`, is the record that the usage was reported, so the local demo and the tests show it. Brightwater is seeded Active on
 Unlimited with a trial that ended the day before, so the worker's next 15-minute report sends its demo calls to the sandbox meter in full.
 
-**Budgets and caps count billed dollars** (owner decision, 2026-11-21): the same amount the AI use tab and this page show, so a cap of $50
+**Budgets and caps count billed dollars** (owner decision, 2026-11-21): the same amount this page and its AI use section show, so a cap of $50
 stops at $50 billed ([AI usage](ai-usage.md#budget-alerts-and-the-cap)).
 
 ### Owner actions for AI usage
@@ -495,17 +495,26 @@ Three tenant-owned tables, each with the `tenant_isolation` row-level security p
 
 ## The Billing page
 
-Settings > Billing (`/settings/billing`) is the one place an Owner sees everything the organization pays, already added up. It is in the
-Settings menu's Organization group for an Owner, and in the account menu for the same people, and only where a payment provider is set up
-(`available`): elsewhere the entries and the page are hidden, as Slack's are (design system A3). It names no payment provider. Its panels,
-in order:
+Settings > Billing (`/settings/billing`) is the one place the organization's money lives, already added up (the owner's walk-through,
+2026-11-22: money controls in Billing, integrations in Settings). It names no payment provider. It has two parts:
+
+- **The Owner's** (Manage billing), only where a payment provider is set up (`available`): the plan, this month so far, the payment method,
+  the invoices and the plans below. `GET /v1/organization/billing` is asked only for Manage billing.
+- **AI use** (`#ai-use`), for whoever can see AI usage (View AI usage and All jobs): what the AI check costs, what the checks used and the
+  spending limits ([AI usage](ai-usage.md#who-sees-it)).
+
+So the page is in the Settings menu's Organization group for an Owner where billing is set up and for anyone who can see AI usage
+(`alsoFor` on its entry in `#lib/settings.ts`), whatever the provider; the account menu's Billing link stays an Owner's, where billing
+is set up. An Admin gets the AI use part only; an Owner
+where no payment provider is set up gets it alone, never a page of what is not set up (design system A3). Someone with neither has no
+entry, and its address says only an owner can change billing. The Owner's panels, in order:
 
 - **Plan.** The state as a status badge beside the title (Free trial, Active, Payment failed or Ended), the current plan, the trial's end
   or, for a subscription set to end, when it ends, and the open jobs against the limit (`3 of 5`, or `3` with none). The next payment is
   not repeated here: This month so far says it (W7).
 - **This month so far** (`thisMonth` on the overview, `BillingEndpoints.ThisMonth`). Each charge on its own line: the plan at its monthly
   price while subscribed ("Growth, free trial" at $0.00 on the trial, no line once ended), AI use on ScreenHire's key with its call count,
-  which links to the Verification area's AI use tab (no line where Stripe has no metered price, because none is billed), "Included in your
+  which links to the AI use section further down the page (no line where Stripe has no metered price, because none is billed), "Included in your
   trial" taken off for what the allowance covers (`AiUsageBillingQueries.TrialCreditThisMonthAsync`: calls already settled as waived and the
   trial calls still waiting, planned by `AiChargePlanner` as the report will settle them), and the total. Then "Next invoice about $X on
   <date>" while a subscription runs: the next plan payment (none once it is set to end) plus this month's AI use, "about" because the
@@ -522,12 +531,16 @@ in order:
   sends the plan and the preview's `prorationDate`. The dialog's Confirm is the one primary there (A1). The dialog takes focus itself when it
   opens, so the date's tooltip does not open over the text. A failed preview keeps Confirm off, and a refused change stays in the dialog,
   which prices it again. After it, the Plans panel says the plan is changing until the page shows it.
-- **AI usage** (the overview's `aiUsage`): "This month: 59 AI calls, $0.05", the one amount, never the provider's price or the margin;
+- **AI use**, the first panel of the AI use section: for an Owner, the overview's `aiUsage`, "This month: 59 AI calls, $0.05", the one
+  amount, never the provider's price or the margin;
   then one sentence for where the organization stands: that billing for AI use is not set up where Stripe has no metered price (checked
   first, so a trial is never promised an invoice line that will not come), what the trial includes and that use above it is added to the
   first invoice, "AI use is billed once you choose a plan" after the trial, or what the trial covered once a plan is paying. Calls on the
-  organization's own key and calls with no known price are each counted in a sentence of their own and are not charged. The footer says
-  bringing your own key removes the charge, with a link to Verification to set it and one to the Activity log for the call-by-call list.
+  organization's own key and calls with no known price are each counted in a sentence of their own and are not charged. For everyone
+  in the section, Key says whose key runs the AI check. The footer says bringing your own key removes the charge (on ScreenHire's key),
+  with a link to Settings > Integrations > AI model to set it for Edit settings and one to the Activity log for the call-by-call list.
+  Under it, at the full width, what the checks used by day and by model, then Spending limits (the budget and cap), as
+  [AI usage](ai-usage.md#who-sees-it) describes.
 
 Money always has two decimals ($79.00, $0.05). This month so far shows each line to the cent and its total and next invoice are the sum
 of the lines as rounded, so the panel always adds up; AI use under a cent reads "Under $0.01" there and in the AI usage panel alike, and a
@@ -579,8 +592,7 @@ The test stacks pin nothing: they sell the plans in `plans.json`, and a test tha
 - Coupons and tax in a plan change's preview. Its amounts are the invoice lines' amounts, before discounts and tax, and only
   the lines Stripe returns with the preview (its first page) are read.
 - Seat-based pricing. A plan counts open jobs only.
-- AI use in a currency other than US dollars, a refund or credit for a call that was reported and later disputed, and the margin on the
-  Verification dollar budget and cap (they count the provider's cost). A meter event Stripe took and our save lost for more than 24 hours
+- AI use in a currency other than US dollars, and a refund or credit for a call that was reported and later disputed. A meter event Stripe took and our save lost for more than 24 hours
   would be reported twice; the next run follows the first by 15 minutes, so only a long outage can do it.
-- Usage in the Billing page by day or by model: Verification has the call-by-call detail.
+- The call-by-call list in the Billing page: the Activity log has it.
 - A grace period, or an Ended state that blocks more than opening a draft.

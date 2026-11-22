@@ -26,8 +26,7 @@ const renderAs = (signedIn: CurrentUser) =>
   render(WithQueryClient, { props: { component: Layout, props: { data: { user: signedIn }, children: content } } });
 const tabNames = () => within(screen.getByRole('tablist', { name: 'Verification pages' })).getAllByRole('tab').map((tab) => tab.textContent?.trim());
 
-const everyTab = ['Overview', 'Activity log', 'Checks', 'AI use'];
-const readOnlyTabs = ['Overview', 'Activity log', 'Checks'];
+const everyTab = ['Overview', 'Activity log', 'Checks'];
 
 const asDictionary = (user: CurrentUser, permissions: NonNullable<CurrentUser['organization']>['permissions'], seesAllJobs = true): CurrentUser => ({
   ...user,
@@ -46,7 +45,7 @@ afterEach(() => {
 
 // Everyone who can see verification has the area. A tab a role cannot use is left out of the strip, never shown disabled (A3).
 describe('the Verification area frame', () => {
-  it.each<Exclude<OrganizationRole, 'Custom'>>(['Owner', 'Admin'])('gives an %s all four tabs, in order', (role) => {
+  it.each<Exclude<OrganizationRole, 'Custom'>>(['Owner', 'Admin'])('gives an %s the three tabs, in order', (role) => {
     renderAs(userAs(role));
 
     expect(tabNames()).toEqual(everyTab);
@@ -54,43 +53,28 @@ describe('the Verification area frame', () => {
     expect(screen.getByText('Tab content')).toBeInTheDocument();
   });
 
-  it.each<Exclude<OrganizationRole, 'Custom'>>(['Recruiter', 'Viewer'])('gives a %s the three tabs it may use and no disabled one', async (role) => {
+  it.each<Exclude<OrganizationRole, 'Custom'>>(['Recruiter', 'Viewer'])('gives a %s the same three tabs and no disabled one', async (role) => {
     renderAs(userAs(role));
 
-    expect(tabNames()).toEqual(readOnlyTabs);
+    expect(tabNames()).toEqual(everyTab);
     expect(screen.getByText('Tab content')).toBeInTheDocument();
     expect(document.querySelectorAll('[role="tab"][disabled], [role="tab"][aria-disabled="true"]')).toHaveLength(0);
     await expectNoAxeViolations();
   });
 
-  it('gives a custom role without Edit settings or AI usage the three tabs it may use', () => {
+  it('gives a custom role without Edit settings or AI usage the same three tabs: AI use moved out of the area', () => {
     renderAs(interviewer);
-
-    expect(tabNames()).toEqual(readOnlyTabs);
-  });
-
-  it('gives the AI use tab to a custom role with AI usage, and to one with Edit settings, each on its own', () => {
-    renderAs(asDictionary(interviewer, ['ViewHiring', 'ViewAiUsage']));
     expect(tabNames()).toEqual(everyTab);
-  });
 
-  it('gives the AI use tab to a custom role with Edit settings but no AI usage', () => {
-    renderAs(asDictionary(interviewer, ['ViewHiring', 'EditSettings']));
-
-    expect(tabNames()).toEqual(everyTab);
-  });
-
-  it('keeps the AI use tab for an Admin who sees only the jobs they are on, for the key and the alert', () => {
-    renderAs(asDictionary(userAs('Admin'), userAs('Admin').organization!.permissions, false));
-
-    expect(tabNames()).toEqual(everyTab);
+    renderAs(asDictionary(interviewer, ['ViewHiring', 'ViewAiUsage', 'EditSettings']));
+    expect(screen.queryByRole('tab', { name: 'AI use' })).toBeNull();
   });
 
   it('selects the tab the address belongs to', () => {
-    location.path = '/verification/ai-use';
+    location.path = '/verification/checks';
     renderAs(userAs('Owner'));
 
-    expect(screen.getByRole('tab', { name: 'AI use' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Checks' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'false');
   });
 
@@ -103,9 +87,9 @@ describe('the Verification area frame', () => {
   it('goes to the tab that is chosen', async () => {
     renderAs(userAs('Owner'));
 
-    await fireEvent.click(screen.getByRole('tab', { name: 'AI use' }));
+    await fireEvent.click(screen.getByRole('tab', { name: 'Activity log' }));
 
-    await waitFor(() => expect(goto).toHaveBeenCalledWith('/verification/ai-use'));
+    await waitFor(() => expect(goto).toHaveBeenCalledWith('/verification/activity'));
   });
 
   it('shows Last updated and History on the settings tabs only, so the band keeps one height', async () => {

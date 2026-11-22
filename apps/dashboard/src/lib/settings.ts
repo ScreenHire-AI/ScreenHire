@@ -1,7 +1,7 @@
 import type { CurrentUser, JobAccess, OrganizationRole, Permission, RoleSummary } from '@screenhire/api-client';
 import { integrations } from '#lib/integrations.js';
 import { can, seesAllJobs } from '#lib/permissions.js';
-import { verificationTab, type VerificationTabValue } from '#lib/verification-area.js';
+import { canSeeUsage, verificationTab, type VerificationTabValue } from '#lib/verification-area.js';
 
 /** The team's history and its Last updated (`/team/history`, `/team/last-update`): invalidate it with every team change. */
 export const teamPath = '/v1/organization/team';
@@ -59,6 +59,11 @@ export interface SettingsSection {
   feature?: SettingsFeature;
   /** What a person whose role lacks `permission` reads in place of "Ask an owner or admin", for a page only some roles may open. */
   refusal?: string;
+  /**
+   * Someone else the page opens for, whatever `permission`, `allJobs` and `feature` say: it shows them only its parts they may
+   * use. Billing opens for who can see AI usage, for its AI use section, where there is no payment provider too.
+   */
+  alsoFor?: (user: CurrentUser | null | undefined) => boolean;
 }
 
 /**
@@ -103,6 +108,15 @@ export const settingsSections: readonly SettingsSection[] = [
     group: 'Organization',
     allJobs: true,
   },
+  // The organization's alert settings: where everyone starts until they choose for themselves in Your account > Notifications.
+  {
+    label: 'Notification defaults',
+    href: '/settings/notification-defaults',
+    description: 'What people hear about until they choose for themselves',
+    keywords: ['alerts', 'notifications', 'email', 'slack', 'defaults', 'verification suggested', 'ai usage', 'budget alert', 'warn'],
+    permission: 'EditSettings',
+    group: 'Organization',
+  },
   {
     label: 'Email domain',
     href: '/settings/sending-domain',
@@ -123,15 +137,36 @@ export const settingsSections: readonly SettingsSection[] = [
     group: 'Organization',
     allJobs: true,
   },
-  // Owners only (ManageBilling), and only where a payment provider is set up, so it is hidden everywhere else (A3).
+  // The plan and payments are Owners' (ManageBilling), only where a payment provider is set up. Its AI use section, what the
+  // checks used and cost and the monthly limits, is for whoever can see AI usage, so the page opens for them as well (A3).
   {
     label: 'Billing',
     href: '/settings/billing',
-    keywords: ['plan', 'card', 'invoice', 'invoices', 'payment', 'subscription', 'trial', 'upgrade', 'price'],
+    keywords: [
+      'plan',
+      'card',
+      'invoice',
+      'invoices',
+      'payment',
+      'subscription',
+      'trial',
+      'upgrade',
+      'price',
+      'ai',
+      'ai use',
+      'usage',
+      'tokens',
+      'cost',
+      'budget',
+      'cap',
+      'spend',
+      'spending limits',
+    ],
     permission: 'ManageBilling',
     group: 'Organization',
     feature: 'billing',
     refusal: 'Only an owner of your organization can change billing.',
+    alsoFor: canSeeUsage,
   },
   {
     label: 'Careers page',
@@ -163,9 +198,9 @@ export const settingsSections: readonly SettingsSection[] = [
 
 /**
  * A page people look for in Settings because it is a setting to them, but that lives in an area of its own: the hiring
- * template's stages and questions, the scorecards, the AI model and its budget. Settings search finds each one by the
- * everyday words kept here and says which area it is in, so a search for "ai key" lands on the AI use tab instead of
- * a dead end. Only what the person's role may open is offered (A3).
+ * template's stages and questions, the scorecards, the checks. Settings search finds each one by the everyday words kept
+ * here and says which area it is in, so a search for "consistency" lands on the Checks tab instead of a dead end. Only what
+ * the person's role may open is offered (A3).
  */
 export interface SettingsElsewhere {
   label: string;
@@ -219,27 +254,7 @@ export const settingsElsewhere: readonly SettingsElsewhere[] = [
     'trusted',
     'privacy',
     'consent',
-    'alerts',
     'policy',
-  ]),
-  verificationPage('ai-use', 'What the AI checks used and cost, the budget, and whose key runs them', [
-    'ai',
-    'ai key',
-    'key',
-    'openai',
-    'anthropic',
-    'claude',
-    'provider',
-    'own key',
-    'budget',
-    'cost',
-    'tokens',
-    'cap',
-    'spend',
-    'bill',
-    'usage',
-    'alerts',
-    'warn',
   ]),
 ];
 
@@ -251,14 +266,19 @@ export const searchElsewhere = (user: CurrentUser | null | undefined, query: str
         (page) => page.allowed(user) && matchesWords([page.label, page.description ?? '', ...page.keywords, page.group].join(' '), query),
       );
 
+/** Whether the page opens for this person through `alsoFor`, whatever its permission, jobs and feature say. */
+export const opensAlso = (section: SettingsSection, user: CurrentUser | null | undefined) => section.alsoFor?.(user) ?? false;
+
 /**
  * The Settings pages the person's role may use: none means no Settings item at all. API keys, webhooks, Slack and Data
  * requests reach every job, so they also need all jobs (ADR-0015); the API refuses them otherwise with 403 "Needs all jobs". A page of a
- * feature that is not set up (Slack) is left out whoever asks.
+ * feature that is not set up (Slack) is left out whoever asks, unless it also opens for this person (`alsoFor`).
  */
 export const visibleSettingsSections = (user: CurrentUser | null | undefined, features: SettingsFeatures = {}) =>
   settingsSections.filter(
-    (section) => can(user, section.permission) && (!section.allJobs || seesAllJobs(user)) && (!section.feature || featureOn(features, section.feature)),
+    (section) =>
+      opensAlso(section, user) ||
+      (can(user, section.permission) && (!section.allJobs || seesAllJobs(user)) && (!section.feature || featureOn(features, section.feature))),
   );
 
 /** The Settings page a path belongs to, such as Roles for `/settings/roles/compare`. */

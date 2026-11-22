@@ -33,9 +33,11 @@
 
   let list = $state<HTMLDivElement>();
   // Below lg the row may hide the current entry past its edge: scroll the row, never the page, to centre it. From lg the
-  // row is a column that does not scroll, so this changes nothing there.
+  // row is a column that does not scroll, so this changes nothing there. It runs again when the entries change: sections
+  // behind a feature appear once the shell's queries answer, which moves the current entry after the first centring.
   $effect(() => {
     void domainMark;
+    void groups;
     const entry = list?.querySelector(`a[href="${current}"]`)?.parentElement;
     if (list && entry) list.scrollLeft = entry.offsetLeft - (list.clientWidth - entry.offsetWidth) / 2;
   });
@@ -58,8 +60,10 @@
                   href={section.href}
                   aria-current={section.href === current ? 'page' : undefined}
                   class={[
-                    // Indented under its group's name from lg, so each group's pages read as its own.
-                    'flex h-9 items-center gap-2 rounded-lg px-3 whitespace-nowrap text-foreground no-underline hover:bg-secondary hover:underline pointer-coarse:h-11 lg:pl-6',
+                    // Indented under its group's name from lg, so each group's pages read as its own. 32px high from lg with a mouse, so
+                    // the whole menu of an Owner (15 pages) and a page that fits one 1440x900 window, such as Branding, share the screen;
+                    // 36px in the row below lg and 44px on touch (design system section 11, Settings menu).
+                    'flex h-9 items-center gap-2 rounded-lg px-3 whitespace-nowrap text-foreground no-underline hover:bg-secondary hover:underline pointer-coarse:h-11 lg:pl-6 lg:pointer-fine:h-8',
                     section.href === current && 'bg-accent font-semibold text-accent-foreground hover:bg-accent',
                   ]}
                 >

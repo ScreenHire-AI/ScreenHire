@@ -34,7 +34,7 @@ public sealed record BillingOverview(
 
 /// <summary>
 /// This UTC month's use of ScreenHire's AI key (docs/architecture/billing.md, "AI usage"). <c>charge</c> is what the organization
-/// pays for it in US dollars, the one amount for AI use that the AI use tab shows too, and it never names the provider's price or a
+/// pays for it in US dollars, the one amount for AI use that its AI use section shows too, and it never names the provider's price or a
 /// margin. A call whose cost is unknown (<c>callsWithUnknownCost</c>) is counted and charges nothing. <c>ownKeyCalls</c> are calls on
 /// the organization's own key, never charged. <c>trialAllowance</c> is what the free trial includes and <c>trialAllowanceUsed</c> what
 /// it has already covered. <c>metered</c>: the payment provider can bill the use (the sandbox always can; Stripe once the metered

@@ -103,7 +103,7 @@ without them asking.
 Which direct messages a person gets is the Slack column of their notification grid (Your account > Notifications,
 [notifications.md](notifications.md#each-persons-choices)), shown once their account is linked. Mentions and Tasks given to me
 are still the link's own two switches (both on at first), which the grid saves; the verification and AI usage messages start
-from the organization's alert settings and follow each person's choice. `PUT /v1/slack/account` sets the link's two
+from the organization's alert settings (Settings > Notification defaults) and follow each person's choice. `PUT /v1/slack/account` sets the link's two
 switches too; `DELETE /v1/slack/account` unlinks. These routes need no permission, like switching organization, because each changes only the caller's own row.
 Removing a member deletes their link in the same transaction (`RemoveMember`).
 

@@ -18,10 +18,10 @@
   import { formatCost, formatDay, formatTokens, keySourceLabels, ownKeyCostLabel } from '#lib/ai-usage.js';
   import { describeError } from '#lib/query.js';
 
-  // What the checks used, on the AI use tab (docs/architecture/ai-usage.md): calls, tokens and cost for a range, use by day
-  // split between ScreenHire's key and the organization's own, and use by model and key. For who can see AI usage. Never about a
-  // candidate. Cost is the one amount for AI use the Billing page charges too; an own key's is the provider's price, labelled as an
-  // estimate, and the two are never added together. The month against the budget and cap is the tab's limits panel (W7).
+  // What the checks used, in Billing's AI use section (docs/architecture/ai-usage.md): calls, tokens and cost for a range, use by
+  // day split between ScreenHire's key and the organization's own, and use by model and key. For who can see AI usage. Never about
+  // a candidate. Cost is the one amount for AI use Billing charges too; an own key's is the provider's price, labelled as an
+  // estimate, and the two are never added together. The month against the budget and cap is the section's Spending limits (W7).
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const ranges = [
     { value: 'month', label: 'This month', days: null },
