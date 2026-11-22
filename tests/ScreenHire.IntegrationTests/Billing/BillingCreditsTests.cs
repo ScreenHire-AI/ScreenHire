@@ -477,6 +477,65 @@ public sealed class BillingCreditsTests(AppHostFixture fixture)
     }
 
     [Fact]
+    public async Task Turning_auto_reload_back_on_after_a_refused_reload_reloads_again_with_no_new_credit_in_between()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await fixture.BuyCreditsAsync(owner, 10m);
+        await WaitForBalanceAsync(owner, StartingCredit + 10m);
+        await VerificationSupport.DrainCreditsAsync(fixture, owner.OrganizationId);
+        var waiting = await SeedPurchaseAsync(owner.OrganizationId, CreditPurchaseSource.AutoReload, 25m);
+        var on = new JsonObject
+        {
+            ["lowBalanceAlert"] = 5,
+            ["autoReload"] = new JsonObject { ["enabled"] = true, ["below"] = 5, ["amount"] = 25, ["monthlyMax"] = 100 },
+        };
+
+        // Turned on while a reload is already waiting: the worker's decision does nothing, and its request is spent.
+        await WolverineStore.WaitUntilHandledAsync(
+            fixture, owner.OrganizationId.ToString(), $".{nameof(ReloadAiCredits)}",
+            async () => (await owner.PutAsync($"{BillingTestSupport.Credits}/settings", on)).Expect(HttpStatusCode.NoContent), Ct);
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId))
+        {
+            (await db.CreditPurchases.AsNoTracking().CountAsync(p => p.Source == CreditPurchaseSource.AutoReload, Ct))
+                .Should().Be(1, "a reload is already waiting, so turning auto-reload on adds no second one");
+        }
+
+        // That reload is refused, as ChargeAiCreditReload records it: failed, and auto-reload off. No credit was added since.
+        await using (var db = await VerificationSupport.TenantDbAsync(fixture, owner.OrganizationId))
+        {
+            var now = DateTimeOffset.UtcNow;
+            (await db.CreditPurchases.SingleAsync(p => p.Id == waiting.Id, Ct)).MarkFailed(null, "card_declined", now);
+            (await db.CreditSettings.SingleAsync(Ct)).StopAutoReload(now);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        // The Owner turns it back on with the same newest credit: a new request, not the spent one, so it reloads.
+        (await owner.PutAsync($"{BillingTestSupport.Credits}/settings", on)).Expect(HttpStatusCode.NoContent);
+        await WaitForBalanceAsync(owner, 25m);
+    }
+
+    [Fact]
+    public async Task A_monthly_maximum_below_the_smallest_amount_kept_while_auto_reload_is_off_does_not_stop_saving_the_low_balance_alert()
+    {
+        using var owner = await fixture.SignedInWithOrganizationAsync();
+        await fixture.BuyCreditsAsync(owner, 10m);
+        await WaitForBalanceAsync(owner, StartingCredit + 10m);
+        // What the migration carries over from an old 5-dollar cap: a monthly maximum, auto-reload off, the form's hidden fields sent back.
+        var off = new JsonObject
+        {
+            ["lowBalanceAlert"] = 3,
+            ["autoReload"] = new JsonObject { ["enabled"] = false, ["below"] = 5, ["amount"] = 10, ["monthlyMax"] = 5 },
+        };
+
+        (await owner.PutAsync($"{BillingTestSupport.Credits}/settings", off)).Expect(HttpStatusCode.NoContent);
+        (await owner.CreditsAsync()).At("lowBalanceAlert").GetDecimal().Should().Be(3m);
+
+        off["autoReload"]!["enabled"] = true;
+        (await owner.PutAsync($"{BillingTestSupport.Credits}/settings", off)).Expect(HttpStatusCode.BadRequest)
+            .ProblemKeys().Should().Contain("autoReload.monthlyMax", "turning it on still needs a maximum of at least one reload");
+    }
+
+    [Fact]
     public async Task Another_organizations_credits_are_never_read_or_written()
     {
         using var ours = await fixture.SignedInWithOrganizationAsync();
