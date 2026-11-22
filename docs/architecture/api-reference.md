@@ -22,6 +22,7 @@ sources:
   - resource: apps/marketing/src/developers/samples/verify-signature.mjs
   - resource: apps/marketing/src/developers/samples/verify_signature.py
   - resource: apps/marketing/src/developers/samples/ScreenHireSignature.cs
+  - resource: apps/marketing/src/developers/samples/signature-vector.json
   - resource: tests/ScreenHire.UnitTests/Tooling/PublicApiDocumentTests.cs
   - resource: tests/ScreenHire.IntegrationTests/Production/ApiReferenceTests.cs
   - resource: tests/ScreenHire.UnitTests/Mcp/McpToolCatalogTests.cs
@@ -110,5 +111,7 @@ every page. They ship no JavaScript.
 - **Signature samples.** `src/developers/samples` holds the three samples the webhooks page shows with `?raw`. The Node
   sample is run by `developers.test.ts` and the C# sample is compiled into `ScreenHire.UnitTests` and run by
   `SignatureSampleTests`, both against one vector that `WebhookSignature.Create`, the API's own signer, produces. The
+  vector is `signature-vector.json` beside the samples, which the webhooks page also reads for the header it shows. Its
+  secret is `shws_fictional_test_vector`: a vector never looks like a real secret, or secret scanning reports it. The
   Python sample follows the same steps and is not run.
 - CI's report-only Lighthouse job runs for a change under `packages/api-client` too, since the pages are built from it.

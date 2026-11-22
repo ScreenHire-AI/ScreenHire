@@ -588,8 +588,11 @@ The event `id` comes from the domain event's own key (a version 8 UUID from SHA-
 redelivered domain event gives the same id and the unique index on (endpoint, event) for first deliveries adds
 nothing twice.
 
-**Signing.** Each endpoint's secret is `whsec_` and the hex HMAC-SHA256 of `webhook-endpoint:{endpointId}:{version}`
-under the platform key `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.EndpointSecret`). The database keeps only the
+**Signing.** Each endpoint's secret is `shws_` and the hex HMAC-SHA256 of `webhook-endpoint:{endpointId}:{version}`
+under the platform key `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.EndpointSecret`). The prefix is ScreenHire's
+own, like `shk_` for API keys. It was Stripe's `whsec_` until GitHub's secret scanning reported a test vector as a
+Stripe secret, and every integrator's scanner would have done the same with a real one. The prefix is part of the key,
+so changing it changes every endpoint's secret; it changed before launch, with no integrators to tell. The database keeps only the
 version and the time of the last rotation, in a row of their own (`webhook_endpoint_secrets`, one per endpoint, which
 change history reads only as the time of a rotation), and rotating bumps the version. The API derives the secret to show
 it once; the worker derives it to sign. Both hold the platform key, and no response or log carries it. Every delivery

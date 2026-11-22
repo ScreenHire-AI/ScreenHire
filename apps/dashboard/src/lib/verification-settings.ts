@@ -15,11 +15,13 @@ export const checkGroupLabels: Record<CheckGroup, string> = {
 };
 
 /**
- * What each group of checks is, in the Checks tab's words (the owner's walk-through, 2026-11-21): what it looks at, one example of
- * what it catches, and what turning it off costs. Built from what the analyzers do (`CheckGroups.Checked` and the signal catalogue
+ * What each group of checks is, in the Checks tab's words (the owner's walk-through, 2026-11-21): a one-line summary for its row,
+ * what it looks at, one example of what it catches, and what turning it off costs. Built from what the analyzers do (`CheckGroups.Checked` and the signal catalogue
  * in src/ScreenHire.Domain/Verification), never from a threshold, a weight or a rule.
  */
 export interface CheckGroupCopy {
+  /** The row's one line, short enough to sit beside the group's name at desktop width (the owner's walk-through, 2026-11-22). */
+  summary: string;
   looksAt: string;
   example: string;
   offCost: string;
@@ -27,31 +29,37 @@ export interface CheckGroupCopy {
 
 export const checkGroupCopy: Record<CheckGroup, CheckGroupCopy> = {
   Network: {
+    summary: 'Where an application was sent from',
     looksAt: "The address an application was sent from: hosting providers, VPN, proxy and Tor, and a country that differs from the candidate's details.",
     example: 'An application sent from a cloud server rather than a home or office connection.',
     offCost: 'Where an application came from is not looked at, so one sent through a proxy reads like any other.',
   },
   Contact: {
+    summary: 'Whether the email address and phone number can be real',
     looksAt: 'Whether the email address and phone number can be real: a throwaway email service, a domain that takes no mail, and an invalid or internet phone number.',
     example: 'An email address from a throwaway mail service.',
     offCost: 'A made-up email address or phone number goes unnoticed until someone tries to reach the candidate.',
   },
   Documents: {
+    summary: 'Hidden instructions and generator marks in uploaded files',
     looksAt: 'Uploaded files: hidden instructions written for an AI screener, and signs that a resume generator made the file.',
     example: 'White text in a resume telling an AI screener to rank it first.',
     offCost: 'Hidden text in uploaded files is not looked for.',
   },
   Answers: {
+    summary: 'Copied text and details that contradict each other',
     looksAt: 'Written answers: copied and template text, and with the consistency check on, details that contradict each other across the resume and the answers.',
     example: 'The resume and an answer give different dates for the same job.',
     offCost: 'Answers are not compared and the consistency check does not run, so a contradiction waits for a person to spot it.',
   },
   Duplicates: {
+    summary: 'Applications that share an email, phone, device or file',
     looksAt: 'The same email address, phone number, device or resume file on another of your applicants.',
     example: 'Three applications under different names sent from the same device.',
     offCost: 'One person applying under several names is not noticed, and the device check does not run.',
   },
   FormUse: {
+    summary: 'How the form was filled in, as counts only',
     looksAt: 'How the form was filled in, as counts only: automation, speed, a hidden field, the bot challenge, pasting and switching away. Never a level on its own.',
     example: 'A form filled in and sent by browser automation.',
     offCost: 'A bot filling in the form goes unnoticed, and the device is not read, so Duplicates cannot compare it.',

@@ -9,7 +9,7 @@ public static class ScreenHireSignature
 {
     /// <summary>
     /// Whether <paramref name="header"/> (the ScreenHire-Signature header) signs <paramref name="rawBody"/>, the request
-    /// body exactly as it arrived, with <paramref name="secret"/>, your endpoint's signing secret (whsec_...). A request
+    /// body exactly as it arrived, with <paramref name="secret"/>, your endpoint's signing secret (shws_...). A request
     /// more than <paramref name="tolerance"/> old (five minutes unless you say) is refused, so a captured delivery cannot
     /// be sent again later.
     /// </summary>

@@ -664,7 +664,7 @@
 {/snippet}
 
 <ShortcutsDialog bind:open={shortcutsOpen} />
-<SecretDialog bind:open={secretOpen} title="Your signing secret" label="Signing secret" value="whsec_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
+<SecretDialog bind:open={secretOpen} title="Your signing secret" label="Signing secret" value="shws_example_7Qm2vR8kLx4pN9wZ3cT6yB1dF5gH0jS" />
 
 <PublishCheckDialog
   bind:open={publishCheckOpen}
