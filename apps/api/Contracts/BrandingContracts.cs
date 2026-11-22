@@ -13,7 +13,7 @@ namespace ScreenHire.Api.Contracts;
 public sealed record OrganizationBranding(
     string? BrandColor,
     string? SecondColor,
-    HeadingFont? HeadingFont,
+    BrandingHeadingFont? HeadingFont,
     BrandingImage? Logo,
     BrandingImage? Favicon,
     BrandingImage? SharingImage,
@@ -21,13 +21,14 @@ public sealed record OrganizationBranding(
 
 /// <summary>
 /// Replaces the whole branding. Colours are <c>#rrggbb</c> and must pass the contrast check
-/// (<c>/branding/contrast</c>); each image id is one of the organization's uploads of that kind that passed its scan.
-/// Null is ScreenHire's default, or no image.
+/// (<c>/branding/contrast</c>); <c>headingFont</c> is a font id from <c>/v1/heading-fonts</c>, which the save downloads
+/// first if no organization has used it yet; each image id is one of the organization's uploads of that kind that
+/// passed its scan. Null is ScreenHire's default, or no image.
 /// </summary>
 public sealed record UpdateBrandingRequest(
     string? BrandColor,
     string? SecondColor = null,
-    HeadingFont? HeadingFont = null,
+    string? HeadingFont = null,
     Guid? LogoId = null,
     Guid? FaviconId = null,
     Guid? SharingImageId = null);
@@ -59,12 +60,13 @@ public sealed record ContrastPairCheck(ContrastPairName Name, string Foreground,
 /// <summary>
 /// An organization's branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null
 /// for ScreenHire's default. <c>colors</c> come from the brand colour; <c>header</c> is the band in the second colour,
-/// with white or ink text on it; image <c>url</c>s are absolute addresses on the careers board.
+/// with white or ink text on it; <c>headingFont</c> is a bundled font or a hosted one with its files; image <c>url</c>s
+/// are absolute addresses on the careers board.
 /// </summary>
 public sealed record PublicBranding(
     PublicPalette? Colors,
     PublicHeaderColors? Header,
-    HeadingFont? HeadingFont,
+    PublicHeadingFont? HeadingFont,
     PublicBrandImage? Logo,
     PublicBrandImage? Favicon,
     PublicBrandImage? SharingImage);

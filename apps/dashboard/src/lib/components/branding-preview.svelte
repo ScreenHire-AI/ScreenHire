@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import type { BrandingImage, HeadingFont } from '@screenhire/api-client';
+  import type { BrandingImage } from '@screenhire/api-client';
 
   /** What the branding preview draws: the form as it is typed, with the text colours the contrast check chose. */
   export interface BrandingDraft {
@@ -8,7 +8,8 @@
     brand: { color: string; text?: string } | null;
     /** The second colour and the white or ink text on it; null for no header band. */
     header: { color: string; text?: string } | null;
-    headingFont: HeadingFont | null;
+    /** The heading font's id, and whether it is a serif (for its fallback); null for ScreenHire's. */
+    headingFont: { id: string; serif: boolean } | null;
     logo: BrandingImage | null;
     favicon: BrandingImage | null;
     sharingImage: BrandingImage | null;
@@ -16,8 +17,9 @@
 </script>
 
 <script lang="ts">
-  import { headingFont } from '@screenhire/ui/heading-fonts';
+  import { defaultHeadingFont } from '@screenhire/ui/heading-fonts';
   import PreviewFrame from '#lib/components/preview-frame.svelte';
+  import { loadHeadingFontFace, previewFamily } from '#lib/heading-font-faces.svelte.js';
 
   // The branding's preview (design system A8, section 11): the careers page's header and a job in the brand colours and
   // heading font, the shared link a social site shows, and the top of an email to a candidate, each at its real size.
@@ -29,7 +31,11 @@
   const logo = $derived(draft.logo?.url ? draft.logo : null);
   const favicon = $derived(draft.favicon?.url ? draft.favicon : null);
   const sharing = $derived(draft.sharingImage?.url ? draft.sharingImage : null);
-  const family = $derived(headingFont(draft.headingFont).family);
+  // A catalogue font draws in its preview face from the API, as the picker does; the six are bundled.
+  const family = $derived(draft.headingFont ? previewFamily(draft.headingFont.id, draft.headingFont.serif) : defaultHeadingFont.family);
+  $effect(() => {
+    if (draft.headingFont) loadHeadingFontFace(draft.headingFont.id);
+  });
 </script>
 
 <div

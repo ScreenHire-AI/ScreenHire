@@ -6,7 +6,8 @@ tags: [adr, branding, design-system]
 ---
 # ADR-0018: Employer branding refuses failing colours, hosts six heading fonts and serves images on the careers origin
 
-- **Status:** Accepted (2026-10-30)
+- **Status:** Accepted (2026-10-30); decision 3 amended by ADR-0031 (2026-11-22): any Google Fonts family under the OFL or
+  Apache 2.0, downloaded once and hosted by ScreenHire, with the six below still bundled
 - **Deciders:** Owner, through roadmap item 6
 - **Amends:** ADR-0009's employer branding ("computed and contrast-checked server-side")
 - **Detail:** `docs/architecture/branding.md`, design system section 18

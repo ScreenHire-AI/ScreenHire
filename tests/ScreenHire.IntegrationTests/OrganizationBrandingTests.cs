@@ -32,12 +32,13 @@ public sealed class OrganizationBrandingTests(AppHostFixture fixture)
         {
             ["brandColor"] = "#4338CA",
             ["secondColor"] = "#E9DCC4",
-            ["headingFont"] = "Fraunces",
+            ["headingFont"] = "fraunces",
         })).Expect(HttpStatusCode.OK);
 
         saved.Text("brandColor").Should().Be("#4338ca");
         saved.Text("secondColor").Should().Be("#e9dcc4");
-        saved.Text("headingFont").Should().Be("Fraunces");
+        saved.Text("headingFont.id").Should().Be("fraunces");
+        saved.Text("headingFont.family").Should().Be("Fraunces");
         (await owner.GetAsync("/v1/organization/branding")).Expect(HttpStatusCode.OK).Text("brandColor").Should().Be("#4338ca");
 
         var branding = (await PublicOrganizationAsync(owner)).GetProperty("branding");
@@ -45,7 +46,9 @@ public sealed class OrganizationBrandingTests(AppHostFixture fixture)
         branding.At("colors.onBrand").GetString().Should().Be("#ffffff");
         branding.At("header.background").GetString().Should().Be("#e9dcc4");
         branding.At("header.foreground").GetString().Should().Be("#231f1a");
-        branding.At("headingFont").GetString().Should().Be("Fraunces");
+        branding.At("headingFont.id").GetString().Should().Be("fraunces");
+        branding.At("headingFont.bundled").GetBoolean().Should().BeTrue("a bundled font comes from the careers bundle, with no files");
+        branding.At("headingFont.files").GetArrayLength().Should().Be(0);
         branding.At("logo").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
@@ -75,7 +78,7 @@ public sealed class OrganizationBrandingTests(AppHostFixture fixture)
     public async Task A_malformed_colour_is_refused_and_null_clears_the_branding()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
-        (await owner.PutAsync("/v1/organization/branding", new JsonObject { ["brandColor"] = "#123456", ["headingFont"] = "Inter" })).Expect(HttpStatusCode.OK);
+        (await owner.PutAsync("/v1/organization/branding", new JsonObject { ["brandColor"] = "#123456", ["headingFont"] = "inter" })).Expect(HttpStatusCode.OK);
 
         var refused = (await owner.PutAsync("/v1/organization/branding", new JsonObject { ["brandColor"] = "red; background:url(x)" }))
             .Expect(HttpStatusCode.BadRequest);

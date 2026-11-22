@@ -272,7 +272,8 @@ organization's Owner or Admin also finds **Finish setting up** in the bell at th
   through Dev SSO: Jobs lists only Senior .NET Engineer, another job's address says it is not found, and the
   candidates, saved views and My tasks hold only that job's.
 - **Branding.** Brightwater's teal is saved. Type a pale brand colour such as ffd400: the field says links in it are
-  hard to read and offers the nearest shade that passes; **Use** fills it in. Pick a second colour and a heading font,
+  hard to read and offers the nearest shade that passes; **Use** fills it in. Pick a second colour and a heading font (More fonts
+  opens the catalogue: locally a dozen bundled Google Fonts families, each name in its own font),
   upload a PNG logo, watch it say Scanning for a moment, then press **Save**. Reload
   http://localhost:4322/brightwater: the header band, the logo, the titles' font and the Apply buttons follow, and an
   email from the Templates page's test send starts with the logo. History lists each change.

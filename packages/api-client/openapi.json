@@ -211,6 +211,40 @@
         }
       }
     },
+    "/v1/public/heading-fonts/{fontId}/{fileName}": {
+      "get": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "GetPublicHeadingFontFile",
+        "parameters": [
+          {
+            "name": "fontId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/users/{userId}/photo": {
       "get": {
         "tags": [
@@ -8385,6 +8419,68 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/heading-fonts": {
+      "get": {
+        "tags": [
+          "Heading fonts"
+        ],
+        "operationId": "ListHeadingFonts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeadingFontCatalogueResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
+    "/v1/heading-fonts/{fontId}/preview": {
+      "get": {
+        "tags": [
+          "Heading fonts"
+        ],
+        "operationId": "GetHeadingFontPreview",
+        "parameters": [
+          {
+            "name": "fontId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Not Found"
+          },
+          "200": {
+            "description": "OK"
           },
           "401": {
             "description": "Unauthorized"
@@ -20003,6 +20099,22 @@
         },
         "description": "The contrast check of the colours asked about, each null when it was not asked: whether every pair the colour is\nused in reaches WCAG 2.2 AA, the text colour that goes on it, the pairs, and the nearest passing shade when it fails."
       },
+      "BrandingHeadingFont": {
+        "required": [
+          "id",
+          "family"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "family": {
+            "type": "string"
+          }
+        },
+        "description": "The organization's heading font: its id and the family name people know it by."
+      },
       "BrandingImage": {
         "required": [
           "id",
@@ -22075,6 +22187,13 @@
         },
         "description": "A questionnaire the hiring team sends after the candidate applied, with a ActionType.SendQuestionnaire\naction: the candidate answers it on the careers site through a signed link. Completing it fires\nTriggerType.QuestionnaireCompleted automations that name it. File questions are not offered: the page\nworks without JavaScript and takes no uploads."
       },
+      "FontLicense": {
+        "enum": [
+          "Ofl",
+          "Apache"
+        ],
+        "description": "The licences a hosted font may be under. Any other licence is refused (ADR-0031)."
+      },
       "FunnelEnd": {
         "enum": [
           "None",
@@ -22109,15 +22228,65 @@
         },
         "description": "One row of the funnel: a stage kind and the applications that reached it or a later one."
       },
-      "HeadingFont": {
+      "HeadingFontCatalogueResponse": {
+        "required": [
+          "fonts",
+          "complete"
+        ],
+        "type": "object",
+        "properties": {
+          "fonts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeadingFontOption"
+            }
+          },
+          "complete": {
+            "type": "boolean"
+          }
+        },
+        "description": "The heading fonts a person may pick (docs/architecture/branding.md section 3), sorted by name. `complete` is\nfalse while the font catalogue cannot be reached: then only the six bundled fonts and the ones already hosted are\nlisted."
+      },
+      "HeadingFontOption": {
+        "required": [
+          "id",
+          "family",
+          "styles",
+          "license",
+          "bundled"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "family": {
+            "type": "string"
+          },
+          "styles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HeadingFontStyle"
+            }
+          },
+          "license": {
+            "$ref": "#/components/schemas/FontLicense"
+          },
+          "bundled": {
+            "type": "boolean"
+          }
+        },
+        "description": "One family: `id` is what the branding saves, `styles` are the picker's filters it falls under, and\n`bundled` is whether ScreenHire ships it (no download, and no preview route: the dashboard has it)."
+      },
+      "HeadingFontStyle": {
         "enum": [
-          "Inter",
-          "Montserrat",
-          "Nunito",
-          "Fraunces",
-          "PlayfairDisplay",
-          null
-        ]
+          "Sans",
+          "Serif",
+          "Display",
+          "Rounded",
+          "Slab"
+        ],
+        "description": "The picker's style filters."
       },
       "HiringReport": {
         "required": [
@@ -24975,7 +25144,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/HeadingFont"
+                "$ref": "#/components/schemas/BrandingHeadingFont"
               }
             ]
           },
@@ -26120,7 +26289,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/HeadingFont"
+                "$ref": "#/components/schemas/PublicHeadingFont"
               }
             ]
           },
@@ -26155,7 +26324,7 @@
             ]
           }
         },
-        "description": "An organization's branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire's default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; image `url`s are absolute addresses on the careers board."
+        "description": "An organization's branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null\nfor ScreenHire's default. `colors` come from the brand colour; `header` is the band in the second colour,\nwith white or ink text on it; `headingFont` is a bundled font or a hosted one with its files; image `url`s\nare absolute addresses on the careers board."
       },
       "PublicCandidateInput": {
         "required": [
@@ -26299,6 +26468,61 @@
           }
         },
         "description": "The header band: its fill, the second colour, and the white or ink text on it. Both `#rrggbb`."
+      },
+      "PublicHeadingFont": {
+        "required": [
+          "id",
+          "family",
+          "category",
+          "bundled",
+          "files"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "family": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "bundled": {
+            "type": "boolean"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicHeadingFontFile"
+            }
+          }
+        },
+        "description": "The heading font as the careers pages load it. A bundled font comes from the careers bundle by its id and has no\nfiles. A hosted one lists its files, each served on the careers origin at\n`brand/fonts/{id}/{fileName}`: its subset, its weight and the unicode range the subset covers, for an\n`@font-face` rule each. `category` picks the fallback (serif or sans-serif)."
+      },
+      "PublicHeadingFontFile": {
+        "required": [
+          "fileName",
+          "subset",
+          "weight",
+          "unicodeRange"
+        ],
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "subset": {
+            "type": "string"
+          },
+          "weight": {
+            "type": "string"
+          },
+          "unicodeRange": {
+            "type": "string"
+          }
+        },
+        "description": "One file of a hosted heading font."
       },
       "PublicInterview": {
         "required": [
@@ -30002,13 +30226,9 @@
             ]
           },
           "headingFont": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/HeadingFont"
-              }
+            "type": [
+              "null",
+              "string"
             ]
           },
           "logoId": {
@@ -30033,7 +30253,7 @@
             "format": "uuid"
           }
         },
-        "description": "Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\n(`/branding/contrast`); each image id is one of the organization's uploads of that kind that passed its scan.\nNull is ScreenHire's default, or no image."
+        "description": "Replaces the whole branding. Colours are `#rrggbb` and must pass the contrast check\n(`/branding/contrast`); `headingFont` is a font id from `/v1/heading-fonts`, which the save downloads\nfirst if no organization has used it yet; each image id is one of the organization's uploads of that kind that\npassed its scan. Null is ScreenHire's default, or no image."
       },
       "UpdateCareersEmbeddingRequest": {
         "required": [
@@ -32102,6 +32322,9 @@
     },
     {
       "name": "Organization"
+    },
+    {
+      "name": "Heading fonts"
     },
     {
       "name": "Team"

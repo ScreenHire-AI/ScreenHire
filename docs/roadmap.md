@@ -311,6 +311,10 @@ default hiring team; Clear, Review and Verify stay, and To review holds Review o
 - **Job boards:** Indeed and ZipRecruiter (phase 2, with paying customers), LinkedIn, then European boards
   ([job boards](research/job-boards.md), [job distribution](architecture/job-distribution.md)).
 - **Careers:** custom tenant domains (ADR-0003).
+- **An organization's own font:** uploading a WOFF2 file of a typeface the company licenses, for its careers titles. The
+  heading font is any Google Fonts family today, which ScreenHire downloads and hosts (ADR-0031,
+  [branding](architecture/branding.md) section 3), and the body font stays ScreenHire's. An upload needs a licence the
+  employer vouches for, a malware scan like a brand image's, and a check that the file is a font and only a font.
 - **Sign-in through an organization's own identity provider:** one company's Okta or Entra ID, required for its members,
   set up by its Owner. Sign-in today offers Google, Microsoft, emailed links and passkeys, plus any OpenID Connect
   provider the installation configures for everyone ([sign-in and tenancy](architecture/sign-in-and-tenancy.md)). A

@@ -11,6 +11,7 @@ using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Demo;
 using ScreenHire.Api.Email;
 using ScreenHire.Api.Endpoints;
+using ScreenHire.Api.Fonts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Mcp;
 using ScreenHire.Api.OAuth;
@@ -49,6 +50,7 @@ builder.AddScreenHireMcp();
 builder.AddScreenHireOAuth();
 builder.AddScreenHireApply();
 builder.AddScreenHireBranding();
+builder.AddScreenHireHeadingFonts();
 
 // Wolverine: endpoints write through IDbContextOutbox<ScreenHireDbContext>, so a message commits with the data and the
 // worker handles it (docs/architecture/messaging.md). The API handles only tenant events from the real-time queue,
@@ -170,6 +172,7 @@ app.MapDistributionEndpoints();
 app.MapManualPostingEndpoints();
 app.MapPublicDistributionEndpoints();
 app.MapOrganizationEndpoints();
+app.MapHeadingFontEndpoints();
 app.MapTeamEndpoints();
 app.MapAccountEndpoints();
 app.MapNotificationEndpoints();
@@ -218,6 +221,7 @@ if (app.Environment.IsDevelopment())
     await ScreenHireMessaging.ProvisionStorageAsync(ownerConnectionString);
     await app.Services.GetRequiredService<ApplicantUploads>().ProvisionDevelopmentStorageAsync();
     await app.Services.GetRequiredService<BrandImageUploads>().ProvisionDevelopmentStorageAsync();
+    await app.Services.GetRequiredService<HeadingFontStore>().ProvisionDevelopmentStorageAsync();
     await app.Services.GetRequiredService<EmailAttachmentStore>().ProvisionDevelopmentStorageAsync();
     // The container the copies of candidates' data go to; the worker writes it, the API issues read links to it.
     await app.Services.GetRequiredService<BlobServiceClient>().GetBlobContainerClient(DataExportsContainer.From(app.Configuration))

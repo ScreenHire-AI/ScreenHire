@@ -56,7 +56,7 @@ public sealed class SettingsChangesTests
         var plain = Organization("Brightwater");
         var logo = Guid.NewGuid();
         var branded = Organization("Brightwater");
-        branded.SetBranding(null, "#e9dcc4", HeadingFont.PlayfairDisplay, logo, null, null);
+        branded.SetBranding(null, "#e9dcc4", new HeadingFont("playfair-display", "Playfair Display"), logo, null, null);
         var rebranded = Organization("Brightwater");
         rebranded.SetBranding(null, "#1f4e5a", null, Guid.NewGuid(), Guid.NewGuid(), null);
 
@@ -66,6 +66,33 @@ public sealed class SettingsChangesTests
             "changed the second colour from #e9dcc4 to #1f4e5a", "went back to ScreenHire's heading font", "replaced the logo", "added a favicon");
         Sentences(SettingsChanges.Branding(rebranded, plain)).Should().Equal("removed the second colour", "removed the logo", "removed the favicon");
         SettingsChanges.Name(plain, branded).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_heading_font_from_the_catalogue_is_named_by_its_family()
+    {
+        var bundled = Organization("Brightwater");
+        bundled.SetBranding(null, null, new HeadingFont("fraunces", "Fraunces"), null, null, null);
+        var hosted = Organization("Brightwater");
+        hosted.SetBranding(null, null, new HeadingFont("roboto-slab", "Roboto Slab"), null, null, null);
+
+        Sentences(SettingsChanges.Branding(bundled, hosted)).Should().Equal("changed the heading font to Roboto Slab");
+        Sentences(SettingsChanges.Branding(hosted, hosted)).Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("Roboto Slab", "roboto slab")]
+    [InlineData("Roboto Slab", "roboto_slab")]
+    [InlineData("Roboto\"Slab", "roboto-slab")]
+    [InlineData("Roboto Slab;}", "roboto-slab")]
+    [InlineData("Roboto  Slab", "roboto-slab")]
+    [InlineData("Roboto Slab", "-roboto-slab")]
+    public void A_heading_font_whose_id_or_family_could_reach_a_stylesheet_unescaped_is_refused(string family, string id)
+    {
+        var organization = Organization("Brightwater");
+        var save = () => organization.SetBranding(null, null, new HeadingFont(id, family), null, null, null);
+
+        save.Should().Throw<ArgumentException>();
     }
 
     [Fact]

@@ -2648,6 +2648,52 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.ToTable("custom_roles", (string)null);
                 });
 
+            modelBuilder.Entity("ScreenHire.Domain.Organizations.HostedFont", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Family")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("family");
+
+                    b.Property<string>("Files")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("files");
+
+                    b.Property<DateTimeOffset>("HostedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("hosted_at");
+
+                    b.Property<string>("License")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("license");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_hosted_fonts");
+
+                    b.ToTable("hosted_fonts", (string)null);
+                });
+
             modelBuilder.Entity("ScreenHire.Domain.Organizations.MemberPreferences", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3031,9 +3077,14 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("favicon_image_id");
 
-                    b.Property<string>("HeadingFont")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
+                    b.Property<string>("HeadingFontFamily")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("heading_font_family");
+
+                    b.Property<string>("HeadingFontId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
                         .HasColumnName("heading_font");
 
                     b.Property<string>("HomeRegion")

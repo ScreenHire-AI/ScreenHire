@@ -24,6 +24,16 @@
     <InternalsVisibleTo Include="ScreenHire.UnitTests" />
   </ItemGroup>
 
+  <!-- Heading fonts (docs/architecture/branding.md section 3): the Rounded and Slab lists from Google's tags
+       (scripts/heading-font-styles.mjs) and the sandbox catalogue's fonts, read from the assembly rather than shipped
+       as content files. -->
+  <ItemGroup>
+    <Content Remove="Fonts\**" />
+    <None Remove="Fonts\**" />
+    <EmbeddedResource Include="Fonts\google-font-styles.json" LogicalName="HeadingFonts.google-font-styles.json" />
+    <EmbeddedResource Include="Fonts\Sandbox\*" LogicalName="HeadingFonts.Sandbox.%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\ScreenHire.ServiceDefaults\ScreenHire.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\src\ScreenHire.Application\ScreenHire.Application.csproj" />

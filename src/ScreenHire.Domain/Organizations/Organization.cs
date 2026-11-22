@@ -44,8 +44,18 @@ public sealed class Organization
     /// </summary>
     public string? SecondColor { get; private set; }
 
-    /// <summary>The careers pages' heading font, or null for ScreenHire's, Bricolage Grotesque.</summary>
-    public HeadingFont? HeadingFont { get; private set; }
+    /// <summary>
+    /// The careers pages' heading font, by its id (<c>roboto-slab</c>), or null for ScreenHire's, Bricolage Grotesque. One
+    /// of the bundled six (<see cref="HeadingFonts.Bundled"/>) or a <see cref="HostedFont"/>, which the branding save
+    /// downloads first (docs/architecture/branding.md section 3).
+    /// </summary>
+    public string? HeadingFontId { get; private set; }
+
+    /// <summary>The heading font's family name (<c>Roboto Slab</c>), kept with its id so History can name it.</summary>
+    public string? HeadingFontFamily { get; private set; }
+
+    /// <summary>The heading font, or null for ScreenHire's.</summary>
+    public HeadingFont? HeadingFont => HeadingFontId is { } id ? new HeadingFont(id, HeadingFontFamily ?? id) : null;
 
     /// <summary>
     /// The brand images in use, each a <see cref="BrandImage"/> of the same kind. Not foreign keys: Postgres checks a
@@ -144,9 +154,15 @@ public sealed class Organization
     public void SetBranding(
         string? brandColor, string? secondColor, HeadingFont? headingFont, Guid? logoImageId, Guid? faviconImageId, Guid? sharingImageId)
     {
+        if (headingFont is not null && (!HeadingFonts.IsValidId(headingFont.Id) || !HeadingFonts.IsValidFamily(headingFont.Family)))
+        {
+            throw new ArgumentException("A heading font needs a valid id and family name.", nameof(headingFont));
+        }
+
         SetBrandColor(brandColor);
         SecondColor = secondColor is null ? null : BrandPalette.Normalize(secondColor);
-        HeadingFont = headingFont;
+        HeadingFontId = headingFont?.Id;
+        HeadingFontFamily = headingFont?.Family;
         LogoImageId = logoImageId;
         FaviconImageId = faviconImageId;
         SharingImageId = sharingImageId;
