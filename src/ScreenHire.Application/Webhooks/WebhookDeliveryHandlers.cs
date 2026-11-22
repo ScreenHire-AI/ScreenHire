@@ -2,7 +2,10 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
+using ScreenHire.Application.Candidates;
+using ScreenHire.Application.Scheduling;
 using ScreenHire.Application.Verification;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Application.Slack;
@@ -223,5 +226,48 @@ public static class AutomationRunFinishedHandler
         }
 
         return outgoing;
+    }
+}
+
+/// <summary>
+/// Raises <c>candidate.erased</c>. The API pushes <see cref="CandidateErased"/> to dashboards; this is its only worker
+/// handler, and it reads nothing, because nothing about the candidate is left to read.
+/// </summary>
+public static class CandidateErasedWebhookHandler
+{
+    public static FanOutWebhook Handle(CandidateErased message) => WebhookEvents.From(message);
+}
+
+/// <summary>
+/// Raises <c>interview.scheduled</c>, <c>interview.rescheduled</c> or <c>interview.cancelled</c> for a booking, a new
+/// time or a cancellation (<see cref="WebhookEvents.From(InterviewChanged, int, DateTimeOffset)"/>); nothing for any
+/// other change, or for an interview erased since with its application.
+/// </summary>
+public static class InterviewChangedWebhookHandler
+{
+    public static async Task<OutgoingMessages> Handle(
+        InterviewChanged message, ScreenHireDbContext db, TimeProvider time, CancellationToken cancellationToken)
+    {
+        if (message.Change is not (InterviewChanges.Booked or InterviewChanges.Rescheduled or InterviewChanges.Cancelled))
+        {
+            return [];
+        }
+
+        var duration = await db.InterviewRequests.AsNoTracking()
+            .Where(r => r.Id == message.InterviewId).Select(r => (int?)r.DurationMinutes).SingleOrDefaultAsync(cancellationToken);
+        return duration is { } minutes && WebhookEvents.From(message, minutes, time.GetUtcNow()) is { } raised ? [raised] : [];
+    }
+}
+
+/// <summary>Raises <c>scorecard.submitted</c> with the scorecard's stage and recommendation; nothing once it is erased.</summary>
+public static class ScorecardSubmittedWebhookHandler
+{
+    public static async Task<OutgoingMessages> Handle(ScorecardSubmitted message, ScreenHireDbContext db, CancellationToken cancellationToken)
+    {
+        var scorecard = await db.ApplicationScorecards.AsNoTracking()
+            .Where(s => s.Id == message.ScorecardId)
+            .Select(s => new { s.StageId, s.Recommendation })
+            .SingleOrDefaultAsync(cancellationToken);
+        return scorecard is null ? [] : [WebhookEvents.From(message, scorecard.StageId, scorecard.Recommendation)];
     }
 }

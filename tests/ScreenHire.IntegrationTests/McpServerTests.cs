@@ -18,11 +18,20 @@ public sealed class McpServerTests(AppHostFixture fixture)
     // test reads it; what the key did or could not do is the rest.
     private const string Assessed = "VerificationAssessed";
 
-    private static readonly string[] ReadTools = ["check_job", "find_candidates", "find_jobs", "get_application", "get_hiring_report", "list_saved_candidates"];
+    internal static readonly string[] ReadTools =
+    [
+        "apply_view", "check_job", "draft_email", "find_candidates", "find_jobs", "get_application", "get_hiring_report", "get_job", "get_pipeline",
+        "get_scorecards", "list_email_templates", "list_hiring_templates", "list_saved_candidates", "list_tasks", "list_team_members",
+        "list_upcoming_interviews", "list_views", "read_email_thread",
+    ];
 
-    private static readonly string[] VerificationTools = ["find_candidates_by_verification_level", "get_verification"];
+    internal static readonly string[] VerificationTools = ["find_candidates_by_verification_level", "get_verification"];
 
-    private static readonly string[] WriteTools = ["add_note", "add_tag", "create_task", "move_to_stage", "remove_tag"];
+    internal static readonly string[] WriteTools =
+    [
+        "add_note", "add_tag", "apply_template_update", "close_job", "complete_task", "create_job", "create_task", "edit_job", "invite_to_schedule",
+        "move_to_stage", "publish_job", "remove_tag", "request_scorecard", "send_email", "set_job_pipeline", "set_job_questions",
+    ];
 
     [Fact]
     public async Task A_write_key_sees_every_hiring_tool_and_a_read_key_only_the_reads_and_neither_sees_verification()
@@ -204,8 +213,8 @@ public sealed class McpServerTests(AppHostFixture fixture)
         (await mcp.CallAsync("move_to_stage", new() { ["applicationId"] = application, ["stageId"] = "screening", ["note"] = "Asked to by Avery." }))
             .GetProperty("stage").GetProperty("id").GetString().Should().Be("screening");
         (await mcp.CallFailingAsync("move_to_stage", new() { ["applicationId"] = application, ["stageId"] = "nowhere" })).Should().Contain("toStageId");
-        (await mcp.CallAsync("move_to_stage", new() { ["applicationId"] = application, ["stageId"] = rejected }))
-            .GetProperty("stage").GetProperty("kind").GetString().Should().Be("Rejected", "a rejection the person asked for follows the API's rules");
+        (await mcp.CallAsync("move_to_stage", new() { ["applicationId"] = application, ["stageId"] = rejected, ["confirm"] = true }))
+            .GetProperty("stage").GetProperty("kind").GetString().Should().Be("Rejected", "a rejection the person asked for and confirmed follows the API's rules");
 
         (await owner.GetAsync("/v1/tasks?scope=Team")).Body.EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).Should().Contain(task.GetProperty("id").GetGuid());
         var keyId = key.Id("key.id");

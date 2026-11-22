@@ -3394,6 +3394,9 @@ export const getListJobsUrl = () => {
   return `/v1/jobs`
 }
 
+/**
+ * @summary List jobs
+ */
 export const listJobs = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listJobsResponse> => {
 
   return apiFetch<listJobsResponse>(getListJobsUrl(),
@@ -3454,6 +3457,9 @@ export const getCreateJobUrl = () => {
   return `/v1/jobs`
 }
 
+/**
+ * @summary Create a job
+ */
 export const createJob = async (createJobRequest: CreateJobRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createJobResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -3518,6 +3524,9 @@ export const getGetJobUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}`
 }
 
+/**
+ * @summary Get a job
+ */
 export const getJob = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobResponse> => {
 
   return apiFetch<getJobResponse>(getGetJobUrl(jobId),
@@ -3583,6 +3592,9 @@ export const getUpdateJobUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}`
 }
 
+/**
+ * @summary Edit a job
+ */
 export const updateJob = async (jobId: string,
     updateJobRequest: UpdateJobRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateJobResponse> => {
 
@@ -3648,6 +3660,9 @@ export const getGetJobPublishCheckUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/publish-check`
 }
 
+/**
+ * @summary Check a job before publishing it
+ */
 export const getJobPublishCheck = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobPublishCheckResponse> => {
 
   return apiFetch<getJobPublishCheckResponse>(getGetJobPublishCheckUrl(jobId),
@@ -3711,6 +3726,9 @@ export const getGetJobHistoryUrl = (jobId: string,
   return stringifiedParams.length > 0 ? `/v1/jobs/${jobId}/history?${stringifiedParams}` : `/v1/jobs/${jobId}/history`
 }
 
+/**
+ * @summary List a job's changes
+ */
 export const getJobHistory = async (jobId: string,
     params?: GetJobHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getJobHistoryResponse> => {
 
@@ -3777,6 +3795,9 @@ export const getSetJobAiUseUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/ai-use`
 }
 
+/**
+ * @summary Set a job's AI use policy
+ */
 export const setJobAiUse = async (jobId: string,
     setJobAiUseRequest: SetJobAiUseRequest, options?: Parameters<typeof apiFetch>[1]): Promise<setJobAiUseResponse> => {
 
@@ -3862,6 +3883,9 @@ export const getPublishJobUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/publish`
 }
 
+/**
+ * @summary Publish a job
+ */
 export const publishJob = async (jobId: string,
     nullPublishJobRequest?: null | PublishJobRequest, options?: Parameters<typeof apiFetch>[1]): Promise<publishJobResponse> => {
 
@@ -3937,6 +3961,9 @@ export const getCloseJobUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/close`
 }
 
+/**
+ * @summary Close a job
+ */
 export const closeJob = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<closeJobResponse> => {
 
   return apiFetch<closeJobResponse>(getCloseJobUrl(jobId),
@@ -3987,6 +4014,9 @@ export const getListJobVersionsUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/versions`
 }
 
+/**
+ * @summary List a job's published versions
+ */
 export const listJobVersions = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listJobVersionsResponse> => {
 
   return apiFetch<listJobVersionsResponse>(getListJobVersionsUrl(jobId),
@@ -4038,6 +4068,9 @@ export const getGetJobVersionUrl = (jobId: string,
   return `/v1/jobs/${jobId}/versions/${version}`
 }
 
+/**
+ * @summary Get a published version of a job
+ */
 export const getJobVersion = async (jobId: string,
     version: number, options?: Parameters<typeof apiFetch>[1]): Promise<getJobVersionResponse> => {
 
@@ -4089,6 +4122,9 @@ export const getGetJobTemplateDiffUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/workflow/template-diff`
 }
 
+/**
+ * @summary Compare a job's hiring process with its template
+ */
 export const getJobTemplateDiff = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getJobTemplateDiffResponse> => {
 
   return apiFetch<getJobTemplateDiffResponse>(getGetJobTemplateDiffUrl(jobId),
@@ -4154,6 +4190,9 @@ export const getUpdateJobWorkflowUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/workflow`
 }
 
+/**
+ * @summary Edit a job's hiring process
+ */
 export const updateJobWorkflow = async (jobId: string,
     updateJobWorkflowRequest: UpdateJobWorkflowRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateJobWorkflowResponse> => {
 
@@ -4234,6 +4273,9 @@ export const getApplyJobTemplateUpdateUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/workflow/apply-template-update`
 }
 
+/**
+ * @summary Update a job from its template
+ */
 export const applyJobTemplateUpdate = async (jobId: string,
     applyTemplateUpdateRequest: ApplyTemplateUpdateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<applyJobTemplateUpdateResponse> => {
 
@@ -4312,6 +4354,9 @@ export const getGetJobTemplateSwitchUrl = (jobId: string,
   return stringifiedParams.length > 0 ? `/v1/jobs/${jobId}/workflow/switch-template?${stringifiedParams}` : `/v1/jobs/${jobId}/workflow/switch-template`
 }
 
+/**
+ * @summary Preview switching a job to another template
+ */
 export const getJobTemplateSwitch = async (jobId: string,
     params: GetJobTemplateSwitchParams, options?: Parameters<typeof apiFetch>[1]): Promise<getJobTemplateSwitchResponse> => {
 
@@ -4378,6 +4423,9 @@ export const getSwitchJobTemplateUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/workflow/switch-template`
 }
 
+/**
+ * @summary Switch a job to another template
+ */
 export const switchJobTemplate = async (jobId: string,
     switchJobTemplateRequest: SwitchJobTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<switchJobTemplateResponse> => {
 
@@ -4438,6 +4486,9 @@ export const getListHiringTemplatesUrl = () => {
   return `/v1/templates`
 }
 
+/**
+ * @summary List hiring templates
+ */
 export const listHiringTemplates = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listHiringTemplatesResponse> => {
 
   return apiFetch<listHiringTemplatesResponse>(getListHiringTemplatesUrl(),
@@ -4493,6 +4544,9 @@ export const getCreateHiringTemplateUrl = () => {
   return `/v1/templates`
 }
 
+/**
+ * @summary Create a hiring template
+ */
 export const createHiringTemplate = async (createHiringTemplateRequest: CreateHiringTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createHiringTemplateResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -4557,6 +4611,9 @@ export const getGetHiringTemplateUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}`
 }
 
+/**
+ * @summary Get a hiring template
+ */
 export const getHiringTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringTemplateResponse> => {
 
   return apiFetch<getHiringTemplateResponse>(getGetHiringTemplateUrl(templateId),
@@ -4622,6 +4679,9 @@ export const getUpdateHiringTemplateUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}`
 }
 
+/**
+ * @summary Rename or describe a hiring template
+ */
 export const updateHiringTemplate = async (templateId: string,
     updateHiringTemplateRequest: UpdateHiringTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateHiringTemplateResponse> => {
 
@@ -4700,6 +4760,9 @@ export const getGetHiringTemplateHistoryUrl = (templateId: string,
   return stringifiedParams.length > 0 ? `/v1/templates/${templateId}/history?${stringifiedParams}` : `/v1/templates/${templateId}/history`
 }
 
+/**
+ * @summary List a hiring template's changes
+ */
 export const getHiringTemplateHistory = async (templateId: string,
     params?: GetHiringTemplateHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringTemplateHistoryResponse> => {
 
@@ -4766,6 +4829,9 @@ export const getCreateHiringTemplateVersionUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}/versions`
 }
 
+/**
+ * @summary Start a draft of a hiring template
+ */
 export const createHiringTemplateVersion = async (templateId: string,
     createHiringTemplateVersionRequest: CreateHiringTemplateVersionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createHiringTemplateVersionResponse> => {
 
@@ -4832,6 +4898,9 @@ export const getGetHiringTemplateVersionUrl = (templateId: string,
   return `/v1/templates/${templateId}/versions/${version}`
 }
 
+/**
+ * @summary Get a version of a hiring template
+ */
 export const getHiringTemplateVersion = async (templateId: string,
     version: number, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringTemplateVersionResponse> => {
 
@@ -4899,6 +4968,9 @@ export const getUpdateHiringTemplateVersionUrl = (templateId: string,
   return `/v1/templates/${templateId}/versions/${version}`
 }
 
+/**
+ * @summary Edit a hiring template's draft
+ */
 export const updateHiringTemplateVersion = async (templateId: string,
     version: number,
     updateHiringTemplateVersionRequest: UpdateHiringTemplateVersionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateHiringTemplateVersionResponse> => {
@@ -4981,6 +5053,9 @@ export const getPublishHiringTemplateVersionUrl = (templateId: string,
   return `/v1/templates/${templateId}/versions/${version}/publish`
 }
 
+/**
+ * @summary Publish a hiring template's draft
+ */
 export const publishHiringTemplateVersion = async (templateId: string,
     version: number, options?: Parameters<typeof apiFetch>[1]): Promise<publishHiringTemplateVersionResponse> => {
 
@@ -5042,6 +5117,9 @@ export const getArchiveHiringTemplateUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}/archive`
 }
 
+/**
+ * @summary Archive a hiring template
+ */
 export const archiveHiringTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<archiveHiringTemplateResponse> => {
 
   return apiFetch<archiveHiringTemplateResponse>(getArchiveHiringTemplateUrl(templateId),
@@ -5102,6 +5180,9 @@ export const getUnarchiveHiringTemplateUrl = (templateId: string,) => {
   return `/v1/templates/${templateId}/unarchive`
 }
 
+/**
+ * @summary Restore an archived hiring template
+ */
 export const unarchiveHiringTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<unarchiveHiringTemplateResponse> => {
 
   return apiFetch<unarchiveHiringTemplateResponse>(getUnarchiveHiringTemplateUrl(templateId),
@@ -5152,6 +5233,9 @@ export const getListJobApplicationsUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/applications`
 }
 
+/**
+ * @summary List a job's applications
+ */
 export const listJobApplications = async (jobId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listJobApplicationsResponse> => {
 
   return apiFetch<listJobApplicationsResponse>(getListJobApplicationsUrl(jobId),
@@ -5217,6 +5301,9 @@ export const getCreateApplicationUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/applications`
 }
 
+/**
+ * @summary Add an application to a job
+ */
 export const createApplication = async (jobId: string,
     createApplicationRequest: CreateApplicationRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createApplicationResponse> => {
 
@@ -5297,6 +5384,9 @@ export const getCreateResumeUploadUrl = (jobId: string,) => {
   return `/v1/jobs/${jobId}/applications/resume-uploads`
 }
 
+/**
+ * @summary Upload a resume for a new application
+ */
 export const createResumeUpload = async (jobId: string,
     uploadRequest: UploadRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createResumeUploadResponse> => {
 
@@ -5357,6 +5447,9 @@ export const getListApplicationsUrl = () => {
   return `/v1/applications`
 }
 
+/**
+ * @summary List applications
+ */
 export const listApplications = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listApplicationsResponse> => {
 
   return apiFetch<listApplicationsResponse>(getListApplicationsUrl(),
@@ -5407,6 +5500,9 @@ export const getGetApplicationUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}`
 }
 
+/**
+ * @summary Get an application
+ */
 export const getApplication = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationResponse> => {
 
   return apiFetch<getApplicationResponse>(getGetApplicationUrl(applicationId),
@@ -5472,6 +5568,9 @@ export const getMoveApplicationUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/move`
 }
 
+/**
+ * @summary Move an application to a stage
+ */
 export const moveApplication = async (applicationId: string,
     moveApplicationRequest: MoveApplicationRequest, options?: Parameters<typeof apiFetch>[1]): Promise<moveApplicationResponse> => {
 
@@ -5537,6 +5636,9 @@ export const getGetApplicationTimelineUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/timeline`
 }
 
+/**
+ * @summary List an application's activity
+ */
 export const getApplicationTimeline = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationTimelineResponse> => {
 
   return apiFetch<getApplicationTimelineResponse>(getGetApplicationTimelineUrl(applicationId),
@@ -5597,6 +5699,9 @@ export const getAddApplicationNoteUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/notes`
 }
 
+/**
+ * @summary Add a note to an application
+ */
 export const addApplicationNote = async (applicationId: string,
     addApplicationNoteRequest: AddApplicationNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addApplicationNoteResponse> => {
 
@@ -5678,6 +5783,9 @@ export const getEditApplicationNoteUrl = (applicationId: string,
   return `/v1/applications/${applicationId}/notes/${noteId}`
 }
 
+/**
+ * @summary Edit a note
+ */
 export const editApplicationNote = async (applicationId: string,
     noteId: string,
     editApplicationNoteRequest: EditApplicationNoteRequest, options?: Parameters<typeof apiFetch>[1]): Promise<editApplicationNoteResponse> => {
@@ -5755,6 +5863,9 @@ export const getDeleteApplicationNoteUrl = (applicationId: string,
   return `/v1/applications/${applicationId}/notes/${noteId}`
 }
 
+/**
+ * @summary Delete a note
+ */
 export const deleteApplicationNote = async (applicationId: string,
     noteId: string, options?: Parameters<typeof apiFetch>[1]): Promise<deleteApplicationNoteResponse> => {
 
@@ -5821,6 +5932,9 @@ export const getAddApplicationTagUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/tags`
 }
 
+/**
+ * @summary Tag an application
+ */
 export const addApplicationTag = async (applicationId: string,
     addApplicationTagRequest: AddApplicationTagRequest, options?: Parameters<typeof apiFetch>[1]): Promise<addApplicationTagResponse> => {
 
@@ -5909,6 +6023,9 @@ export const getRemoveApplicationTagUrl = (applicationId: string,
   return stringifiedParams.length > 0 ? `/v1/applications/${applicationId}/tags?${stringifiedParams}` : `/v1/applications/${applicationId}/tags`
 }
 
+/**
+ * @summary Remove a tag from an application
+ */
 export const removeApplicationTag = async (applicationId: string,
     params?: RemoveApplicationTagParams, options?: Parameters<typeof apiFetch>[1]): Promise<removeApplicationTagResponse> => {
 
@@ -5970,6 +6087,9 @@ export const getCreateApplicationTaskUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/tasks`
 }
 
+/**
+ * @summary Create a task about an application
+ */
 export const createApplicationTask = async (applicationId: string,
     createApplicationTaskRequest: CreateApplicationTaskRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createApplicationTaskResponse> => {
 
@@ -6079,6 +6199,9 @@ export const getDownloadApplicationFileUrl = (applicationId: string,
   return `/v1/applications/${applicationId}/files/${fileId}`
 }
 
+/**
+ * @summary Download an application's file
+ */
 export const downloadApplicationFile = async (applicationId: string,
     fileId: string, options?: Parameters<typeof apiFetch>[1]): Promise<downloadApplicationFileResponse> => {
 
@@ -6125,6 +6248,9 @@ export const getListCandidatesUrl = () => {
   return `/v1/candidates`
 }
 
+/**
+ * @summary List candidates
+ */
 export const listCandidates = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listCandidatesResponse> => {
 
   return apiFetch<listCandidatesResponse>(getListCandidatesUrl(),
@@ -6175,6 +6301,9 @@ export const getGetCandidateUrl = (candidateId: string,) => {
   return `/v1/candidates/${candidateId}`
 }
 
+/**
+ * @summary Get a candidate
+ */
 export const getCandidate = async (candidateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getCandidateResponse> => {
 
   return apiFetch<getCandidateResponse>(getGetCandidateUrl(candidateId),
@@ -6843,6 +6972,9 @@ export const getGetApplicationVerificationUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/verification`
 }
 
+/**
+ * @summary Get an application's verification result
+ */
 export const getApplicationVerification = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationVerificationResponse> => {
 
   return apiFetch<getApplicationVerificationResponse>(getGetApplicationVerificationUrl(applicationId),
@@ -6905,6 +7037,9 @@ export const getListVerificationApplicationsUrl = (params?: ListVerificationAppl
   return stringifiedParams.length > 0 ? `/v1/verification/applications?${stringifiedParams}` : `/v1/verification/applications`
 }
 
+/**
+ * @summary List applications by verification level
+ */
 export const listVerificationApplications = async (params?: ListVerificationApplicationsParams, options?: Parameters<typeof apiFetch>[1]): Promise<listVerificationApplicationsResponse> => {
 
   return apiFetch<listVerificationApplicationsResponse>(getListVerificationApplicationsUrl(params),
@@ -12887,6 +13022,9 @@ export const getListTagsUrl = () => {
   return `/v1/tags`
 }
 
+/**
+ * @summary List the organization's tags
+ */
 export const listTags = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listTagsResponse> => {
 
   return apiFetch<listTagsResponse>(getListTagsUrl(),
@@ -13162,6 +13300,9 @@ export const getGetHiringReportUrl = (params?: GetHiringReportParams,) => {
   return stringifiedParams.length > 0 ? `/v1/reports/hiring?${stringifiedParams}` : `/v1/reports/hiring`
 }
 
+/**
+ * @summary Get the hiring report
+ */
 export const getHiringReport = async (params?: GetHiringReportParams, options?: Parameters<typeof apiFetch>[1]): Promise<getHiringReportResponse> => {
 
   return apiFetch<getHiringReportResponse>(getGetHiringReportUrl(params),
@@ -13233,6 +13374,9 @@ export const getGetFunnelApplicationsUrl = (kind: StageKind,
   return stringifiedParams.length > 0 ? `/v1/reports/hiring/funnel/${kind}/applications?${stringifiedParams}` : `/v1/reports/hiring/funnel/${kind}/applications`
 }
 
+/**
+ * @summary List the applications behind a funnel step
+ */
 export const getFunnelApplications = async (kind: StageKind,
     params?: GetFunnelApplicationsParams, options?: Parameters<typeof apiFetch>[1]): Promise<getFunnelApplicationsResponse> => {
 
@@ -13354,6 +13498,9 @@ export const getListApplicationScorecardsUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/scorecards`
 }
 
+/**
+ * @summary List an application's scorecards
+ */
 export const listApplicationScorecards = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<listApplicationScorecardsResponse> => {
 
   return apiFetch<listApplicationScorecardsResponse>(getListApplicationScorecardsUrl(applicationId),
@@ -13424,6 +13571,9 @@ export const getSubmitScorecardUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/scorecards`
 }
 
+/**
+ * @summary Submit a scorecard
+ */
 export const submitScorecard = async (applicationId: string,
     submitScorecardRequest: SubmitScorecardRequest, options?: Parameters<typeof apiFetch>[1]): Promise<submitScorecardResponse> => {
 
@@ -13504,6 +13654,9 @@ export const getRequestScorecardUrl = (applicationId: string,) => {
   return `/v1/applications/${applicationId}/scorecard-requests`
 }
 
+/**
+ * @summary Ask a teammate for a scorecard
+ */
 export const requestScorecard = async (applicationId: string,
     requestScorecardRequest: RequestScorecardRequest, options?: Parameters<typeof apiFetch>[1]): Promise<requestScorecardResponse> => {
 
@@ -13564,6 +13717,9 @@ export const getListScorecardTemplatesUrl = () => {
   return `/v1/scorecard-templates`
 }
 
+/**
+ * @summary List library scorecards
+ */
 export const listScorecardTemplates = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listScorecardTemplatesResponse> => {
 
   return apiFetch<listScorecardTemplatesResponse>(getListScorecardTemplatesUrl(),
@@ -13624,6 +13780,9 @@ export const getCreateScorecardTemplateUrl = () => {
   return `/v1/scorecard-templates`
 }
 
+/**
+ * @summary Create a library scorecard
+ */
 export const createScorecardTemplate = async (createScorecardTemplateRequest: CreateScorecardTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createScorecardTemplateResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -13688,6 +13847,9 @@ export const getGetScorecardTemplateUrl = (templateId: string,) => {
   return `/v1/scorecard-templates/${templateId}`
 }
 
+/**
+ * @summary Get a library scorecard
+ */
 export const getScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getScorecardTemplateResponse> => {
 
   return apiFetch<getScorecardTemplateResponse>(getGetScorecardTemplateUrl(templateId),
@@ -13753,6 +13915,9 @@ export const getUpdateScorecardTemplateUrl = (templateId: string,) => {
   return `/v1/scorecard-templates/${templateId}`
 }
 
+/**
+ * @summary Edit a library scorecard
+ */
 export const updateScorecardTemplate = async (templateId: string,
     updateScorecardTemplateRequest: UpdateScorecardTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateScorecardTemplateResponse> => {
 
@@ -13831,6 +13996,9 @@ export const getGetScorecardTemplateHistoryUrl = (templateId: string,
   return stringifiedParams.length > 0 ? `/v1/scorecard-templates/${templateId}/history?${stringifiedParams}` : `/v1/scorecard-templates/${templateId}/history`
 }
 
+/**
+ * @summary List a library scorecard's changes
+ */
 export const getScorecardTemplateHistory = async (templateId: string,
     params?: GetScorecardTemplateHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getScorecardTemplateHistoryResponse> => {
 
@@ -13892,6 +14060,9 @@ export const getArchiveScorecardTemplateUrl = (templateId: string,) => {
   return `/v1/scorecard-templates/${templateId}/archive`
 }
 
+/**
+ * @summary Archive a library scorecard
+ */
 export const archiveScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<archiveScorecardTemplateResponse> => {
 
   return apiFetch<archiveScorecardTemplateResponse>(getArchiveScorecardTemplateUrl(templateId),
@@ -13952,6 +14123,9 @@ export const getUnarchiveScorecardTemplateUrl = (templateId: string,) => {
   return `/v1/scorecard-templates/${templateId}/unarchive`
 }
 
+/**
+ * @summary Restore an archived library scorecard
+ */
 export const unarchiveScorecardTemplate = async (templateId: string, options?: Parameters<typeof apiFetch>[1]): Promise<unarchiveScorecardTemplateResponse> => {
 
   return apiFetch<unarchiveScorecardTemplateResponse>(getUnarchiveScorecardTemplateUrl(templateId),
@@ -13997,6 +14171,9 @@ export const getListFormTemplatesUrl = () => {
   return `/v1/form-templates`
 }
 
+/**
+ * @summary List library forms
+ */
 export const listFormTemplates = async ( options?: Parameters<typeof apiFetch>[1]): Promise<listFormTemplatesResponse> => {
 
   return apiFetch<listFormTemplatesResponse>(getListFormTemplatesUrl(),
@@ -14057,6 +14234,9 @@ export const getCreateFormTemplateUrl = () => {
   return `/v1/form-templates`
 }
 
+/**
+ * @summary Create a library form
+ */
 export const createFormTemplate = async (createFormTemplateRequest: CreateFormTemplateRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createFormTemplateResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -14121,6 +14301,9 @@ export const getGetFormTemplateUrl = (formId: string,) => {
   return `/v1/form-templates/${formId}`
 }
 
+/**
+ * @summary Get a library form
+ */
 export const getFormTemplate = async (formId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getFormTemplateResponse> => {
 
   return apiFetch<getFormTemplateResponse>(getGetFormTemplateUrl(formId),
@@ -14184,6 +14367,9 @@ export const getGetFormTemplateHistoryUrl = (formId: string,
   return stringifiedParams.length > 0 ? `/v1/form-templates/${formId}/history?${stringifiedParams}` : `/v1/form-templates/${formId}/history`
 }
 
+/**
+ * @summary List a library form's changes
+ */
 export const getFormTemplateHistory = async (formId: string,
     params?: GetFormTemplateHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<getFormTemplateHistoryResponse> => {
 
@@ -14250,6 +14436,9 @@ export const getCreateFormTemplateVersionUrl = (formId: string,) => {
   return `/v1/form-templates/${formId}/versions`
 }
 
+/**
+ * @summary Start a draft of a library form
+ */
 export const createFormTemplateVersion = async (formId: string,
     createFormTemplateVersionRequest: CreateFormTemplateVersionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<createFormTemplateVersionResponse> => {
 
@@ -14316,6 +14505,9 @@ export const getGetFormTemplateVersionUrl = (formId: string,
   return `/v1/form-templates/${formId}/versions/${version}`
 }
 
+/**
+ * @summary Get a version of a library form
+ */
 export const getFormTemplateVersion = async (formId: string,
     version: number, options?: Parameters<typeof apiFetch>[1]): Promise<getFormTemplateVersionResponse> => {
 
@@ -14383,6 +14575,9 @@ export const getUpdateFormTemplateVersionUrl = (formId: string,
   return `/v1/form-templates/${formId}/versions/${version}`
 }
 
+/**
+ * @summary Edit a library form's draft
+ */
 export const updateFormTemplateVersion = async (formId: string,
     version: number,
     updateFormTemplateVersionRequest: UpdateFormTemplateVersionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<updateFormTemplateVersionResponse> => {
@@ -14465,6 +14660,9 @@ export const getPublishFormTemplateVersionUrl = (formId: string,
   return `/v1/form-templates/${formId}/versions/${version}/publish`
 }
 
+/**
+ * @summary Publish a library form's draft
+ */
 export const publishFormTemplateVersion = async (formId: string,
     version: number, options?: Parameters<typeof apiFetch>[1]): Promise<publishFormTemplateVersionResponse> => {
 
@@ -14532,6 +14730,9 @@ export const getApplyFormToTemplatesUrl = (formId: string,
   return `/v1/form-templates/${formId}/versions/${version}/apply-to-templates`
 }
 
+/**
+ * @summary Update hiring templates to a form's latest version
+ */
 export const applyFormToTemplates = async (formId: string,
     version: number,
     applyFormToTemplatesRequest: ApplyFormToTemplatesRequest, options?: Parameters<typeof apiFetch>[1]): Promise<applyFormToTemplatesResponse> => {
@@ -14603,6 +14804,9 @@ export const getArchiveFormTemplateUrl = (formId: string,) => {
   return `/v1/form-templates/${formId}/archive`
 }
 
+/**
+ * @summary Archive a library form
+ */
 export const archiveFormTemplate = async (formId: string, options?: Parameters<typeof apiFetch>[1]): Promise<archiveFormTemplateResponse> => {
 
   return apiFetch<archiveFormTemplateResponse>(getArchiveFormTemplateUrl(formId),
@@ -14658,6 +14862,9 @@ export const getUnarchiveFormTemplateUrl = (formId: string,) => {
   return `/v1/form-templates/${formId}/unarchive`
 }
 
+/**
+ * @summary Restore an archived library form
+ */
 export const unarchiveFormTemplate = async (formId: string, options?: Parameters<typeof apiFetch>[1]): Promise<unarchiveFormTemplateResponse> => {
 
   return apiFetch<unarchiveFormTemplateResponse>(getUnarchiveFormTemplateUrl(formId),

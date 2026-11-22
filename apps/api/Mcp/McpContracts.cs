@@ -119,8 +119,8 @@ public sealed record McpTags(Guid ApplicationId, IReadOnlyList<string> Tags);
 /// <summary>Where the application stands after <c>move_to_stage</c>.</summary>
 public sealed record McpStageMove(Guid ApplicationId, ApplicationStage Stage, DateTimeOffset StageEnteredAt);
 
-/// <summary>The task <c>create_task</c> made. <c>assigneeUserId</c> is null for anyone on the hiring team.</summary>
-public sealed record McpTask(Guid Id, Guid ApplicationId, string Note, Guid? AssigneeUserId, DateTimeOffset CreatedAt);
+/// <summary>A task <c>create_task</c> made or <c>complete_task</c> finished. <c>assigneeUserId</c> is null for anyone on the hiring team.</summary>
+public sealed record McpTask(Guid Id, Guid ApplicationId, string Note, Guid? AssigneeUserId, DateTimeOffset CreatedAt, DateTimeOffset? CompletedAt = null);
 
 /// <summary>
 /// The hiring report for a range, from <c>get_hiring_report</c>: headline numbers, applications and hires by Monday week,
@@ -248,7 +248,8 @@ internal static class McpMappings
         new(entry.Id, entry.Type, entry.OccurredAt, entry.ActorUserId, entry.ActorApiKeyName, entry.AutomationRunId is not null,
             entry.FromStageId, entry.ToStageId, entry.Note, entry.Tag, entry.TemplateVersionId is not null);
 
-    public static McpTask ToMcp(this ApplicationTaskEntry task) => new(task.Id, task.ApplicationId, task.Note, task.AssigneeUserId, task.CreatedAt);
+    public static McpTask ToMcp(this ApplicationTaskEntry task) =>
+        new(task.Id, task.ApplicationId, task.Note, task.AssigneeUserId, task.CreatedAt, task.CompletedAt);
 
     private static McpFollowUp ToMcp(this ApplicationFollowUp followUp)
     {

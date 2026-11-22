@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using FluentValidation;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 using ScreenHire.Api.Applications;
 using ScreenHire.Api.Branding;
@@ -15,6 +16,7 @@ using ScreenHire.Api.Fonts;
 using ScreenHire.Api.Hiring;
 using ScreenHire.Api.Mcp;
 using ScreenHire.Api.OAuth;
+using ScreenHire.Api.OpenApi;
 using ScreenHire.Api.Realtime;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Billing;
@@ -93,8 +95,7 @@ builder.Services.AddProblemDetails();
 // limit) is the caller's mistake: answer with its own status. Minimal APIs throw these in Development rather than answer.
 builder.Services.Configure<ExceptionHandlerOptions>(options => options.StatusCodeSelector = exception =>
     exception is BadHttpRequestException bad ? bad.StatusCode : StatusCodes.Status500InternalServerError);
-builder.Services.AddOpenApi(options => options.AddSchemaTransformer(DefinitionSchemas.LinkFromOpenApi).AddScreenHireSecuritySchemes()
-    .UseUnixLineEndings());
+builder.Services.AddScreenHireOpenApi();
 builder.Services.AddHiringValidation();
 builder.AddJobDistribution();
 // Webhook subscriptions: the API shows each endpoint's secret once and checks URLs against the same address rule the
@@ -149,8 +150,16 @@ app.MapDefaultEndpoints();
 app.MapOpenApi().AllowAnonymous();
 // The API reference (Scalar, /scalar) is public in every environment: it documents the public API and holds no data. The
 // dashboard's API keys and Webhooks pages link to it. Being public, it calls no third party: Scalar's defaults would send
-// usage telemetry, load fonts from Scalar's CDN and offer Scalar's hosted AI chat and MCP server on our API.
-app.MapScalarApiReference(options => options.DisableTelemetry().DisableDefaultFonts().DisableAgent().DisableMcp()).AllowAnonymous();
+// usage telemetry, load fonts from Scalar's CDN and offer Scalar's hosted AI chat and MCP server on our API. It shows the
+// public document, what a key can call (ApiDocuments), with this deployment's API address as the server.
+app.MapScalarApiReference((options, context) => options
+        .WithTitle(ApiDocuments.Title)
+        .AddDocument(ApiDocuments.Public, ApiDocuments.Title)
+        .AddServer(context.RequestServices.GetRequiredService<IOptions<DomainOptions>>().Value.GetApiOrigin().ToString().TrimEnd('/'))
+        .DisableTelemetry().DisableDefaultFonts().DisableAgent().DisableMcp())
+    .AllowAnonymous();
+// The MCP tools reference, beside it and public for the same reason (McpToolsPage).
+app.MapMcpToolsPage();
 app.MapMetaEndpoints();
 app.MapAuthEndpoints();
 app.MapPasskeyEndpoints();

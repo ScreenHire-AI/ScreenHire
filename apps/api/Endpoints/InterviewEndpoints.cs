@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -114,10 +115,12 @@ internal static class InterviewEndpoints
     }
 
     // Offers the candidate an interview: the request, its interviewers, the timeline entry, and the invitation email the
-    // worker sends (with the link, which is made there). Nothing is on a calendar until the candidate picks a time.
-    private static async Task<Results<Created<ApplicationInterview>, NotFound, ValidationProblem, ProblemHttpResult>> ScheduleInterview(
+    // worker sends (with the link, which is made there). Nothing is on a calendar until the candidate picks a time. The
+    // MCP server's invite_to_schedule calls it with an API key, filled from the stage's defaults; the entry names the key.
+    internal static async Task<Results<Created<ApplicationInterview>, NotFound, ValidationProblem, ProblemHttpResult>> ScheduleInterview(
         Guid applicationId,
         ScheduleInterviewRequest request,
+        ClaimsPrincipal user,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         ITenantContext tenant,
         CalendarAccess calendar,
@@ -198,7 +201,7 @@ internal static class InterviewEndpoints
             .ToList();
         db.InterviewRequests.Add(interview);
         db.InterviewAttendees.AddRange(attendees);
-        db.ApplicationEvents.Add(application.InterviewInvited(interview, now, tenant.UserId));
+        db.ApplicationEvents.Add(application.InterviewInvited(interview, now, tenant.UserId, actorApiKeyId: user.ApiKeyId()));
         foreach (var done in await SchedulingTasks.CompleteAsync(db, application, tenant.UserId, now, cancellationToken))
         {
             await outbox.PublishAsync(done);
@@ -286,7 +289,7 @@ internal static class InterviewEndpoints
 
         await outbox.PublishAsync(new InterviewChanged(
             application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(), InterviewChanges.Cancelled, tenant.UserId,
-            StartsAt: interview.StartsAt));
+            StartsAt: interview.StartsAt, Revision: interview.Revision, ChangedAt: now));
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
         var byUser = (await HiringTeams.MembersAsync(db, tenant, cancellationToken)).Values.ToDictionary(m => m.UserId);
         return TypedResults.Ok(interview.ToDto(attendees, byUser, now));
@@ -481,7 +484,8 @@ internal static class InterviewEndpoints
 
             await outbox.PublishAsync(new InterviewChanged(
                 application.OrganizationId, application.Id, application.JobId, interview.Id, interview.Status.ToString(),
-                reschedule ? InterviewChanges.Rescheduled : InterviewChanges.Booked, userId, StartsAt: interview.StartsAt));
+                reschedule ? InterviewChanges.Rescheduled : InterviewChanges.Booked, userId, StartsAt: interview.StartsAt,
+                Revision: interview.Revision, ChangedAt: now));
             await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
             return result.Outcome;
         });
@@ -601,7 +605,7 @@ internal static class InterviewEndpoints
         return interview.ToDto(await AttendeesAsync(db, interviewId, cancellationToken), byUser, now);
     }
 
-    private static bool SeesJob(HiringTeams.Member member, IReadOnlyCollection<Guid> team) => member.SeesAllJobs || team.Contains(member.Id);
+    internal static bool SeesJob(HiringTeams.Member member, IReadOnlyCollection<Guid> team) => member.SeesAllJobs || team.Contains(member.Id);
 
     private static ProblemHttpResult AlreadyOffered() =>
         TypedResults.Problem("This candidate already has an interview that is open or booked. Cancel it first.", statusCode: StatusCodes.Status409Conflict);

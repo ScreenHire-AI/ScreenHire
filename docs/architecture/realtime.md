@@ -186,7 +186,9 @@ deserializes, and the Zod side reads a missing one as no member.
 NewTimesOffered; null for a calendar write, or when only the organizer changed because an interviewer left), `ActorUserId` (the
 member), `ByCandidate` (the candidate, from their booking page) and `StartsAt` (the booked or new time, or the time a cancelled
 booking had). An automation's offer, and ScreenHire's own cancellation when the application ended or the last interviewer
-left, have a `Change` and neither actor, so they toast nobody.
+left, have a `Change` and neither actor, so they toast nobody. A booking, a new time and a cancellation also carry the
+request's `Revision` and `ChangedAt`, which key the `interview.*` webhook events
+([workflow engine](workflow-engine.md#webhook-subscriptions)); the dashboard reads neither.
 
 ## Teammates' changes as toasts
 

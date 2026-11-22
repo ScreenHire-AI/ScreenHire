@@ -1,0 +1,51 @@
+---
+import { PUBLIC_API_URL } from 'astro:env/server';
+import DeveloperPage from '../../components/DeveloperPage.astro';
+import { apiOperationCount, apiOrigin, mcpPath, mcpToolGroups, webhookEvents } from '../../lib/developers';
+import { pages } from '../../lib/pages';
+
+const api = apiOrigin(PUBLIC_API_URL);
+const tools = mcpToolGroups().reduce((count, group) => count + group.tools.length, 0);
+const firstCall = `curl ${api}/v1/jobs \\
+  -H "Authorization: Bearer shk_..."`;
+---
+
+<DeveloperPage
+  page={pages.developers}
+  heading="Build on ScreenHire"
+  lead="Three ways in, on every plan: the API for your own systems, webhooks when something happens, and MCP for an AI assistant."
+>
+  <h2>Three ways in</h2>
+  <ul>
+    <li>
+      <strong>The API.</strong> {apiOperationCount()} routes for jobs, applications, candidates, scorecards, templates, reports and, with
+      its own scope, verification results. <a href={pages.developerApi.path}>API reference</a>.
+    </li>
+    <li>
+      <strong>Webhooks.</strong> {webhookEvents().length} events, each a signed POST to your endpoint, retried until it is answered.{' '}
+      <a href={pages.developerWebhooks.path}>Webhooks</a>.
+    </li>
+    <li>
+      <strong>MCP.</strong> {tools} tools an AI assistant such as Claude can use to work with your hiring.{' '}
+      <a href={pages.developerMcp.path}>MCP for AI assistants</a>.
+    </li>
+  </ul>
+
+  <h2>Make your first call</h2>
+  <ol>
+    <li>In ScreenHire, an Owner or Admin opens Settings, Integrations, API keys and creates a key. Copy it: it is shown once.</li>
+    <li>Send it as a bearer token. This lists your jobs:</li>
+  </ol>
+  <pre tabindex="0"><code>{firstCall}</code></pre>
+  <p>
+    The answer is JSON. Every route lives under <code>/v1</code> on your API address, <code>{api}</code>, and the{' '}
+    <a href={pages.developerAuthentication.path}>authentication</a> page says what each kind of key may do.
+  </p>
+
+  <h2>Connect an AI assistant</h2>
+  <p>
+    Point any MCP client at <code>{api}{mcpPath}</code>. A client that signs in with OAuth, such as a custom connector, needs nothing
+    else: it asks you to sign in to ScreenHire and choose what it may do. Anything it does shows in the candidate's activity
+    under its name.
+  </p>
+</DeveloperPage>

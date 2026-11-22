@@ -14,11 +14,12 @@ namespace ScreenHire.IntegrationTests;
 /// </summary>
 public sealed class OAuthServerTests(AppHostFixture fixture)
 {
-    private static readonly string[] ReadTools = ["check_job", "find_candidates", "find_jobs", "get_application", "get_hiring_report", "list_saved_candidates"];
+    // The tool lists McpServerTests holds: what a grant offers is what a key with the same scopes is offered.
+    private static string[] ReadTools => McpServerTests.ReadTools;
 
-    private static readonly string[] WriteTools = ["add_note", "add_tag", "create_task", "move_to_stage", "remove_tag"];
+    private static string[] WriteTools => McpServerTests.WriteTools;
 
-    private static readonly string[] VerificationTools = ["find_candidates_by_verification_level", "get_verification"];
+    private static string[] VerificationTools => McpServerTests.VerificationTools;
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -287,7 +288,7 @@ public sealed class OAuthServerTests(AppHostFixture fixture)
     // ---- The full flow ----
 
     [Fact]
-    public async Task A_read_grant_lists_only_the_five_read_tools_even_when_the_assistant_asked_for_every_scope()
+    public async Task A_read_grant_lists_only_the_read_tools_even_when_the_assistant_asked_for_every_scope()
     {
         using var owner = await fixture.SignedInWithOrganizationAsync();
         using var app = new OAuthClientApp(fixture);

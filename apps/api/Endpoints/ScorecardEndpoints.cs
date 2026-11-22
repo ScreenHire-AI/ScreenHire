@@ -31,15 +31,15 @@ internal static class ScorecardEndpoints
 {
     public static IEndpointRouteBuilder MapScorecardEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/v1/applications/{applicationId:guid}/scorecards").WithTags("Applications").AllowApiKeys();
-        group.MapGet("/", ListApplicationScorecards).WithName("ListApplicationScorecards").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/", SubmitScorecard).WithName("SubmitScorecard")
+        var group = app.MapGroup("/v1/applications/{applicationId:guid}/scorecards").WithTags("Scorecards").AllowApiKeys();
+        group.MapGet("/", ListApplicationScorecards).WithName("ListApplicationScorecards").WithSummary("List an application's scorecards").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/", SubmitScorecard).WithName("SubmitScorecard").WithSummary("Submit a scorecard")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.FillInScorecards)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        var requests = app.MapGroup("/v1/applications/{applicationId:guid}/scorecard-requests").WithTags("Applications").AllowApiKeys();
-        requests.MapPost("/", RequestScorecard).WithName("RequestScorecard")
+        var requests = app.MapGroup("/v1/applications/{applicationId:guid}/scorecard-requests").WithTags("Scorecards").AllowApiKeys();
+        requests.MapPost("/", RequestScorecard).WithName("RequestScorecard").WithSummary("Ask a teammate for a scorecard")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.CreateTasks)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -51,7 +51,7 @@ internal static class ScorecardEndpoints
     // team's judgements, not verification evidence. A reviewer with their own scorecard still to give sees who gave the
     // others and when, but never what they said (withheld rows: no recommendation, rating, answers or note), so the others
     // cannot anchor them (ADR-0013); the application's rating says AfterYourScorecard meanwhile.
-    private static async Task<Results<Ok<List<ScorecardEntry>>, NotFound>> ListApplicationScorecards(
+    internal static async Task<Results<Ok<List<ScorecardEntry>>, NotFound>> ListApplicationScorecards(
         Guid applicationId, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         if (!await db.Applications.AnyAsync(a => a.Id == applicationId, cancellationToken))

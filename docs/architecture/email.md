@@ -251,7 +251,10 @@ update `application_emails`, and a copy goes with its application. Every member 
 - **No bulk email picked by verification signals.** On the candidates list and a job's pipeline, Email for a selection is
   hidden while a verification filter or a verification saved view picked the rows, as bulk moves to an ending stage are
   (ADR-0004, `bulkMoveStages`). One candidate at a time, from their page, is a person's decision.
-- **People only.** The email routes take no API key, the Messages list and the kept copies included. Owners and admins
+- **People only, over HTTP.** The email routes take no API key, the Messages list and the kept copies included. The MCP
+  server's `send_email`, `draft_email` and `read_email_thread` call the same handlers for a key with the person's
+  confirmation before a send ([MCP server](mcp-server.md)); a key's send carries `ActorApiKeyId` on
+  `SendApplicationEmail`, and its EmailSent entry names the key. Owners and admins
   change templates and test them; owners, admins and recruiters send; viewers read templates and kept emails and send
   nothing.
 - **Hidden without a sender.** With no `IEmailSender` (no Mailpit connection locally, no provider in production),

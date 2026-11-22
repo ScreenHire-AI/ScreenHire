@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
 using ScreenHire.Application.Webhooks;
+using ScreenHire.Domain.Webhooks;
 using ScreenHire.IntegrationTests.Messaging;
 using Wolverine;
 
@@ -310,7 +311,7 @@ public sealed class WebhookSubscriptionTests(AppHostFixture fixture)
             ["url"] = "https://hooks.example.com/in",
             ["events"] = new JsonArray("job.closed", "job.closed"),
         })).Expect(HttpStatusCode.Created).Count("endpoint.events").Should().Be(1);
-        (await recruiter.GetAsync("/v1/webhooks/event-types")).Expect(HttpStatusCode.OK).Count().Should().Be(6);
+        (await recruiter.GetAsync("/v1/webhooks/event-types")).Expect(HttpStatusCode.OK).Count().Should().Be(WebhookEventTypes.All.Count);
 
         // Twenty endpoints at most (one exists already); the next is a conflict, not a problem with its URL.
         var more = new JsonObject { ["url"] = "https://hooks.example.com/in", ["events"] = new JsonArray("job.closed") };

@@ -1,0 +1,71 @@
+---
+import { PUBLIC_API_URL } from 'astro:env/server';
+import DeveloperPage from '../../components/DeveloperPage.astro';
+import { apiOrigin, apiTagGroups } from '../../lib/developers';
+import { pages } from '../../lib/pages';
+
+const api = apiOrigin(PUBLIC_API_URL);
+const groups = apiTagGroups().filter((group) => group.name !== 'Webhooks');
+const slug = (name: string) => name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-');
+---
+
+<DeveloperPage
+  page={pages.developerApi}
+  heading="API reference"
+  lead="Every route an organization API key can call, by area. The full reference, with every field and a way to try each call, is on your API."
+>
+  <p>
+    <a href={`${api}/scalar`}>Open the full API reference</a>, or download the OpenAPI document at{' '}
+    <a href={`${api}/openapi/public.json`}><code>{api}/openapi/public.json</code></a> to generate a client.
+  </p>
+
+  <h2>Errors</h2>
+  <p>
+    Errors are <a href="https://www.rfc-editor.org/rfc/rfc9457">problem details</a> with a <code>title</code> and a{' '}
+    <code>detail</code> you can show. <code>400</code> holds an <code>errors</code> object, each key a field with its messages.
+    Something that does not exist, or belongs to another organization, is <code>404</code>. A change that clashes with the current
+    state, such as an edit made from an old copy, is <code>409</code>. <code>401</code> is a missing or revoked key and{' '}
+    <code>403</code> a key without the scope the route needs.
+  </p>
+
+  <h2>Paging and versions</h2>
+  <p>
+    Lists are not paged yet: each list route returns every match, newest first unless its description says otherwise. Paging will
+    come as optional parameters. The version is in the path, <code>/v1</code>; within it we only add routes, optional parameters and
+    response fields, so ignore fields you do not know.
+  </p>
+
+  {
+    groups.map((group) => (
+      <>
+        <h2 id={slug(group.name)}>{group.name}</h2>
+        {group.tags.map((tag) => (
+          <>
+            <h3 id={slug(`${group.name} ${tag.name}`)}>{tag.name}</h3>
+            <p>{tag.description}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Route</th>
+                  <th>What it does</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tag.operations.map((operation) => (
+                  <tr>
+                    <td>
+                      <code>
+                        {operation.method} {operation.path}
+                      </code>
+                    </td>
+                    <td>{operation.summary}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        ))}
+      </>
+    ))
+  }
+</DeveloperPage>

@@ -2741,6 +2741,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "List jobs",
         "operationId": "ListJobs",
         "responses": {
           "429": {
@@ -2776,6 +2777,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Create a job",
         "operationId": "CreateJob",
         "requestBody": {
           "content": {
@@ -2850,6 +2852,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Get a job",
         "operationId": "GetJob",
         "parameters": [
           {
@@ -2896,6 +2899,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Edit a job",
         "operationId": "UpdateJob",
         "parameters": [
           {
@@ -2984,6 +2988,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Check a job before publishing it",
         "operationId": "GetJobPublishCheck",
         "parameters": [
           {
@@ -3032,6 +3037,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "List a job's changes",
         "operationId": "GetJobHistory",
         "parameters": [
           {
@@ -3106,6 +3112,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Set a job's AI use policy",
         "operationId": "SetJobAiUse",
         "parameters": [
           {
@@ -3194,6 +3201,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Publish a job",
         "operationId": "PublishJob",
         "parameters": [
           {
@@ -3298,6 +3306,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Close a job",
         "operationId": "CloseJob",
         "parameters": [
           {
@@ -3366,6 +3375,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "List a job's published versions",
         "operationId": "ListJobVersions",
         "parameters": [
           {
@@ -3417,6 +3427,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Get a published version of a job",
         "operationId": "GetJobVersion",
         "parameters": [
           {
@@ -3474,6 +3485,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Compare a job's hiring process with its template",
         "operationId": "GetJobTemplateDiff",
         "parameters": [
           {
@@ -3522,6 +3534,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Edit a job's hiring process",
         "operationId": "UpdateJobWorkflow",
         "parameters": [
           {
@@ -3610,6 +3623,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Update a job from its template",
         "operationId": "ApplyJobTemplateUpdate",
         "parameters": [
           {
@@ -3698,6 +3712,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Preview switching a job to another template",
         "operationId": "GetJobTemplateSwitch",
         "parameters": [
           {
@@ -3763,6 +3778,7 @@
         "tags": [
           "Jobs"
         ],
+        "summary": "Switch a job to another template",
         "operationId": "SwitchJobTemplate",
         "parameters": [
           {
@@ -3849,8 +3865,9 @@
     "/v1/templates": {
       "get": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "List hiring templates",
         "operationId": "ListHiringTemplates",
         "responses": {
           "429": {
@@ -3884,8 +3901,9 @@
       },
       "post": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "Create a hiring template",
         "operationId": "CreateHiringTemplate",
         "requestBody": {
           "content": {
@@ -3948,8 +3966,9 @@
     "/v1/templates/{templateId}": {
       "get": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "Get a hiring template",
         "operationId": "GetHiringTemplate",
         "parameters": [
           {
@@ -3994,8 +4013,9 @@
       },
       "put": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "Rename or describe a hiring template",
         "operationId": "UpdateHiringTemplate",
         "parameters": [
           {
@@ -4082,8 +4102,9 @@
     "/v1/templates/{templateId}/history": {
       "get": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "List a hiring template's changes",
         "operationId": "GetHiringTemplateHistory",
         "parameters": [
           {
@@ -4156,8 +4177,9 @@
     "/v1/templates/{templateId}/versions": {
       "post": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "Start a draft of a hiring template",
         "operationId": "CreateHiringTemplateVersion",
         "parameters": [
           {
@@ -4244,8 +4266,9 @@
     "/v1/templates/{templateId}/versions/{version}": {
       "get": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "Get a version of a hiring template",
         "operationId": "GetHiringTemplateVersion",
         "parameters": [
           {
@@ -4299,8 +4322,9 @@
       },
       "put": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "Edit a hiring template's draft",
         "operationId": "UpdateHiringTemplateVersion",
         "parameters": [
           {
@@ -4396,8 +4420,9 @@
     "/v1/templates/{templateId}/versions/{version}/publish": {
       "post": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "Publish a hiring template's draft",
         "operationId": "PublishHiringTemplateVersion",
         "parameters": [
           {
@@ -4483,8 +4508,9 @@
     "/v1/templates/{templateId}/archive": {
       "post": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "Archive a hiring template",
         "operationId": "ArchiveHiringTemplate",
         "parameters": [
           {
@@ -4551,8 +4577,9 @@
     "/v1/templates/{templateId}/unarchive": {
       "post": {
         "tags": [
-          "Hiring templates"
+          "Templates"
         ],
+        "summary": "Restore an archived hiring template",
         "operationId": "UnarchiveHiringTemplate",
         "parameters": [
           {
@@ -4621,6 +4648,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "List a job's applications",
         "operationId": "ListJobApplications",
         "parameters": [
           {
@@ -4670,6 +4698,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Add an application to a job",
         "operationId": "CreateApplication",
         "parameters": [
           {
@@ -4758,6 +4787,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Upload a resume for a new application",
         "operationId": "CreateResumeUpload",
         "parameters": [
           {
@@ -4846,6 +4876,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "List applications",
         "operationId": "ListApplications",
         "responses": {
           "429": {
@@ -4883,6 +4914,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Get an application",
         "operationId": "GetApplication",
         "parameters": [
           {
@@ -4931,6 +4963,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Move an application to a stage",
         "operationId": "MoveApplication",
         "parameters": [
           {
@@ -5019,6 +5052,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "List an application's activity",
         "operationId": "GetApplicationTimeline",
         "parameters": [
           {
@@ -5070,6 +5104,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Add a note to an application",
         "operationId": "AddApplicationNote",
         "parameters": [
           {
@@ -5148,6 +5183,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Edit a note",
         "operationId": "EditApplicationNote",
         "parameters": [
           {
@@ -5243,6 +5279,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Delete a note",
         "operationId": "DeleteApplicationNote",
         "parameters": [
           {
@@ -5313,6 +5350,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Tag an application",
         "operationId": "AddApplicationTag",
         "parameters": [
           {
@@ -5399,6 +5437,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Remove a tag from an application",
         "operationId": "RemoveApplicationTag",
         "parameters": [
           {
@@ -5484,6 +5523,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Create a task about an application",
         "operationId": "CreateApplicationTask",
         "parameters": [
           {
@@ -5605,6 +5645,7 @@
         "tags": [
           "Applications"
         ],
+        "summary": "Download an application's file",
         "operationId": "DownloadApplicationFile",
         "parameters": [
           {
@@ -5662,6 +5703,7 @@
         "tags": [
           "Candidates"
         ],
+        "summary": "List candidates",
         "operationId": "ListCandidates",
         "responses": {
           "429": {
@@ -5699,6 +5741,7 @@
         "tags": [
           "Candidates"
         ],
+        "summary": "Get a candidate",
         "operationId": "GetCandidate",
         "parameters": [
           {
@@ -6333,6 +6376,7 @@
         "tags": [
           "Verification"
         ],
+        "summary": "Get an application's verification result",
         "operationId": "GetApplicationVerification",
         "parameters": [
           {
@@ -6384,6 +6428,7 @@
         "tags": [
           "Verification"
         ],
+        "summary": "List applications by verification level",
         "operationId": "ListVerificationApplications",
         "parameters": [
           {
@@ -11949,6 +11994,7 @@
         "tags": [
           "Tags"
         ],
+        "summary": "List the organization's tags",
         "operationId": "ListTags",
         "responses": {
           "429": {
@@ -12183,6 +12229,7 @@
         "tags": [
           "Reports"
         ],
+        "summary": "Get the hiring report",
         "operationId": "GetHiringReport",
         "parameters": [
           {
@@ -12280,6 +12327,7 @@
         "tags": [
           "Reports"
         ],
+        "summary": "List the applications behind a funnel step",
         "operationId": "GetFunnelApplications",
         "parameters": [
           {
@@ -12446,8 +12494,9 @@
     "/v1/applications/{applicationId}/scorecards": {
       "get": {
         "tags": [
-          "Applications"
+          "Scorecards"
         ],
+        "summary": "List an application's scorecards",
         "operationId": "ListApplicationScorecards",
         "parameters": [
           {
@@ -12495,8 +12544,9 @@
       },
       "post": {
         "tags": [
-          "Applications"
+          "Scorecards"
         ],
+        "summary": "Submit a scorecard",
         "operationId": "SubmitScorecard",
         "parameters": [
           {
@@ -12593,8 +12643,9 @@
     "/v1/applications/{applicationId}/scorecard-requests": {
       "post": {
         "tags": [
-          "Applications"
+          "Scorecards"
         ],
+        "summary": "Ask a teammate for a scorecard",
         "operationId": "RequestScorecard",
         "parameters": [
           {
@@ -12681,8 +12732,9 @@
     "/v1/scorecard-templates": {
       "get": {
         "tags": [
-          "Scorecard templates"
+          "Templates"
         ],
+        "summary": "List library scorecards",
         "operationId": "ListScorecardTemplates",
         "responses": {
           "429": {
@@ -12716,8 +12768,9 @@
       },
       "post": {
         "tags": [
-          "Scorecard templates"
+          "Templates"
         ],
+        "summary": "Create a library scorecard",
         "operationId": "CreateScorecardTemplate",
         "requestBody": {
           "content": {
@@ -12790,8 +12843,9 @@
     "/v1/scorecard-templates/{templateId}": {
       "get": {
         "tags": [
-          "Scorecard templates"
+          "Templates"
         ],
+        "summary": "Get a library scorecard",
         "operationId": "GetScorecardTemplate",
         "parameters": [
           {
@@ -12835,8 +12889,9 @@
       },
       "put": {
         "tags": [
-          "Scorecard templates"
+          "Templates"
         ],
+        "summary": "Edit a library scorecard",
         "operationId": "UpdateScorecardTemplate",
         "parameters": [
           {
@@ -12922,8 +12977,9 @@
     "/v1/scorecard-templates/{templateId}/history": {
       "get": {
         "tags": [
-          "Scorecard templates"
+          "Templates"
         ],
+        "summary": "List a library scorecard's changes",
         "operationId": "GetScorecardTemplateHistory",
         "parameters": [
           {
@@ -12995,8 +13051,9 @@
     "/v1/scorecard-templates/{templateId}/archive": {
       "post": {
         "tags": [
-          "Scorecard templates"
+          "Templates"
         ],
+        "summary": "Archive a library scorecard",
         "operationId": "ArchiveScorecardTemplate",
         "parameters": [
           {
@@ -13062,8 +13119,9 @@
     "/v1/scorecard-templates/{templateId}/unarchive": {
       "post": {
         "tags": [
-          "Scorecard templates"
+          "Templates"
         ],
+        "summary": "Restore an archived library scorecard",
         "operationId": "UnarchiveScorecardTemplate",
         "parameters": [
           {
@@ -13129,8 +13187,9 @@
     "/v1/form-templates": {
       "get": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "List library forms",
         "operationId": "ListFormTemplates",
         "responses": {
           "429": {
@@ -13161,8 +13220,9 @@
       },
       "post": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "Create a library form",
         "operationId": "CreateFormTemplate",
         "requestBody": {
           "content": {
@@ -13235,8 +13295,9 @@
     "/v1/form-templates/{formId}": {
       "get": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "Get a library form",
         "operationId": "GetFormTemplate",
         "parameters": [
           {
@@ -13283,8 +13344,9 @@
     "/v1/form-templates/{formId}/history": {
       "get": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "List a library form's changes",
         "operationId": "GetFormTemplateHistory",
         "parameters": [
           {
@@ -13357,8 +13419,9 @@
     "/v1/form-templates/{formId}/versions": {
       "post": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "Start a draft of a library form",
         "operationId": "CreateFormTemplateVersion",
         "parameters": [
           {
@@ -13445,8 +13508,9 @@
     "/v1/form-templates/{formId}/versions/{version}": {
       "get": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "Get a version of a library form",
         "operationId": "GetFormTemplateVersion",
         "parameters": [
           {
@@ -13500,8 +13564,9 @@
       },
       "put": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "Edit a library form's draft",
         "operationId": "UpdateFormTemplateVersion",
         "parameters": [
           {
@@ -13597,8 +13662,9 @@
     "/v1/form-templates/{formId}/versions/{version}/publish": {
       "post": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "Publish a library form's draft",
         "operationId": "PublishFormTemplateVersion",
         "parameters": [
           {
@@ -13684,8 +13750,9 @@
     "/v1/form-templates/{formId}/versions/{version}/apply-to-templates": {
       "post": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "Update hiring templates to a form's latest version",
         "operationId": "ApplyFormToTemplates",
         "parameters": [
           {
@@ -13781,8 +13848,9 @@
     "/v1/form-templates/{formId}/archive": {
       "post": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "Archive a library form",
         "operationId": "ArchiveFormTemplate",
         "parameters": [
           {
@@ -13839,8 +13907,9 @@
     "/v1/form-templates/{formId}/unarchive": {
       "post": {
         "tags": [
-          "Form templates"
+          "Templates"
         ],
+        "summary": "Restore an archived library form",
         "operationId": "UnarchiveFormTemplate",
         "parameters": [
           {
@@ -35559,9 +35628,6 @@
       "name": "Jobs"
     },
     {
-      "name": "Hiring templates"
-    },
-    {
       "name": "Applications"
     },
     {
@@ -35622,10 +35688,7 @@
       "name": "Reports"
     },
     {
-      "name": "Scorecard templates"
-    },
-    {
-      "name": "Form templates"
+      "name": "Scorecards"
     },
     {
       "name": "Webhooks"

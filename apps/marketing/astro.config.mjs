@@ -74,6 +74,9 @@ export default defineConfig({
       PUBLIC_ANALYTICS_SITE_ID: envField.string({ context: 'server', access: 'public', optional: true }),
       // The recruiter dashboard. When set, the header shows "Sign in"; hosts are never hard-coded (ADR-0003).
       PUBLIC_APP_URL: envField.string({ context: 'server', access: 'public', optional: true, url: true }),
+      // The API, for the developer docs' addresses and their link to the API reference (src/lib/developers.ts). Without it
+      // the docs show api.example.com.
+      PUBLIC_API_URL: envField.string({ context: 'server', access: 'public', optional: true, url: true }),
     },
   },
   server: { port: Number(process.env.PORT ?? 4321) },

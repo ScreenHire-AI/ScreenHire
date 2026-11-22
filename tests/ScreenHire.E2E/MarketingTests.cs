@@ -39,6 +39,11 @@ public sealed partial class MarketingTests(E2EFixture fixture) : BrowserTest(fix
         ("/compare/gohire-alternative/", ["BreadcrumbList", "FAQPage"]),
         ("/blog/", ["BreadcrumbList", "Blog"]),
         ("/blog/why-no-fraud-score/", ["BreadcrumbList", "BlogPosting"]),
+        ("/developers/", ["BreadcrumbList"]),
+        ("/developers/authentication/", ["BreadcrumbList"]),
+        ("/developers/api/", ["BreadcrumbList"]),
+        ("/developers/webhooks/", ["BreadcrumbList"]),
+        ("/developers/mcp/", ["BreadcrumbList"]),
     ];
 
     public static TheoryData<string, string[]> Pages => new(IndexablePages.Select(page => (page.Path, page.Types)));

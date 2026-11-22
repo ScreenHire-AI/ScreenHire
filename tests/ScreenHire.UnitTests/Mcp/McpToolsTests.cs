@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using ModelContextProtocol.Server;
 using ScreenHire.Api.Mcp;
+using ScreenHire.Domain.Views;
 
 namespace ScreenHire.UnitTests.Mcp;
 
@@ -11,11 +12,68 @@ namespace ScreenHire.UnitTests.Mcp;
 /// The MCP tools (docs/architecture/mcp-server.md): every tool that changes data is behind the Write scope, so a Read key
 /// neither sees nor calls it, and every read-only hiring tool is open to any key. The verification tools are behind the
 /// Verification read scope an Owner gives (ADR-0021), only read, and say a level is never a reason to reject on its own.
-/// Tool names are snake_case verbs.
+/// The tools that reach outside the team or end a candidacy ask the person first and carry the destructive hint. Tool
+/// names are snake_case verbs.
 /// </summary>
 public sealed partial class McpToolsTests
 {
-    private static readonly MethodInfo[] HiringToolMethods = ToolsOf(typeof(HiringTools));
+    // Every tool class the server registers, the verification tools apart.
+    private static readonly MethodInfo[] HiringToolMethods = [.. McpToolCatalog.Methods.Where(m => m.DeclaringType != typeof(VerificationTools))];
+
+    [Fact]
+    public void The_server_registers_every_tool_class_in_the_assembly()
+    {
+        var declared = typeof(McpSetup).Assembly.GetTypes().Where(t => t.GetCustomAttribute<McpServerToolTypeAttribute>() is not null);
+
+        McpToolCatalog.ToolTypes.Should().BeEquivalentTo(declared, "a tool class left out of ToolTypes is neither served nor documented");
+    }
+
+    [Fact]
+    public void Exactly_the_consequential_tools_ask_the_person_and_carry_the_destructive_hint()
+    {
+        var confirmed = HiringToolMethods.Where(m => m.GetParameters().Any(p => p.Name == McpConfirmation.Argument)).ToList();
+
+        confirmed.Select(NameOf).Should().BeEquivalentTo(["send_email", "invite_to_schedule", "publish_job", "close_job", "move_to_stage"]);
+        foreach (var tool in confirmed)
+        {
+            tool.GetCustomAttribute<McpServerToolAttribute>()!.Destructive.Should().BeTrue($"{NameOf(tool)} asks the person, so clients that prompt on the hint prompt too");
+            tool.GetCustomAttributes<AuthorizeAttribute>().Select(a => a.Policy).Should().Equal([McpSetup.WritePolicy]);
+            tool.GetCustomAttribute<DescriptionAttribute>()!.Description.Should().Contain("confirm: true", NameOf(tool));
+        }
+
+        // Every call of the four always asks, so Claude Code prompts on each; a move asks only for a Rejected stage.
+        foreach (var tool in confirmed.Where(t => NameOf(t) != "move_to_stage"))
+        {
+            tool.GetParameters().Single(p => p.Name == McpConfirmation.Argument).ParameterType.Should().Be<bool>($"{NameOf(tool)} requires confirm");
+            tool.GetCustomAttributes<McpMetaAttribute>().Should().Contain(m => m.Name == "anthropic/requiresUserInteraction", NameOf(tool));
+        }
+
+        confirmed.Single(t => NameOf(t) == "move_to_stage").GetParameters().Single(p => p.Name == McpConfirmation.Argument)
+            .ParameterType.Should().Be<bool?>("only a Rejected stage needs it");
+    }
+
+    [Theory]
+    [InlineData(null, null, null, true, null)]
+    [InlineData("ReviewSuggested", null, null, false, "verification")]
+    [InlineData(null, "SomeIndicators", null, false, "verification")]
+    [InlineData(null, null, "needs-review", false, "verification")]
+    [InlineData(null, null, "verification-recommended", false, "verification")]
+    [InlineData(null, null, "overdue", false, "built-in view")]
+    public void A_view_that_filters_on_verification_or_a_built_in_view_is_refused_with_the_reason(
+        string? authenticity, string? aiAssistance, string? baseView, bool applies, string? reason)
+    {
+        var refusal = TemplateTools.Refusal(new ViewDefinition { Authenticity = authenticity, AiAssistance = aiAssistance, BaseView = baseView });
+
+        (refusal is null).Should().Be(applies);
+        if (reason is not null)
+        {
+            refusal.Should().Contain(reason);
+        }
+    }
+
+    [Fact]
+    public void No_hiring_tool_is_named_for_verification() =>
+        HiringToolMethods.Select(NameOf).Should().NotContain(name => name.Contains("verification", StringComparison.Ordinal));
 
     private static readonly MethodInfo[] VerificationToolMethods = ToolsOf(typeof(VerificationTools));
 

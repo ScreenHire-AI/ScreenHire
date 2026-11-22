@@ -17,9 +17,12 @@ namespace ScreenHire.Application.Applications;
 /// candidate and stored the copy (<see cref="ApplicationEmail"/>) under <see cref="SendId"/> in the same transaction, so
 /// the message carries ids only: the wording a person typed can hold personal data, which never travels in a message
 /// (messaging.md). <see cref="SendId"/> also becomes the id of the timeline entry, so a redelivered message finds its
-/// entry and sends nothing twice.
+/// entry and sends nothing twice. <see cref="ActorUserId"/> is the member who sent it, or null when an organization API
+/// key did, through the MCP server (<see cref="ActorApiKeyId"/>, which the timeline entry names). Added last with a
+/// default, so a message queued before it still reads.
 /// </summary>
-public sealed record SendApplicationEmail(Guid OrganizationId, Guid ApplicationId, Guid SendId, Guid ActorUserId) : ITenantMessage;
+public sealed record SendApplicationEmail(Guid OrganizationId, Guid ApplicationId, Guid SendId, Guid? ActorUserId, Guid? ActorApiKeyId = null)
+    : ITenantMessage;
 
 /// <summary>
 /// An automation action's email to an application's candidate (SendEmail, Reject, SendQuestionnaire), queued through the
@@ -120,12 +123,13 @@ public static class ApplicationEmails
         JobApplication application,
         ApplicationEmail copy,
         Guid? actorUserId,
+        Guid? actorApiKeyId,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var route = await routing.ForAsync(db, application.OrganizationId, copy.Id, cancellationToken, application.CandidateId);
         await email.SendAsync(route.Apply(new EmailMessage(copy.To, copy.Subject, copy.TextBody, copy.HtmlBody)), cancellationToken);
-        var entry = application.EmailSent(copy, now, actorUserId);
+        var entry = application.EmailSent(copy, now, actorUserId, actorApiKeyId: actorApiKeyId);
         db.ApplicationEvents.Add(entry);
         return entry;
     }
@@ -253,7 +257,7 @@ public static partial class SendApplicationEmailHandler
         }
 
         var now = time.GetUtcNow();
-        await ApplicationEmails.SendCopyAsync(db, email, routing, application, copy, message.ActorUserId, now, cancellationToken);
+        await ApplicationEmails.SendCopyAsync(db, email, routing, application, copy, message.ActorUserId, message.ActorApiKeyId, now, cancellationToken);
         outgoing.Add(new ApplicationEmailed(application.OrganizationId, application.Id, application.JobId, message.SendId, now, message.ActorUserId));
         return outgoing;
     }

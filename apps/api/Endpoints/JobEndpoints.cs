@@ -35,53 +35,53 @@ internal static class JobEndpoints
         var group = app.MapGroup("/v1/jobs").WithTags("Jobs").AllowApiKeys();
 
         // 401 comes from the authentication middleware, so the handlers' signatures cannot declare it.
-        group.MapGet("/", ListJobs).WithName("ListJobs").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/", CreateJob).WithName("CreateJob")
+        group.MapGet("/", ListJobs).WithName("ListJobs").WithSummary("List jobs").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/", CreateJob).WithName("CreateJob").WithSummary("Create a job")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/publish-check", GetJobPublishCheck).WithName("GetJobPublishCheck").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/history", GetJobHistory).WithName("GetJobHistory").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{jobId:guid}", UpdateJob).WithName("UpdateJob")
+        group.MapGet("/{jobId:guid}", GetJob).WithName("GetJob").WithSummary("Get a job").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/publish-check", GetJobPublishCheck).WithName("GetJobPublishCheck").WithSummary("Check a job before publishing it").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/history", GetJobHistory).WithName("GetJobHistory").WithSummary("List a job's changes").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/{jobId:guid}", UpdateJob).WithName("UpdateJob").WithSummary("Edit a job")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{jobId:guid}/ai-use", SetJobAiUse).WithName("SetJobAiUse")
+        group.MapPut("/{jobId:guid}/ai-use", SetJobAiUse).WithName("SetJobAiUse").WithSummary("Set a job's AI use policy")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob")
+        group.MapPost("/{jobId:guid}/publish", PublishJob).WithName("PublishJob").WithSummary("Publish a job")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status402PaymentRequired)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{jobId:guid}/close", CloseJob).WithName("CloseJob")
+        group.MapPost("/{jobId:guid}/close", CloseJob).WithName("CloseJob").WithSummary("Close a job")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/versions", ListJobVersions).WithName("ListJobVersions").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/versions/{version:int}", GetJobVersion).WithName("GetJobVersion").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/workflow/template-diff", GetJobTemplateDiff).WithName("GetJobTemplateDiff")
+        group.MapGet("/{jobId:guid}/versions", ListJobVersions).WithName("ListJobVersions").WithSummary("List a job's published versions").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/versions/{version:int}", GetJobVersion).WithName("GetJobVersion").WithSummary("Get a published version of a job").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{jobId:guid}/workflow/template-diff", GetJobTemplateDiff).WithName("GetJobTemplateDiff").WithSummary("Compare a job's hiring process with its template")
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{jobId:guid}/workflow", UpdateJobWorkflow).WithName("UpdateJobWorkflow")
+        group.MapPut("/{jobId:guid}/workflow", UpdateJobWorkflow).WithName("UpdateJobWorkflow").WithSummary("Edit a job's hiring process")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{jobId:guid}/workflow/apply-template-update", ApplyTemplateUpdate).WithName("ApplyJobTemplateUpdate")
+        group.MapPost("/{jobId:guid}/workflow/apply-template-update", ApplyTemplateUpdate).WithName("ApplyJobTemplateUpdate").WithSummary("Update a job from its template")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{jobId:guid}/workflow/switch-template", GetJobTemplateSwitch).WithName("GetJobTemplateSwitch")
+        group.MapGet("/{jobId:guid}/workflow/switch-template", GetJobTemplateSwitch).WithName("GetJobTemplateSwitch").WithSummary("Preview switching a job to another template")
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{jobId:guid}/workflow/switch-template", SwitchJobTemplate).WithName("SwitchJobTemplate")
+        group.MapPost("/{jobId:guid}/workflow/switch-template", SwitchJobTemplate).WithName("SwitchJobTemplate").WithSummary("Switch a job to another template")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditJobs)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -130,7 +130,7 @@ internal static class JobEndpoints
 
     // A draft: no event until it is published. With a template version, the job copies that version's workflow, and
     // the version's posting defaults fill whatever the request leaves out.
-    private static async Task<Results<Created<JobDetail>, ValidationProblem, ProblemHttpResult>> CreateJob(
+    internal static async Task<Results<Created<JobDetail>, ValidationProblem, ProblemHttpResult>> CreateJob(
         CreateJobRequest request,
         ScreenHireDbContext db,
         ITenantContext tenant,
@@ -279,7 +279,7 @@ internal static class JobEndpoints
 
     // Replaces the posting content. Editing an open job does not republish it: the change is live on the careers page,
     // and boards get it when someone publishes again, which freezes a new version (hasUnpublishedChanges until then).
-    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJob(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJob(
         Guid jobId,
         UpdateJobRequest request,
         ScreenHireDbContext db,
@@ -406,7 +406,7 @@ internal static class JobEndpoints
     // and raises no JobPublished; it still posts to boards named in the request, or to every board if the job is on
     // none. A publish that races another publish, an edit or a close gets 409 (the job's row version, or a unique
     // index), so a closed job stays closed. A board answer the worker is saving is not a race: the publish waits for it.
-    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishJob(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> PublishJob(
         Guid jobId,
         PublishJobRequest? request,
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -562,7 +562,7 @@ internal static class JobEndpoints
     // 410 Gone at once, feeds and the job-board API drop it at once, Google's URL_DELETED is queued, and each push board
     // is asked to remove it. Each posting reports its own state and estimate; only what is confirmed is Closed. Closing a
     // closed job commits nothing and raises no second event.
-    private static async Task<Results<Ok<JobDetail>, NotFound, ProblemHttpResult>> CloseJob(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ProblemHttpResult>> CloseJob(
         Guid jobId,
         IDbContextOutbox<ScreenHireDbContext> outbox,
         DistributionPlanner planner,
@@ -664,7 +664,7 @@ internal static class JobEndpoints
     }
 
     // 404 for a job that was not created from a template: there is nothing to compare with.
-    private static async Task<Results<Ok<JobTemplateDiff>, NotFound>> GetJobTemplateDiff(
+    internal static async Task<Results<Ok<JobTemplateDiff>, NotFound>> GetJobTemplateDiff(
         Guid jobId, ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var job = await db.Jobs.AsNoTracking().SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
@@ -693,7 +693,7 @@ internal static class JobEndpoints
     // (the response lists them) and the job cannot be opened until they are fixed. A save on an open job is live at once,
     // so it is validated like a template, guardrails included: a job can never run a definition a template could not.
     // It does not republish the job: the careers form reads the workflow live, and boards never see it.
-    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJobWorkflow(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateJobWorkflow(
         Guid jobId,
         UpdateJobWorkflowRequest request,
         IDbContextOutbox<ScreenHireDbContext> outbox,
@@ -761,7 +761,7 @@ internal static class JobEndpoints
 
     // "Apply update": the job takes a published version of its source template, replacing its own edits as the diff
     // showed. The version is validated again, because the rules may have tightened since it was published.
-    private static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ApplyTemplateUpdate(
+    internal static async Task<Results<Ok<JobDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ApplyTemplateUpdate(
         Guid jobId,
         ApplyTemplateUpdateRequest request,
         IDbContextOutbox<ScreenHireDbContext> outbox,

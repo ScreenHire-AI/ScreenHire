@@ -287,8 +287,13 @@ public sealed class JobApplication : IJobScoped
         NewEvent(ApplicationEventType.InvitedToApply, new ApplicationEventData(OtherJobId: jobId), now, actorUserId);
 
     /// <summary>The timeline entry for offering an interview: the link to pick a time was emailed, which the email's own entry follows.</summary>
-    public ApplicationEvent InterviewInvited(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null) =>
-        NewEvent(ApplicationEventType.InterviewInvited, new ApplicationEventData(AutomationRunId: automationRunId, InterviewId: interview.Id), now, actorUserId);
+    public ApplicationEvent InterviewInvited(
+        InterviewRequest interview, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null, Guid? actorApiKeyId = null) =>
+        NewEvent(
+            ApplicationEventType.InterviewInvited,
+            new ApplicationEventData(AutomationRunId: automationRunId, InterviewId: interview.Id, ApiKeyId: actorApiKeyId),
+            now,
+            actorUserId);
 
     /// <summary>The timeline entry for a booking, at the interview's time. A candidate's booking has no actor.</summary>
     public ApplicationEvent InterviewBooked(InterviewRequest interview, DateTimeOffset now, Guid? actorUserId = null) =>
@@ -532,7 +537,8 @@ public sealed class JobApplication : IJobScoped
     /// The timeline event for an email that went to the candidate. It takes the copy's id, the send's own id, so a
     /// redelivered send finds its event and records nothing twice, and it points at the copy, which holds the body.
     /// </summary>
-    public ApplicationEvent EmailSent(ApplicationEmail email, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null) =>
+    public ApplicationEvent EmailSent(
+        ApplicationEmail email, DateTimeOffset now, Guid? actorUserId, Guid? automationRunId = null, Guid? actorApiKeyId = null) =>
         new()
         {
             Id = email.Id,
@@ -540,7 +546,8 @@ public sealed class JobApplication : IJobScoped
             ApplicationId = Id,
             Type = ApplicationEventType.EmailSent,
             Data = new ApplicationEventData(
-                AutomationRunId: automationRunId, EmailTemplateId: email.TemplateId, EmailSubject: email.Subject, EmailId: email.Id),
+                AutomationRunId: automationRunId, EmailTemplateId: email.TemplateId, EmailSubject: email.Subject, EmailId: email.Id,
+                ApiKeyId: actorApiKeyId),
             ActorUserId = actorUserId,
             OccurredAt = now,
         };

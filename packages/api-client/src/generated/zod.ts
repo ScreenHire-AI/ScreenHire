@@ -1332,6 +1332,9 @@ export const SendPublicPortalReplyBody = zod.object({
 export const SendPublicPortalReplyResponse = zod.void()
 
 
+/**
+ * @summary List jobs
+ */
 export const listJobsResponseLastUpdatedCreatedDefault = false;
 
 export const ListJobsResponseItem = zod.object({
@@ -1357,6 +1360,9 @@ export const ListJobsResponseItem = zod.object({
 export const ListJobsResponse = zod.array(ListJobsResponseItem)
 
 
+/**
+ * @summary Create a job
+ */
 export const CreateJobBody = zod.object({
   "title": zod.string(),
   "slug": zod.string().nullish(),
@@ -1639,6 +1645,9 @@ export const CreateJobResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary Get a job
+ */
 export const GetJobParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -1899,6 +1908,9 @@ export const GetJobResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary Edit a job
+ */
 export const UpdateJobParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -2182,6 +2194,9 @@ export const UpdateJobResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary Check a job before publishing it
+ */
 export const GetJobPublishCheckParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -2196,6 +2211,9 @@ export const GetJobPublishCheckResponse = zod.object({
 }).describe('What to check before a job goes live (`GET /v1/jobs/{jobId}/publish-check`); it warns and never blocks.')
 
 
+/**
+ * @summary List a job's changes
+ */
 export const GetJobHistoryParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -2230,6 +2248,9 @@ export const GetJobHistoryResponse = zod.object({
 }).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
+/**
+ * @summary Set a job's AI use policy
+ */
 export const SetJobAiUseParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -2494,6 +2515,9 @@ export const SetJobAiUseResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary Publish a job
+ */
 export const PublishJobParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -2758,6 +2782,9 @@ export const PublishJobResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary Close a job
+ */
 export const CloseJobParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -3018,6 +3045,9 @@ export const CloseJobResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary List a job's published versions
+ */
 export const ListJobVersionsParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -3030,6 +3060,9 @@ export const ListJobVersionsResponseItem = zod.object({
 export const ListJobVersionsResponse = zod.array(ListJobVersionsResponseItem)
 
 
+/**
+ * @summary Get a published version of a job
+ */
 export const GetJobVersionParams = zod.object({
   "jobId": zod.uuid(),
   "version": zod.int()
@@ -3065,6 +3098,9 @@ export const GetJobVersionResponse = zod.object({
 }).describe('One published version of a job: the frozen content boards were sent.')
 
 
+/**
+ * @summary Compare a job's hiring process with its template
+ */
 export const GetJobTemplateDiffParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -3085,6 +3121,9 @@ export const GetJobTemplateDiffResponse = zod.object({
 }).describe('How the job\'s workflow differs from the newest published version of the template it came from. Empty\n`changes` with `updateAvailable` false: the job is up to date.')
 
 
+/**
+ * @summary Edit a job's hiring process
+ */
 export const UpdateJobWorkflowParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -3495,6 +3534,9 @@ export const UpdateJobWorkflowResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary Update a job from its template
+ */
 export const ApplyJobTemplateUpdateParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -3760,6 +3802,9 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary Preview switching a job to another template
+ */
 export const GetJobTemplateSwitchParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -3789,6 +3834,9 @@ export const GetJobTemplateSwitchResponse = zod.object({
 }).describe('What switching a job to a template version would do, before it happens: the version, its stages in order, and each of\nthe job\'s current stages that holds candidates, with how many (saved and finished candidates included) and the stage\nthey are preselected to, by kind first and then by name. `expectedWorkflowVersion` is the job\'s workflow version\nthe preview read, to send back with the switch.')
 
 
+/**
+ * @summary Switch a job to another template
+ */
 export const SwitchJobTemplateParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -4058,6 +4106,9 @@ export const SwitchJobTemplateResponse = zod.object({
 }).describe('Everything about one job: posting content, lifecycle, its workflow copy and where that came from.')
 
 
+/**
+ * @summary List hiring templates
+ */
 export const listHiringTemplatesResponseLastUpdatedCreatedDefault = false;
 
 export const ListHiringTemplatesResponseItem = zod.object({
@@ -4082,6 +4133,9 @@ export const ListHiringTemplatesResponseItem = zod.object({
 export const ListHiringTemplatesResponse = zod.array(ListHiringTemplatesResponseItem)
 
 
+/**
+ * @summary Create a hiring template
+ */
 export const createHiringTemplateBodyDefinitionTwoWorkflowStagesItemScorecardTwoQuestionsItemRequiredDefault = false;
 export const createHiringTemplateBodyDefinitionTwoWorkflowStagesItemSchedulingTwoOptionTwoDefault = `OurTimes`;
 export const createHiringTemplateBodyDefinitionTwoWorkflowStagesItemSchedulingTwoUseBlocksDefault = false;
@@ -4273,6 +4327,9 @@ export const CreateHiringTemplateResponse = zod.object({
 }).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
 
 
+/**
+ * @summary Get a hiring template
+ */
 export const GetHiringTemplateParams = zod.object({
   "templateId": zod.uuid()
 })
@@ -4305,6 +4362,9 @@ export const GetHiringTemplateResponse = zod.object({
 }).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
 
 
+/**
+ * @summary Rename or describe a hiring template
+ */
 export const UpdateHiringTemplateParams = zod.object({
   "templateId": zod.uuid()
 })
@@ -4342,6 +4402,9 @@ export const UpdateHiringTemplateResponse = zod.object({
 }).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
 
 
+/**
+ * @summary List a hiring template's changes
+ */
 export const GetHiringTemplateHistoryParams = zod.object({
   "templateId": zod.uuid()
 })
@@ -4376,6 +4439,9 @@ export const GetHiringTemplateHistoryResponse = zod.object({
 }).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
+/**
+ * @summary Start a draft of a hiring template
+ */
 export const CreateHiringTemplateVersionParams = zod.object({
   "templateId": zod.uuid()
 })
@@ -4712,6 +4778,9 @@ export const CreateHiringTemplateVersionResponse = zod.object({
 }).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
+/**
+ * @summary Get a version of a hiring template
+ */
 export const GetHiringTemplateVersionParams = zod.object({
   "templateId": zod.uuid(),
   "version": zod.int()
@@ -4889,6 +4958,9 @@ export const GetHiringTemplateVersionResponse = zod.object({
 }).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
+/**
+ * @summary Edit a hiring template's draft
+ */
 export const UpdateHiringTemplateVersionParams = zod.object({
   "templateId": zod.uuid(),
   "version": zod.int()
@@ -5226,6 +5298,9 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
 }).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
+/**
+ * @summary Publish a hiring template's draft
+ */
 export const PublishHiringTemplateVersionParams = zod.object({
   "templateId": zod.uuid(),
   "version": zod.int()
@@ -5403,6 +5478,9 @@ export const PublishHiringTemplateVersionResponse = zod.object({
 }).describe('One version of a hiring template with its full definition. The definition\'s JSON Schema is served at\n`/v1/schemas/hiring-template-definition.json`. A draft saves with problems: `problems` lists what stops it\nfrom being tested or published, in the validator\'s words (an empty list when it is ready), so a client need not call\nthe validate route after a save.')
 
 
+/**
+ * @summary Archive a hiring template
+ */
 export const ArchiveHiringTemplateParams = zod.object({
   "templateId": zod.uuid()
 })
@@ -5435,6 +5513,9 @@ export const ArchiveHiringTemplateResponse = zod.object({
 }).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
 
 
+/**
+ * @summary Restore an archived hiring template
+ */
 export const UnarchiveHiringTemplateParams = zod.object({
   "templateId": zod.uuid()
 })
@@ -5467,6 +5548,9 @@ export const UnarchiveHiringTemplateResponse = zod.object({
 }).describe('A hiring template with its versions, oldest first. `lastUpdated` counts every version\'s changes.')
 
 
+/**
+ * @summary List a job's applications
+ */
 export const ListJobApplicationsParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -5514,6 +5598,9 @@ export const ListJobApplicationsResponseItem = zod.object({
 export const ListJobApplicationsResponse = zod.array(ListJobApplicationsResponseItem)
 
 
+/**
+ * @summary Add an application to a job
+ */
 export const CreateApplicationParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -5637,6 +5724,9 @@ export const CreateApplicationResponse = zod.object({
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
+/**
+ * @summary Upload a resume for a new application
+ */
 export const CreateResumeUploadParams = zod.object({
   "jobId": zod.uuid()
 })
@@ -5656,6 +5746,9 @@ export const CreateResumeUploadResponse = zod.object({
 }).describe('Where and how to upload one file, and until when: send its bytes with `method` to `uploadUrl` with\n`headers`, then refer to it by `uploadId`.')
 
 
+/**
+ * @summary List applications
+ */
 export const listApplicationsResponseRatingTwoScorecardsDefault = 0;
 export const listApplicationsResponseAllowsFutureRolesDefault = false;
 
@@ -5699,6 +5792,9 @@ export const ListApplicationsResponseItem = zod.object({
 export const ListApplicationsResponse = zod.array(ListApplicationsResponseItem)
 
 
+/**
+ * @summary Get an application
+ */
 export const GetApplicationParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -5805,6 +5901,9 @@ export const GetApplicationResponse = zod.object({
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
+/**
+ * @summary Move an application to a stage
+ */
 export const MoveApplicationParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -5916,6 +6015,9 @@ export const MoveApplicationResponse = zod.object({
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
+/**
+ * @summary List an application's activity
+ */
 export const GetApplicationTimelineParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -5954,6 +6056,9 @@ export const GetApplicationTimelineResponseItem = zod.object({
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
 
+/**
+ * @summary Add a note to an application
+ */
 export const AddApplicationNoteParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -5995,6 +6100,9 @@ export const AddApplicationNoteResponse = zod.object({
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
+/**
+ * @summary Edit a note
+ */
 export const EditApplicationNoteParams = zod.object({
   "applicationId": zod.uuid(),
   "noteId": zod.uuid()
@@ -6015,6 +6123,9 @@ export const EditApplicationNoteResponse = zod.object({
 }).describe('A note as it stands: its latest text, its author and when it was written and last edited.')
 
 
+/**
+ * @summary Delete a note
+ */
 export const DeleteApplicationNoteParams = zod.object({
   "applicationId": zod.uuid(),
   "noteId": zod.uuid()
@@ -6023,6 +6134,9 @@ export const DeleteApplicationNoteParams = zod.object({
 export const DeleteApplicationNoteResponse = zod.void()
 
 
+/**
+ * @summary Tag an application
+ */
 export const AddApplicationTagParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -6133,6 +6247,9 @@ export const AddApplicationTagResponse = zod.object({
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
+/**
+ * @summary Remove a tag from an application
+ */
 export const RemoveApplicationTagParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -6243,6 +6360,9 @@ export const RemoveApplicationTagResponse = zod.object({
 }).describe('One application: the candidate, the job, where it is in the job\'s workflow, its tags, the candidate\'s\ndeclarations, answers and files.')
 
 
+/**
+ * @summary Create a task about an application
+ */
 export const CreateApplicationTaskParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -6287,6 +6407,9 @@ export const ListApplicationTasksResponseItem = zod.object({
 export const ListApplicationTasksResponse = zod.array(ListApplicationTasksResponseItem)
 
 
+/**
+ * @summary Download an application's file
+ */
 export const DownloadApplicationFileParams = zod.object({
   "applicationId": zod.uuid(),
   "fileId": zod.uuid()
@@ -6295,6 +6418,9 @@ export const DownloadApplicationFileParams = zod.object({
 export const DownloadApplicationFileResponse = zod.void()
 
 
+/**
+ * @summary List candidates
+ */
 export const listCandidatesResponseEmailIssueDefault = `None`;
 
 export const ListCandidatesResponseItem = zod.object({
@@ -6312,6 +6438,9 @@ export const ListCandidatesResponseItem = zod.object({
 export const ListCandidatesResponse = zod.array(ListCandidatesResponseItem)
 
 
+/**
+ * @summary Get a candidate
+ */
 export const GetCandidateParams = zod.object({
   "candidateId": zod.uuid()
 })
@@ -6554,6 +6683,9 @@ export const PreviewOrganizationRetentionResponse = zod.object({
 }).describe('What saving a period would delete right now: `applications` that ended before it, belonging to `candidates`\ndifferent people. Saved candidates are never counted.')
 
 
+/**
+ * @summary Get an application's verification result
+ */
 export const GetApplicationVerificationParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -6794,6 +6926,9 @@ export const GetApplicationVerificationResponse = zod.object({
 }).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`, the audit trail the dashboard shows in the candidate\'s Activity.')
 
 
+/**
+ * @summary List applications by verification level
+ */
 export const ListVerificationApplicationsQueryParams = zod.object({
   "authenticity": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).optional(),
   "aiAssistance": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).optional(),
@@ -10472,6 +10607,9 @@ export const ReopenTaskResponse = zod.object({
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
+/**
+ * @summary List the organization's tags
+ */
 export const ListTagsResponse = zod.object({
   "tags": zod.array(zod.object({
   "name": zod.string(),
@@ -10535,6 +10673,9 @@ export const MergeTagResponse = zod.object({
 }).describe('What a rename, a merge or a delete changed at once: the pipelines of jobs that are not closed, the hiring templates\'\ndrafts and the saved views that named the tag (none for a delete, which takes the tag off applications only). The\napplications change a moment later, in batches, each raising ApplicationTagsChanged. `stillNamedBy` lists the\nhiring templates whose newest published version still names the old tag.')
 
 
+/**
+ * @summary Get the hiring report
+ */
 export const getHiringReportQueryTimeZoneDefault = `UTC`;
 
 export const GetHiringReportQueryParams = zod.object({
@@ -10608,6 +10749,9 @@ export const GetHiringReportResponse = zod.object({
 }).describe('The Reports page (docs/architecture/reports.md): headline numbers, applications and hires by week, the funnel, time to\nhire, sources and open jobs for the jobs the person can see, between two instants. All of it comes from one snapshot,\nso the numbers agree. Nothing here reads verification (verification) results.')
 
 
+/**
+ * @summary List the applications behind a funnel step
+ */
 export const GetFunnelApplicationsParams = zod.object({
   "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
 })
@@ -10647,6 +10791,9 @@ export const GetEqualityReportResponse = zod.object({
 }).describe('Equality monitoring totals for the range (docs/architecture/reports.md, Equality monitoring): one entry per equality\nmonitoring form in the library. Nothing here names a candidate. A count under `minimumCount` is null, and so is the\nnext smallest when only one count of a question would be hidden, so no hidden count can be worked out from the rest.')
 
 
+/**
+ * @summary List an application's scorecards
+ */
 export const ListApplicationScorecardsParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -10685,6 +10832,9 @@ export const ListApplicationScorecardsResponseItem = zod.object({
 export const ListApplicationScorecardsResponse = zod.array(ListApplicationScorecardsResponseItem)
 
 
+/**
+ * @summary Submit a scorecard
+ */
 export const SubmitScorecardParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -10735,6 +10885,9 @@ export const SubmitScorecardResponse = zod.object({
 }).describe('One reviewer\'s scorecard, given while the application was in a stage: an answer to each question as it was asked, and\nan overall recommendation.\nIts rating answers make the candidate\'s rating (`ApplicationRating`, ADR-0013); nothing else on it does.')
 
 
+/**
+ * @summary Ask a teammate for a scorecard
+ */
 export const RequestScorecardParams = zod.object({
   "applicationId": zod.uuid()
 })
@@ -10760,6 +10913,9 @@ export const RequestScorecardResponse = zod.object({
 }).describe('Something a person should do about an application: a review, a to-do, a rejection to decide on, or a scorecard a\nteammate asked for. A review and a requested scorecard are done when the scorecard is submitted; the others are\nticked off by hand.')
 
 
+/**
+ * @summary List library scorecards
+ */
 export const listScorecardTemplatesResponseLastUpdatedCreatedDefault = false;
 
 export const ListScorecardTemplatesResponseItem = zod.object({
@@ -10780,6 +10936,9 @@ export const ListScorecardTemplatesResponseItem = zod.object({
 export const ListScorecardTemplatesResponse = zod.array(ListScorecardTemplatesResponseItem)
 
 
+/**
+ * @summary Create a library scorecard
+ */
 export const createScorecardTemplateBodyQuestionsItemRequiredDefault = false;
 
 export const CreateScorecardTemplateBody = zod.object({
@@ -10828,6 +10987,9 @@ export const CreateScorecardTemplateResponse = zod.object({
 }).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
 
 
+/**
+ * @summary Get a library scorecard
+ */
 export const GetScorecardTemplateParams = zod.object({
   "templateId": zod.string()
 })
@@ -10862,6 +11024,9 @@ export const GetScorecardTemplateResponse = zod.object({
 }).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
 
 
+/**
+ * @summary Edit a library scorecard
+ */
 export const UpdateScorecardTemplateParams = zod.object({
   "templateId": zod.string()
 })
@@ -10913,6 +11078,9 @@ export const UpdateScorecardTemplateResponse = zod.object({
 }).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
 
 
+/**
+ * @summary List a library scorecard's changes
+ */
 export const GetScorecardTemplateHistoryParams = zod.object({
   "templateId": zod.string()
 })
@@ -10947,6 +11115,9 @@ export const GetScorecardTemplateHistoryResponse = zod.object({
 }).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
+/**
+ * @summary Archive a library scorecard
+ */
 export const ArchiveScorecardTemplateParams = zod.object({
   "templateId": zod.string()
 })
@@ -10981,6 +11152,9 @@ export const ArchiveScorecardTemplateResponse = zod.object({
 }).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
 
 
+/**
+ * @summary Restore an archived library scorecard
+ */
 export const UnarchiveScorecardTemplateParams = zod.object({
   "templateId": zod.string()
 })
@@ -11015,6 +11189,9 @@ export const UnarchiveScorecardTemplateResponse = zod.object({
 }).describe('One library scorecard with its questions. Every scorecard then asks for an overall recommendation and a note.')
 
 
+/**
+ * @summary List library forms
+ */
 export const listFormTemplatesResponseFormsItemLastUpdatedCreatedDefault = false;
 
 export const ListFormTemplatesResponse = zod.object({
@@ -11038,6 +11215,9 @@ export const ListFormTemplatesResponse = zod.object({
 }).describe('The form library: the organization\'s forms by name, and whether this deployment offers equality monitoring forms\n(`ScreenHire:Forms:EqualityMonitoring:Enabled`, off until a legal review).')
 
 
+/**
+ * @summary Create a library form
+ */
 export const createFormTemplateBodyContentTwoQuestionsItemRequiredDefault = false;
 
 export const CreateFormTemplateBody = zod.object({
@@ -11099,6 +11279,9 @@ export const CreateFormTemplateResponse = zod.object({
 }).describe('A library form with its versions, newest last. `copiedFromFormId`: the form it was copied from, if any.')
 
 
+/**
+ * @summary Get a library form
+ */
 export const GetFormTemplateParams = zod.object({
   "formId": zod.uuid()
 })
@@ -11130,6 +11313,9 @@ export const GetFormTemplateResponse = zod.object({
 }).describe('A library form with its versions, newest last. `copiedFromFormId`: the form it was copied from, if any.')
 
 
+/**
+ * @summary List a library form's changes
+ */
 export const GetFormTemplateHistoryParams = zod.object({
   "formId": zod.uuid()
 })
@@ -11164,6 +11350,9 @@ export const GetFormTemplateHistoryResponse = zod.object({
 }).describe('One page of an object\'s history, newest first. `nextBefore` is the id of this page\'s last entry, to pass as\n`before` for the next page, or null after the last.')
 
 
+/**
+ * @summary Start a draft of a library form
+ */
 export const CreateFormTemplateVersionParams = zod.object({
   "formId": zod.uuid()
 })
@@ -11239,6 +11428,9 @@ export const CreateFormTemplateVersionResponse = zod.object({
 }).describe('One version of a library form with its content, which a hiring template copies into a follow-up questionnaire. The\ncontent\'s JSON Schema is the follow-up questionnaire\'s questions and sections.')
 
 
+/**
+ * @summary Get a version of a library form
+ */
 export const GetFormTemplateVersionParams = zod.object({
   "formId": zod.uuid(),
   "version": zod.int()
@@ -11283,6 +11475,9 @@ export const GetFormTemplateVersionResponse = zod.object({
 }).describe('One version of a library form with its content, which a hiring template copies into a follow-up questionnaire. The\ncontent\'s JSON Schema is the follow-up questionnaire\'s questions and sections.')
 
 
+/**
+ * @summary Edit a library form's draft
+ */
 export const UpdateFormTemplateVersionParams = zod.object({
   "formId": zod.uuid(),
   "version": zod.int()
@@ -11359,6 +11554,9 @@ export const UpdateFormTemplateVersionResponse = zod.object({
 }).describe('One version of a library form with its content, which a hiring template copies into a follow-up questionnaire. The\ncontent\'s JSON Schema is the follow-up questionnaire\'s questions and sections.')
 
 
+/**
+ * @summary Publish a library form's draft
+ */
 export const PublishFormTemplateVersionParams = zod.object({
   "formId": zod.uuid(),
   "version": zod.int()
@@ -11403,6 +11601,9 @@ export const PublishFormTemplateVersionResponse = zod.object({
 }).describe('One version of a library form with its content, which a hiring template copies into a follow-up questionnaire. The\ncontent\'s JSON Schema is the follow-up questionnaire\'s questions and sections.')
 
 
+/**
+ * @summary Update hiring templates to a form's latest version
+ */
 export const ApplyFormToTemplatesParams = zod.object({
   "formId": zod.uuid(),
   "version": zod.int()
@@ -11423,6 +11624,9 @@ export const ApplyFormToTemplatesResponse = zod.object({
 })
 
 
+/**
+ * @summary Archive a library form
+ */
 export const ArchiveFormTemplateParams = zod.object({
   "formId": zod.uuid()
 })
@@ -11454,6 +11658,9 @@ export const ArchiveFormTemplateResponse = zod.object({
 }).describe('A library form with its versions, newest last. `copiedFromFormId`: the form it was copied from, if any.')
 
 
+/**
+ * @summary Restore an archived library form
+ */
 export const UnarchiveFormTemplateParams = zod.object({
   "formId": zod.uuid()
 })

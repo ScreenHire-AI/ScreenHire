@@ -31,10 +31,10 @@ internal static class VerificationEndpoints
     {
         // The reads accept an API key with the Verification read scope (ADR-0021); every other route here is the session's.
         var reads = app.MapGroup("/v1").WithTags("Verification").AllowVerificationApiKeys();
-        reads.MapGet("/applications/{applicationId:guid}/verification", GetVerification).WithName("GetApplicationVerification")
+        reads.MapGet("/applications/{applicationId:guid}/verification", GetVerification).WithName("GetApplicationVerification").WithSummary("Get an application's verification result")
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden);
-        reads.MapGet("/verification/applications", ListByLevel).WithName("ListVerificationApplications")
+        reads.MapGet("/verification/applications", ListByLevel).WithName("ListVerificationApplications").WithSummary("List applications by verification level")
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden);
 

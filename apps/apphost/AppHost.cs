@@ -549,9 +549,11 @@ if (frontends != FrontendMode.None)
     }
     else
     {
+        // The developer docs show this stack's API address (PUBLIC_API_URL); a built site has it baked in at build time.
         builder.AddJavaScriptApp("marketing", "../marketing", "dev")
             .WithPnpm(install: false)
             .WithHttpEndpoint(port: PortFor("Marketing", 4321), env: "PORT")
+            .WithEnvironment("PUBLIC_API_URL", apiUrl)
             .WithHttpHealthCheck("/");
     }
 

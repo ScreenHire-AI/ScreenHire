@@ -31,43 +31,43 @@ internal static class TemplateEndpoints
 
     public static IEndpointRouteBuilder MapTemplateEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/v1/templates").WithTags("Hiring templates").AllowApiKeys();
+        var group = app.MapGroup("/v1/templates").WithTags("Templates").AllowApiKeys();
 
-        group.MapGet("/", ListTemplates).WithName("ListHiringTemplates").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/", CreateTemplate).WithName("CreateHiringTemplate")
+        group.MapGet("/", ListTemplates).WithName("ListHiringTemplates").WithSummary("List hiring templates").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/", CreateTemplate).WithName("CreateHiringTemplate").WithSummary("Create a hiring template")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{templateId:guid}", GetTemplate).WithName("GetHiringTemplate").Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{templateId:guid}/history", GetHistory).WithName("GetHiringTemplateHistory").Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{templateId:guid}", UpdateTemplate).WithName("UpdateHiringTemplate")
-            .RequireAntiforgeryToken()
-            .RequirePermission(Permission.EditHiringTemplates)
-            .ProducesProblem(StatusCodes.Status409Conflict)
-            .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{templateId:guid}/versions", CreateVersion).WithName("CreateHiringTemplateVersion")
+        group.MapGet("/{templateId:guid}", GetTemplate).WithName("GetHiringTemplate").WithSummary("Get a hiring template").Produces(StatusCodes.Status401Unauthorized);
+        group.MapGet("/{templateId:guid}/history", GetHistory).WithName("GetHiringTemplateHistory").WithSummary("List a hiring template's changes").Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/{templateId:guid}", UpdateTemplate).WithName("UpdateHiringTemplate").WithSummary("Rename or describe a hiring template")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapGet("/{templateId:guid}/versions/{version:int}", GetVersion).WithName("GetHiringTemplateVersion")
-            .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPut("/{templateId:guid}/versions/{version:int}", UpdateVersion).WithName("UpdateHiringTemplateVersion")
+        group.MapPost("/{templateId:guid}/versions", CreateVersion).WithName("CreateHiringTemplateVersion").WithSummary("Start a draft of a hiring template")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{templateId:guid}/versions/{version:int}/publish", PublishVersion).WithName("PublishHiringTemplateVersion")
+        group.MapGet("/{templateId:guid}/versions/{version:int}", GetVersion).WithName("GetHiringTemplateVersion").WithSummary("Get a version of a hiring template")
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPut("/{templateId:guid}/versions/{version:int}", UpdateVersion).WithName("UpdateHiringTemplateVersion").WithSummary("Edit a hiring template's draft")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{templateId:guid}/archive", ArchiveTemplate).WithName("ArchiveHiringTemplate")
+        group.MapPost("/{templateId:guid}/versions/{version:int}/publish", PublishVersion).WithName("PublishHiringTemplateVersion").WithSummary("Publish a hiring template's draft")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized);
-        group.MapPost("/{templateId:guid}/unarchive", UnarchiveTemplate).WithName("UnarchiveHiringTemplate")
+        group.MapPost("/{templateId:guid}/archive", ArchiveTemplate).WithName("ArchiveHiringTemplate").WithSummary("Archive a hiring template")
+            .RequireAntiforgeryToken()
+            .RequirePermission(Permission.EditHiringTemplates)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status401Unauthorized);
+        group.MapPost("/{templateId:guid}/unarchive", UnarchiveTemplate).WithName("UnarchiveHiringTemplate").WithSummary("Restore an archived hiring template")
             .RequireAntiforgeryToken()
             .RequirePermission(Permission.EditHiringTemplates)
             .ProducesProblem(StatusCodes.Status409Conflict)
@@ -77,7 +77,7 @@ internal static class TemplateEndpoints
     }
 
     // System templates first, then the organization's own, by name.
-    private static async Task<List<HiringTemplateSummary>> ListTemplates(ScreenHireDbContext db, CancellationToken cancellationToken)
+    internal static async Task<List<HiringTemplateSummary>> ListTemplates(ScreenHireDbContext db, CancellationToken cancellationToken)
     {
         var templates = await db.HiringTemplates.AsNoTracking()
             .Include(t => t.Versions)

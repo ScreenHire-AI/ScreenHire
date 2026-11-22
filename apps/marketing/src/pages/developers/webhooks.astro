@@ -1,0 +1,76 @@
+---
+import DeveloperPage from '../../components/DeveloperPage.astro';
+import csharp from '../../developers/samples/ScreenHireSignature.cs?raw';
+import node from '../../developers/samples/verify-signature.mjs?raw';
+import python from '../../developers/samples/verify_signature.py?raw';
+import { inlineCode, webhookEvents } from '../../lib/developers';
+import { pages } from '../../lib/pages';
+
+const events = webhookEvents();
+const header = 'ScreenHire-Signature: t=1795685400,v1=2bed3e1e1acabdfbb4a8b529ba76f2920439761e8d495fde69392a6f0e5e833d';
+---
+
+<DeveloperPage
+  page={pages.developerWebhooks}
+  heading="Webhooks"
+  lead="ScreenHire sends a signed POST to your endpoint when something happens. Each event carries ids and facts, never a candidate's name, email or answers."
+>
+  <h2>Add an endpoint</h2>
+  <p>
+    An Owner or Admin adds an endpoint in Settings, Webhooks: an HTTPS address and the events it wants. Its signing secret
+    (<code>whsec_...</code>) is shown once and can be rotated. To read more than the event says, call the{' '}
+    <a href={pages.developerApi.path}>API</a> with the ids it carries.
+  </p>
+
+  <h2>Every delivery</h2>
+  <p>
+    The body is JSON with the same five fields for every event: <code>id</code>, <code>type</code>, <code>occurredAt</code>,{' '}
+    <code>organizationId</code> and <code>data</code>, which differs by event. These headers come with it:
+  </p>
+  <ul>
+    <li><code>ScreenHire-Signature</code>: when it was sent and the signature, as below.</li>
+    <li><code>ScreenHire-Event-Id</code> and <code>Idempotency-Key</code>: the event's id, the same on every attempt and replay.</li>
+    <li><code>ScreenHire-Event-Type</code>: the event's type, and <code>ScreenHire-Delivery-Id</code>: this delivery.</li>
+  </ul>
+
+  <h2>Check the signature</h2>
+  <p>
+    The signature header looks like this. <code>v1</code> is the hex HMAC-SHA256 of the time, a full stop and the raw body,
+    keyed with your endpoint's secret:
+  </p>
+  <pre tabindex="0"><code>{header}</code></pre>
+  <p>
+    Check it on the body exactly as it arrived, before you parse it, and refuse a <code>t</code> more than five minutes old so a
+    captured delivery cannot be sent again.
+  </p>
+  <h3>Node</h3>
+  <pre tabindex="0"><code>{node}</code></pre>
+  <h3>Python</h3>
+  <pre tabindex="0"><code>{python}</code></pre>
+  <h3>C#</h3>
+  <pre tabindex="0"><code>{csharp}</code></pre>
+
+  <h2>Retries and replays</h2>
+  <p>
+    Answer with any 2xx status to say you have it. Anything else, or no answer in time, is tried again after 1 minute, 5 minutes,
+    30 minutes, 2 hours, 6 hours and 12 hours: seven attempts over about 21 hours. The same event can arrive more than once, so
+    use its <code>id</code> to ignore one you have handled. After five deliveries in a row fail every attempt, the endpoint is
+    turned off and Settings says why; turn it on again there. Each endpoint's delivery log is kept for 30 days, and any delivery
+    can be sent again from it with the same event id.
+  </p>
+
+  <h2>Events</h2>
+  {
+    events.map((event) => (
+      <>
+        <h3 id={event.type}>
+          <code>{event.type}</code>
+        </h3>
+        <p>
+          <strong>{event.summary}.</strong> {inlineCode(event.description).map((part) => (part.code ? <code>{part.text}</code> : part.text))}
+        </p>
+        <pre tabindex="0"><code>{event.sample}</code></pre>
+      </>
+    ))
+  }
+</DeveloperPage>
