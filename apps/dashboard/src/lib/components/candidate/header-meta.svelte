@@ -52,7 +52,7 @@
   <span class="text-muted-foreground">
     {#if detail.source === 'CareersSite'}Applied <RelativeTime at={detail.submittedAt} class="inline" /> via {detail.sourceSite
         ? siteName(detail.sourceSite)
-        : 'the careers page'}{:else}Added by a recruiter <RelativeTime at={detail.submittedAt} class="inline" />{/if}
+        : (detail.sourceBoardName ?? 'the careers page')}{:else}Added by a recruiter <RelativeTime at={detail.submittedAt} class="inline" />{/if}
   </span>
 </MetaItem>
 {#if detail.inTalentPool}

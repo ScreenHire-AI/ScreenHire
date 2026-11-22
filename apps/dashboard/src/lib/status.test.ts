@@ -14,6 +14,7 @@ describe('status catalogue', () => {
       published: 'clear badge-check',
       review: 'review eye',
       overdue: 'review clock-alert',
+      stillPosted: 'review megaphone',
       verification: 'verify id-card',
       needsFixes: 'verify wrench',
       broken: 'verify circle-x',

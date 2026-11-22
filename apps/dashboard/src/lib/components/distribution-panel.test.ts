@@ -1,4 +1,4 @@
-import type { CurrentUser, JobDetail } from '@screenhire/api-client';
+import type { CurrentUser, JobDetail, ManualPostingStatus } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiStub, board, jobId, now, posting, userAs } from '../../test-support/fixtures.js';
@@ -22,7 +22,39 @@ const boards = [
   board('sandbox', 'Sandbox board'),
 ];
 
-type PanelJob = Pick<JobDetail, 'id' | 'status' | 'postings'>;
+type PanelJob = Pick<JobDetail, 'id' | 'status' | 'postings'> & Partial<Pick<JobDetail, 'title' | 'location' | 'employmentType' | 'salary' | 'description'>>;
+
+const jobUrl = 'https://acme.careers.example.com/jobs/senior-engineer';
+function manualPosting(overrides: Partial<ManualPostingStatus> = {}): ManualPostingStatus {
+  return {
+    id: '01a157d4-0000-7000-8000-0000000000a1',
+    boardName: 'LinkedIn',
+    sourceKey: 'linkedin',
+    trackedUrl: `${jobUrl}?src=linkedin`,
+    listingUrl: 'https://www.linkedin.com/jobs/view/123',
+    postedOn: '2026-10-18',
+    endsOn: null,
+    contentAt: '2026-10-18T09:00:00Z',
+    takenDownAt: null,
+    changedFields: [],
+    createdAt: '2026-10-18T09:00:00Z',
+    updatedAt: '2026-10-18T09:00:00Z',
+    ...overrides,
+  };
+}
+const manualRow = (boardName: string) => [...document.querySelectorAll<HTMLElement>('[data-manual-posting]')].find((row) => row.textContent?.includes(boardName))!;
+// The two reads the panel makes for the team's own postings and the counts, with whatever else a test adds.
+function stubReads(postings: ManualPostingStatus[], counts: { source: string; applications: number }[] = [], more: Parameters<typeof apiStub>[0] = {}) {
+  const fetchMock = vi.fn(
+    apiStub({
+      [`GET /v1/jobs/${jobId}/manual-postings`]: () => Response.json({ jobUrl, postings }),
+      [`GET /v1/jobs/${jobId}/source-applications`]: () => Response.json(counts),
+      ...more,
+    }),
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
 
 function renderPanel(job: PanelJob, props: Record<string, unknown> = {}) {
   return render(WithQueryClient, { props: { component: DistributionPanel, props: { job, boards, now, ...props } } });
@@ -108,10 +140,11 @@ describe('distribution panel', () => {
       ],
     });
 
-    expect(cellsOf('careers').slice(2, 4)).toEqual(['Nov 2, 2026', 'Nov 3, 2026']);
-    expect(cellsOf('adzuna').slice(2, 4)).toEqual(['Nov 1, 2026', 'Nov 4, 2026']);
-    expect(cellsOf('sandbox').slice(2, 4)).toEqual(['', '']);
-    for (const name of ['Status', 'Board', 'Posted', 'Last updated']) {
+    // The Applications column (index 3) stays blank until the counts arrive; none are stubbed here.
+    expect(cellsOf('careers').slice(2, 5)).toEqual(['Nov 2, 2026', '', 'Nov 3, 2026']);
+    expect(cellsOf('adzuna').slice(2, 5)).toEqual(['Nov 1, 2026', '', 'Nov 4, 2026']);
+    expect(cellsOf('sandbox').slice(2, 5)).toEqual(['', '', '']);
+    for (const name of ['Status', 'Board', 'Posted', 'Applications', 'Last updated']) {
       expect(screen.getByRole('columnheader', { name })).toBeInTheDocument();
     }
   });
@@ -123,7 +156,7 @@ describe('distribution panel', () => {
     expect(chip.closest('div')).toHaveClass('md:hidden');
     await fireEvent.pointerDown(chip, { button: 0, pointerType: 'mouse' });
     const choices = (await screen.findAllByRole('menuitemradio')).map((choice) => choice.textContent?.replace(/,.*$/, '').trim());
-    expect(choices).toEqual(['Status', 'Board', 'Posted', 'Last updated']);
+    expect(choices).toEqual(['Status', 'Board', 'Posted', 'Applications', 'Last updated']);
   });
 
   it('keeps one row per board whatever a posting needs, with what is wrong for screen readers and in the tooltip', () => {
@@ -368,6 +401,157 @@ describe('distribution panel', () => {
 
       expect(notice).toHaveTextContent('ask an owner to upgrade the plan');
       expect(within(notice as HTMLElement).queryByRole('link')).toBeNull();
+    });
+  });
+
+  describe('posted by you', () => {
+    const fullJob = { title: 'Senior Engineer', location: 'Remote (United Kingdom)', employmentType: 'FullTime', salary: null, description: '<p>Build things.</p>' } as const;
+
+    it('lists a board the team posted on below the others, its name linking to the listing, with every link counted', async () => {
+      stubReads([manualPosting()], [
+        { source: 'careers', applications: 3 },
+        { source: 'adzuna', applications: 1 },
+        { source: 'linkedin', applications: 2 },
+      ]);
+      renderPanel({
+        id: jobId,
+        status: 'Open',
+        postings: [posting('careers', 'Careers page'), posting('adzuna', 'Adzuna feed', { state: 'Submitted' }), posting('google', 'Google for Jobs', { state: 'Submitted' })],
+        ...fullJob,
+      });
+
+      await waitFor(() => expect(manualRow('LinkedIn')).toBeDefined());
+      const row = manualRow('LinkedIn');
+      expect(row.querySelector('[data-posting-state]')).toHaveTextContent('Posted by you');
+      const link = within(row).getByRole('link', { name: /LinkedIn/ });
+      expect(link).toHaveAttribute('href', 'https://www.linkedin.com/jobs/view/123');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      // The automatic boards' rows come first; the team's own come after them.
+      expect(document.querySelector('tbody tr:last-child')).toBe(row);
+      await waitFor(() => expect(row.querySelector('[data-applications]')).toHaveTextContent('2'));
+      expect(item('careers').querySelector('[data-applications]')).toHaveTextContent('3');
+      expect(item('adzuna').querySelector('[data-applications]')).toHaveTextContent('1');
+      // Google sends candidates to the careers page's own address, so it has no count of its own.
+      expect(item('google').querySelector('[data-applications]')).toBeNull();
+      expect(item('google')).toHaveTextContent('Counted with the careers page');
+    });
+
+    it('says the job changed since it was posted, and what changed, until it is marked updated', async () => {
+      const fetchMock = stubReads([manualPosting({ changedFields: ['Title', 'Salary'] })], [], {
+        [`POST /v1/jobs/${jobId}/manual-postings/01a157d4-0000-7000-8000-0000000000a1/updated`]: () => Response.json(manualPosting()),
+      });
+      renderPanel({ id: jobId, status: 'Open', postings: [], ...fullJob });
+
+      await waitFor(() => expect(manualRow('LinkedIn').querySelector('[data-job-changed]')).toHaveTextContent('Job changed since you posted'));
+
+      await fireEvent.click(within(await openMenu('LinkedIn')).getByRole('menuitem', { name: 'Mark as updated' }));
+
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(`/v1/jobs/${jobId}/manual-postings/01a157d4-0000-7000-8000-0000000000a1/updated`, expect.objectContaining({ method: 'POST' })),
+      );
+    });
+
+    it('marks in Copy the updated text which fields changed since the listing was posted', async () => {
+      stubReads([manualPosting({ changedFields: ['Title', 'Salary'] })]);
+      renderPanel({ id: jobId, status: 'Open', postings: [], ...fullJob });
+
+      await waitFor(() => expect(manualRow('LinkedIn')).toBeDefined());
+      await fireEvent.click(within(await openMenu('LinkedIn')).getByRole('menuitem', { name: 'Copy the updated text' }));
+
+      const sheet = await screen.findByRole('dialog', { name: 'Update LinkedIn' });
+      expect(sheet).toHaveTextContent('Since you posted it, the job changed the title and the salary.');
+      expect(sheet.querySelector('[data-copy-field="Title"]')).toHaveTextContent('Changed');
+      expect(sheet.querySelector('[data-copy-field="Description"]')).not.toHaveTextContent('Changed');
+      expect(within(sheet).getByRole('button', { name: 'Mark as updated' })).toBeInTheDocument();
+    });
+
+    it('says Still posted by you once the job is closed, and offers Mark as taken down', async () => {
+      const fetchMock = stubReads([manualPosting()], [], {
+        [`POST /v1/jobs/${jobId}/manual-postings/01a157d4-0000-7000-8000-0000000000a1/taken-down`]: () => Response.json(manualPosting({ takenDownAt: '2026-10-20T12:00:00Z' })),
+      });
+      renderPanel({ id: jobId, status: 'Closed', postings: [], ...fullJob });
+
+      await waitFor(() => expect(manualRow('LinkedIn').querySelector('[data-posting-state]')).toHaveTextContent('Still posted by you'));
+      expect(manualRow('LinkedIn')).toHaveTextContent('the job is closed');
+      expect(manualRow('LinkedIn').querySelector('[data-status-icon]')).toHaveAttribute('data-status-icon', 'megaphone');
+
+      await fireEvent.click(within(await openMenu('LinkedIn')).getByRole('menuitem', { name: 'Mark as taken down' }));
+
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(`/v1/jobs/${jobId}/manual-postings/01a157d4-0000-7000-8000-0000000000a1/taken-down`, expect.objectContaining({ method: 'POST' })),
+      );
+    });
+
+    it('flags a posting whose end date has passed on an open job, and leaves a taken-down one quiet', async () => {
+      stubReads([
+        manualPosting({ endsOn: '2026-10-19' }),
+        manualPosting({ id: '01a157d4-0000-7000-8000-0000000000a3', boardName: 'Indeed', sourceKey: 'indeed', takenDownAt: '2026-10-19T10:00:00Z', changedFields: ['Title'] }),
+      ]);
+      renderPanel({ id: jobId, status: 'Open', postings: [], ...fullJob });
+
+      await waitFor(() => expect(manualRow('LinkedIn').querySelector('[data-posting-state]')).toHaveTextContent('Still posted by you'));
+      expect(manualRow('LinkedIn')).toHaveTextContent('the end date you gave has passed');
+      expect(manualRow('Indeed').querySelector('[data-posting-state]')).toHaveTextContent('Taken down');
+      expect(manualRow('Indeed').querySelector('[data-job-changed]')).toBeNull();
+    });
+
+    it("makes the board's apply link from its name as it is typed, and saves the posting with that link", async () => {
+      let sent: unknown;
+      stubReads([], [], {
+        [`POST /v1/jobs/${jobId}/manual-postings`]: (init) => {
+          sent = JSON.parse(String(init?.body));
+          return Response.json(manualPosting(), { status: 201 });
+        },
+      });
+      renderPanel({ id: jobId, status: 'Open', postings: [], ...fullJob });
+
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Post it yourself' })).toBeEnabled());
+      await fireEvent.click(screen.getByRole('button', { name: 'Post it yourself' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Post it yourself' });
+      expect(within(sheet).getByRole('button', { name: 'Copy the title' })).toBeInTheDocument();
+      expect(within(sheet).getByRole('button', { name: 'Copy the description formatted' })).toBeInTheDocument();
+      expect(within(sheet).getByRole('button', { name: 'Copy the description as plain text' })).toBeInTheDocument();
+
+      await fireEvent.input(within(sheet).getByLabelText('Board'), { target: { value: 'Riverside Jobs Weekly' } });
+      expect(within(sheet).getByLabelText('Apply link for this board')).toHaveValue(`${jobUrl}?src=riverside-jobs-weekly`);
+      await fireEvent.input(within(sheet).getByLabelText(/Listing address/), { target: { value: 'https://jobs.example.org/123' } });
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Save posting' }));
+
+      await waitFor(() =>
+        expect(sent).toEqual({
+          boardName: 'Riverside Jobs Weekly',
+          sourceKey: 'riverside-jobs-weekly',
+          listingUrl: 'https://jobs.example.org/123',
+          postedOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+          endsOn: null,
+        }),
+      );
+    });
+
+    it("refuses a board name that is one ScreenHire posts to itself before it is saved", async () => {
+      stubReads([]);
+      renderPanel({ id: jobId, status: 'Open', postings: [], ...fullJob });
+
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Post it yourself' })).toBeEnabled());
+      await fireEvent.click(screen.getByRole('button', { name: 'Post it yourself' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Post it yourself' });
+      await fireEvent.input(within(sheet).getByLabelText('Board'), { target: { value: 'Adzuna' } });
+
+      expect(within(sheet).getByLabelText('Apply link for this board')).toHaveValue('');
+      expect(sheet).toHaveTextContent('ScreenHire posts to this board itself.');
+    });
+
+    it('offers Post it yourself only on an open job, to someone who may edit it', async () => {
+      stubReads([]);
+      state.user = userAs('Viewer');
+      const view = renderPanel({ id: jobId, status: 'Open', postings: [], ...fullJob });
+      await waitFor(() => expect(item('careers')).toBeDefined());
+      expect(screen.queryByRole('button', { name: 'Post it yourself' })).toBeNull();
+      view.unmount();
+
+      state.user = userAs('Owner');
+      renderPanel({ id: jobId, status: 'Draft', postings: [], ...fullJob });
+      expect(screen.queryByRole('button', { name: 'Post it yourself' })).toBeNull();
     });
   });
 });
