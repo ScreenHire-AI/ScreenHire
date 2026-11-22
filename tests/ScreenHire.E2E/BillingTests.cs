@@ -76,18 +76,23 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-trial-1440");
 
-        // Below that the page is one column, and there the three cards sit side by side under the plan card.
+        // Below that the page is one column, and there the three cards sit side by side under the plan card. The pointer rests
+        // where the test last clicked; once the layout moves, a panel title under it would open its tooltip, so it waits in the
+        // window's corner.
+        await ParkPointerAsync();
         await Page.SetViewportSizeAsync(1200, 1000);
         await Expect(plans.Locator("[data-plan-card=unlimited]")).ToBeVisibleAsync();
         (await BoxAsync(plans)).X.Should().BeApproximately((await BoxAsync(plan)).X, 1, "one column at 1200");
         (await CardTopsAsync(plans)).Distinct().Should().HaveCount(1, "three cards sit side by side in the one column at 1200");
 
-        // On a phone the cards stack, one above the other, and the page never scrolls sideways.
+        // On a phone the cards stack, one above the other, and the page never scrolls sideways. Measured once the phone's shell
+        // is in, the sidebar a sheet behind its button: until the resize reaches it, the full sidebar still takes 248px.
         await Page.SetViewportSizeAsync(390, 844);
+        await PhoneShellAsync();
         await Expect(plans.Locator("[data-plan-card=unlimited]")).ToBeVisibleAsync();
         var phoneTops = await plans.Locator("[data-plan-card]").EvaluateAllAsync<double[]>("cards => cards.map(card => Math.round(card.getBoundingClientRect().top))");
         phoneTops.Should().BeInAscendingOrder().And.OnlyHaveUniqueItems("the cards stack at 390");
-        (await NoSidewaysScrollAsync()).Should().BeTrue();
+        (await NoSidewaysScrollAsync()).Should().BeTrue("nothing reaches past the window: {0}", await PastTheWindowAsync());
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-trial-390");
         await Page.SetViewportSizeAsync(1440, 1000);
 
@@ -141,6 +146,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
 
         // The overview's columns (design system section 7, S10): the plan, this month and the invoices in the main column, the
         // card and the plans in the side column, each stacking on its own; on a phone one column, main then side.
+        await ParkPointerAsync();
         foreach (var width in new[] { 1440, 2560 })
         {
             await Page.SetViewportSizeAsync(width, 1000);
@@ -160,6 +166,7 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-2560");
         await Page.SetViewportSizeAsync(390, 844);
+        await PhoneShellAsync();
         (await BoxAsync(payment)).Y.Should().BeGreaterThan((await BoxAsync(invoices.First)).Y, "one column on a phone, the side column after the main one");
         (await NoSidewaysScrollAsync()).Should().BeTrue();
         await SaveScreenshotAsync(Page, "dashboard-settings-billing-active-390");
@@ -332,6 +339,23 @@ public sealed class BillingTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(locator).ToBeVisibleAsync();
         return (await locator.BoundingBoxAsync())!;
     }
+
+    // What reaches past the window's right edge and is not cut by a scrolling ancestor, so a sideways scroll names its cause.
+    private Task<string> PastTheWindowAsync() => Page.EvaluateAsync<string>(
+        """
+        () => {
+          const width = document.documentElement.clientWidth;
+          const clipped = el => { for (let a = el.parentElement; a; a = a.parentElement) if (getComputedStyle(a).overflowX !== 'visible') return true; return false; };
+          return JSON.stringify([width, document.documentElement.scrollWidth, ...[...document.querySelectorAll('body *')]
+            .filter(el => { const r = el.getBoundingClientRect(); return r.right > width + 0.5 && r.width > 0 && !clipped(el); })
+            .slice(0, 10).map(el => [el.tagName, String(el.className?.baseVal ?? el.className).slice(0, 100), Math.round(el.getBoundingClientRect().right)])]);
+        }
+        """);
+
+    private Task ParkPointerAsync() => Page.Mouse.MoveAsync(0, 0);
+
+    private Task PhoneShellAsync() =>
+        Expect(Page.GetByRole(AriaRole.Navigation, new() { Name = "Main" })).ToHaveCountAsync(0);
 
     private static Task<double[]> CardTopsAsync(ILocator plans) =>
         plans.Locator("[data-plan-card]").EvaluateAllAsync<double[]>("cards => cards.map(card => Math.round(card.getBoundingClientRect().top))");
