@@ -528,6 +528,26 @@ describe('distribution panel', () => {
       );
     });
 
+    it("copies the job's text field by field, and says so when the browser gives no clipboard", async () => {
+      const writeText = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('Not allowed'));
+      vi.stubGlobal('navigator', Object.assign(Object.create(navigator), { clipboard: { writeText } }));
+      stubReads([]);
+      renderPanel({ id: jobId, status: 'Open', postings: [], ...fullJob });
+
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Post it yourself' })).toBeEnabled());
+      await fireEvent.click(screen.getByRole('button', { name: 'Post it yourself' }));
+      const sheet = await screen.findByRole('dialog', { name: 'Post it yourself' });
+
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Copy title' }));
+      await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Copied title' })).toBeInTheDocument());
+      expect(writeText).toHaveBeenCalledWith('Senior Engineer');
+
+      // A second press moves the message to the button pressed; the title's goes back to its own words.
+      await fireEvent.click(within(sheet).getByRole('button', { name: 'Copy as plain text description' }));
+      await waitFor(() => expect(within(sheet).getByRole('button', { name: 'Could not copy description' })).toBeInTheDocument());
+      expect(within(sheet).getByRole('button', { name: 'Copy title' })).toBeInTheDocument();
+    });
+
     it("refuses a board name that is one ScreenHire posts to itself before it is saved", async () => {
       stubReads([]);
       renderPanel({ id: jobId, status: 'Open', postings: [], ...fullJob });
