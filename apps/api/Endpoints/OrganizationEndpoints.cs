@@ -8,6 +8,7 @@ using ScreenHire.Api.Auth;
 using ScreenHire.Api.Branding;
 using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
+using ScreenHire.Api.Fonts;
 using ScreenHire.Application.Branding;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.History;
@@ -273,15 +274,11 @@ internal static class OrganizationEndpoints
     // tenant filter scopes the lookup), of its slot's kind, and past its scan.
     private static async Task<Results<Ok<OrganizationBranding>, NotFound, ValidationProblem>> UpdateBranding(
         UpdateBrandingRequest request, ScreenHireDbContext db, ITenantContext tenant, IOptions<DomainOptions> domains,
-        TimeProvider time, CancellationToken cancellationToken)
+        HeadingFontHosting fonts, TimeProvider time, CancellationToken cancellationToken)
     {
         var problems = new Dictionary<string, string[]>();
         CheckColor(problems, "brandColor", request.BrandColor, "A brand colour", BrandColorCheck.CheckBrand);
         CheckColor(problems, "secondColor", request.SecondColor, "A second colour", BrandColorCheck.CheckSecond);
-        if (request.HeadingFont is { } font && !Enum.IsDefined(font))
-        {
-            problems["headingFont"] = ["Pick one of the heading fonts."];
-        }
 
         (string Field, Guid? Id, BrandImageKind Kind)[] slots =
         [
@@ -304,14 +301,26 @@ internal static class OrganizationEndpoints
             return TypedResults.ValidationProblem(problems);
         }
 
+        // A family nobody has used yet is downloaded now, once for everyone, after everything else passed (ADR-0031).
+        HeadingFont? font = null;
+        if (request.HeadingFont is { } fontId)
+        {
+            var hosting = await fonts.EnsureAsync(fontId, db, cancellationToken);
+            if (hosting.Font is null)
+            {
+                return TypedResults.ValidationProblem(ValidationExtensions.Problem("headingFont", hosting.Problem!));
+            }
+
+            font = hosting.Font;
+        }
+
         var organization = await db.Organizations.SingleOrDefaultAsync(o => o.Id == tenant.OrganizationId, cancellationToken);
         if (organization is null)
         {
             return TypedResults.NotFound();
         }
 
-        organization.SetBranding(
-            request.BrandColor, request.SecondColor, request.HeadingFont, request.LogoId, request.FaviconId, request.SharingImageId);
+        organization.SetBranding(request.BrandColor, request.SecondColor, font, request.LogoId, request.FaviconId, request.SharingImageId);
         // An image stays out of the daily clean-up of abandoned uploads once it has been saved (PurgeExpiredBrandImageUploads).
         foreach (var image in images)
         {
@@ -474,7 +483,7 @@ internal static class OrganizationEndpoints
     {
         var last = await ChangeHistoryQueries.LastAsync(db, ChangeSubjectKind.Branding, SubjectId(organization.Id), cancellationToken);
         // ScreenHire's default branding, never changed, is by ScreenHire; branding set before the history began has only a time.
-        var isDefault = organization.BrandColor is null && organization.SecondColor is null && organization.HeadingFont is null
+        var isDefault = organization.BrandColor is null && organization.SecondColor is null && organization.HeadingFontId is null
             && organization.LogoImageId is null && organization.FaviconImageId is null && organization.SharingImageId is null;
         var lastUpdated = last is null && isDefault ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(last, organization.CreatedAt);
 
@@ -483,7 +492,8 @@ internal static class OrganizationEndpoints
         var images = ids.Count == 0 ? [] : await db.BrandImages.AsNoTracking().Where(i => ids.Contains(i.Id)).ToListAsync(cancellationToken);
         var board = domains.CareersBoardUrl(organization.Slug);
         BrandingImage? Image(Guid? id) => images.SingleOrDefault(i => i.Id == id)?.ToBrandingImage(board);
-        return new(organization.BrandColor, organization.SecondColor, organization.HeadingFont,
+        var font = organization.HeadingFont is { } heading ? new BrandingHeadingFont(heading.Id, heading.Family) : null;
+        return new(organization.BrandColor, organization.SecondColor, font,
             Image(organization.LogoImageId), Image(organization.FaviconImageId), Image(organization.SharingImageId), lastUpdated);
     }
 }

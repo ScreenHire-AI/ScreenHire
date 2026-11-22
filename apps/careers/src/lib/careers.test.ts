@@ -1,8 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import type { PublicBranding } from '@screenhire/api-client';
-import { brandImagePath, brandStylesheet, parseBrandImageFile } from './brand';
+import type { PublicBranding, PublicHeadingFont } from '@screenhire/api-client';
+import { brandImagePath, brandStylesheet, headingFontPreload, parseBrandImageFile, parseHeadingFontFile } from './brand';
 import { acceptedLabel, describeSize, fileProblem, parseUploadRef } from '@screenhire/ui/questions/files';
 import { isFrameworkPath, tenantBase, tenantFromHost, tenantRoute } from './tenancy';
+
+// A hosted heading font as the API sends it (docs/architecture/branding.md section 3).
+const latin = 'U+0000-00FF,U+0131,U+2000-206F';
+const lora: PublicHeadingFont = {
+  id: 'lora',
+  family: 'Lora',
+  category: 'serif',
+  bundled: false,
+  files: [
+    { fileName: 'latin-600.woff2', subset: 'latin', weight: '600', unicodeRange: latin },
+    { fileName: 'latin-700.woff2', subset: 'latin', weight: '700', unicodeRange: latin },
+    { fileName: 'latin-ext-700.woff2', subset: 'latin-ext', weight: '700', unicodeRange: 'U+0100-02BA' },
+  ],
+};
 
 describe('tenantFromHost', () => {
   const pattern = '{tenant}.{CareersDomain}';
@@ -76,17 +90,80 @@ describe('brandStylesheet', () => {
     expect(css).not.toContain('--candidate-cta');
   });
 
-  it("sets the heading font from ScreenHire's own list, and the name changes with it", () => {
-    const { css, hash } = brandStylesheet({ ...none, headingFont: 'Fraunces' })!;
+  const bundled = (id: string): PublicHeadingFont => ({ id, family: id, category: 'serif', bundled: true, files: [] });
+
+  it("sets a bundled heading font from ScreenHire's own list, and the name changes with it", () => {
+    const { css, hash } = brandStylesheet({ ...none, headingFont: bundled('fraunces') })!;
 
     expect(css).toContain('--sh-font-display:"Fraunces Variable", Georgia');
-    expect(brandStylesheet({ ...none, headingFont: 'Inter' })!.hash).not.toBe(hash);
+    expect(css).not.toContain('@font-face');
+    expect(brandStylesheet({ ...none, headingFont: bundled('inter') })!.hash).not.toBe(hash);
   });
 
-  it('refuses anything but #rrggbb and a known font, so nothing else reaches CSS', () => {
+  it('declares a hosted font face per file on this origin, each for its subset, under a name from its id', () => {
+    const { css } = brandStylesheet({ ...none, headingFont: { ...lora, family: 'Anything the API says' } })!;
+
+    expect(css.match(/@font-face/g)).toHaveLength(3);
+    expect(css).toContain(
+      '@font-face{font-family:"ScreenHire heading lora";src:url("fonts/lora/latin-700.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+2000-206F}',
+    );
+    expect(css).toContain('--sh-font-display:"ScreenHire heading lora", Georgia');
+    expect(css).not.toContain('Anything the API says');
+    expect(css).not.toMatch(/https?:/);
+  });
+
+  it('refuses anything but #rrggbb and a font of the shape the API sends, so nothing else reaches CSS', () => {
     expect(() => brandStylesheet({ ...branding, colors: { ...colors, brand: 'red;background:url(x)' } })).toThrow();
     expect(() => brandStylesheet({ ...none, header: { background: '#fff', foreground: '#000000' } })).toThrow();
-    expect(() => brandStylesheet({ ...none, headingFont: 'Comic;}body{' as PublicBranding['headingFont'] })).toThrow();
+    expect(() => brandStylesheet({ ...none, headingFont: bundled('Comic;}body{') })).toThrow();
+    expect(() => brandStylesheet({ ...none, headingFont: bundled('lora') })).toThrow();
+    expect(() => brandStylesheet({ ...none, headingFont: { ...lora, id: 'lora"){}' } })).toThrow();
+    const file = lora.files[0];
+    for (const bad of [
+      { ...file, fileName: '../x.woff2' },
+      { ...file, fileName: 'latin-700.woff2") ; x' },
+      { ...file, weight: '700;color:red' },
+      { ...file, unicodeRange: 'U+0000-00FF}body{color:red' },
+    ]) {
+      expect(() => brandStylesheet({ ...none, headingFont: { ...lora, files: [bad] } })).toThrow();
+    }
+  });
+});
+
+describe('heading font files', () => {
+  it('preloads the latin file nearest 700 under the base, and nothing for a bundled font', () => {
+    expect(headingFontPreload('/acme', { colors: null, header: null, headingFont: lora, logo: null, favicon: null, sharingImage: null })).toBe(
+      '/acme/brand/fonts/lora/latin-700.woff2',
+    );
+    expect(
+      headingFontPreload('', {
+        colors: null,
+        header: null,
+        headingFont: { ...lora, files: [lora.files[0]] },
+        logo: null,
+        favicon: null,
+        sharingImage: null,
+      }),
+    ).toBe('/brand/fonts/lora/latin-600.woff2');
+    expect(
+      headingFontPreload('/acme', {
+        colors: null,
+        header: null,
+        headingFont: { id: 'inter', family: 'Inter', category: 'sans-serif', bundled: true, files: [] },
+        logo: null,
+        favicon: null,
+        sharingImage: null,
+      }),
+    ).toBeNull();
+  });
+
+  it('reads the font and file from a careers path, and nothing else', () => {
+    expect(parseHeadingFontFile('/acme/brand/fonts/roboto-slab/latin-ext-700.woff2')).toEqual({ id: 'roboto-slab', fileName: 'latin-ext-700.woff2' });
+    expect(parseHeadingFontFile('/brand/fonts/lora/latin-600.woff2')).toEqual({ id: 'lora', fileName: 'latin-600.woff2' });
+    expect(parseHeadingFontFile('/acme/brand/fonts/lora/LICENSE.txt')).toBeNull();
+    expect(parseHeadingFontFile('/acme/brand/fonts/Lora/latin-600.woff2')).toBeNull();
+    expect(parseHeadingFontFile('/acme/brand/fonts/lora/cyrillic-600.woff2')).toBeNull();
+    expect(parseHeadingFontFile('/acme/brand/fonts/lora/latin-650.woff2')).toBeNull();
   });
 });
 

@@ -66,7 +66,7 @@ describe('the setup checklist', () => {
     for (const patch of [
       { brandColor: 'teal' },
       { secondColor: 'plum' },
-      { headingFont: 'Fraunces' },
+      { headingFont: { id: 'fraunces', family: 'Fraunces' } },
       { logo: { id: 'l' } },
       { favicon: { id: 'f' } },
       { sharingImage: { id: 's' } },

@@ -4,20 +4,21 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
-import type { HeadingFont } from './headingFont.ts';
 import type { PublicBrandImage } from './publicBrandImage.ts';
 import type { PublicHeaderColors } from './publicHeaderColors.ts';
+import type { PublicHeadingFont } from './publicHeadingFont.ts';
 import type { PublicPalette } from './publicPalette.ts';
 
 /**
  * An organization's branding as its careers pages, the apply flow and the embeddable widget use it. Every part is null
  * for ScreenHire's default. `colors` come from the brand colour; `header` is the band in the second colour,
- * with white or ink text on it; image `url`s are absolute addresses on the careers board.
+ * with white or ink text on it; `headingFont` is a bundled font or a hosted one with its files; image `url`s
+ * are absolute addresses on the careers board.
  */
 export interface PublicBranding {
   colors: null | PublicPalette;
   header: null | PublicHeaderColors;
-  headingFont: null | HeadingFont;
+  headingFont: null | PublicHeadingFont;
   logo: null | PublicBrandImage;
   favicon: null | PublicBrandImage;
   sharingImage: null | PublicBrandImage;

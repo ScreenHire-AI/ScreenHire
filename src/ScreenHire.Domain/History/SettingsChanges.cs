@@ -81,10 +81,10 @@ public static class SettingsChanges
                     : ChangeLine.Of($"changed the second colour from {before.SecondColor} to ", after.SecondColor));
         }
 
-        if (before.HeadingFont != after.HeadingFont)
+        if (before.HeadingFontId != after.HeadingFontId)
         {
             lines.Add(after.HeadingFont is { } font
-                ? ChangeLine.Of("changed the heading font to ", font.Label())
+                ? ChangeLine.Of("changed the heading font to ", font.Family)
                 : ChangeLine.Plain("went back to ScreenHire's heading font"));
         }
 

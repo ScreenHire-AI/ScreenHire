@@ -3,7 +3,7 @@ import PoweredBy from '../components/PoweredBy.astro';
 import '../styles/global.css';
 import type { PublicBranding } from '@screenhire/api-client';
 import EmbedFrame from '../components/EmbedFrame.astro';
-import { brandImagePath, brandStylesheet } from '../lib/brand';
+import { brandImagePath, brandStylesheet, headingFontPreload } from '../lib/brand';
 import { embedOf, withEmbed } from '../lib/embed';
 import { basePath } from '../lib/host';
 
@@ -21,6 +21,8 @@ interface Props {
 const { title, description, organizationName, organizationSlug, branding, noindex = false } = Astro.props;
 const base = basePath(Astro.request, organizationSlug);
 const brand = branding ? brandStylesheet(branding) : null;
+// A hosted heading font's latin file, fetched with the stylesheet so the titles swap to it sooner (branding.md section 3).
+const fontPreload = headingFontPreload(base, branding);
 // Same-origin paths under the base for what the page draws (img-src 'self'); the sharing image is the API's absolute
 // careers address, because a crawler reads og:image from another site.
 const logo = branding?.logo ? { ...branding.logo, src: brandImagePath(base, branding.logo) } : null;
@@ -45,6 +47,7 @@ const onOwnPages = /^\/my-applications(?:\/|$)/.test(ownPath);
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
     {brand && <link rel="stylesheet" href={`${base}/brand/${brand.hash}.css`} />}
+    {fontPreload && <link rel="preload" as="font" type="font/woff2" href={fontPreload} crossorigin="anonymous" />}
     {favicon && <link rel="icon" type={favicon.contentType} href={favicon.href} />}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={organizationName} />
