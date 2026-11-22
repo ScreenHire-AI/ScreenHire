@@ -88,4 +88,19 @@ public sealed class SchedulingDefinitionTests
         ValidateAction(choose with { InterviewerUserIds = [Avery] })
             .Should().ContainSingle(e => e.Path == "automations[0].actions[0].interviewerUserIds").Which.Message.Should().Contain("is not used");
     }
+
+    // Guardrail 1 (workflow-engine.md §2): a verification signal never offers an interview, and creating a task to choose
+    // how is still offering one, so the new mode is refused like a send.
+    [Theory]
+    [InlineData(InterviewMode.Send)]
+    [InlineData(InterviewMode.Choose)]
+    public void A_verification_signal_cannot_schedule_an_interview_in_either_mode(InterviewMode mode)
+    {
+        var action = new AutomationAction(ActionType.ScheduleInterview, InterviewMode: mode);
+
+        DefinitionValidator.Validate(HiringWorkflow.Default with
+        {
+            Automations = [new("a", "Offer", new AutomationTrigger(TriggerType.VerificationAssessed), null, [action])],
+        }).Should().Contain(e => e.Path == "automations[0].actions[0]");
+    }
 }
