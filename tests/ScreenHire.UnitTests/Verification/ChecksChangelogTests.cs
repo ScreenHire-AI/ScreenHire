@@ -5,8 +5,8 @@ namespace ScreenHire.UnitTests.Verification;
 
 /// <summary>
 /// The public release notes for the checks (docs/compliance/checks-changelog.md) and the bell notice that points at them
-/// (compliance gap map, CO-2): a new rules version cannot ship without its entry, and the notice runs for two weeks after a
-/// version's date, inside the bell's own retention, so the daily repeat never raises one the purge removed.
+/// (compliance gap map, CO-2): a new rules version cannot ship without its entry, and the notice runs for 14 days from the
+/// date in the version, inside the bell's own retention, so the daily repeat never raises one the purge removed.
 /// </summary>
 public sealed class ChecksChangelogTests
 {

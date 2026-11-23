@@ -171,7 +171,8 @@ brackets.
   exclusion, California's human involvement and knockout auto-reject, NYC's AEDT prongs, Illinois's AI notice). Review
   and finalise the drafts in [compliance](compliance/index.md). Decide whether to turn on
   `ScreenHire:Compliance:DecisionRecord:Enabled`, `ScreenHire:Compliance:ReviewRequests:Enabled` (with the portal's wording
-  for it) and `ScreenHire:Compliance:ChangeNotices:Enabled`, and whether any of a decision record goes to the candidate.
+  for it) and `ScreenHire:Compliance:ChangeNotices:Enabled` (it announces a rules version only within 14 days of the version's date, so a
+  later deploy sends no notice), and whether any of a decision record goes to the candidate.
   Set `ScreenHire:Retention:MinimumMonths` (3 years in Colorado, 4 under FEHA) and decide whether an erasure request yields
   to it. Confirm the rejection reasons list and the refusal of automations on postal-code answers. Decide the candidate-facing wording the gap map's
   appendix drafts, with the apply notice, "a person looks at anything the checks flag" and the careers footer already

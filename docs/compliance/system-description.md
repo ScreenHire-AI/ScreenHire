@@ -138,4 +138,4 @@ An employer that must name the tool in a notice or a disclosure can use these:
 
 ScreenHire versions its rules, and a change in what the checks do raises the version. Each version has an entry in
 the [changelog](checks-changelog.md), and the people who can change an organization's settings get a notice in the bell
-for two weeks after a new version ships (off until the owner turns on `ScreenHire:Compliance:ChangeNotices:Enabled`).
+for 14 days from the date in a new version (off until the owner turns on `ScreenHire:Compliance:ChangeNotices:Enabled`).

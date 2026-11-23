@@ -140,7 +140,7 @@ Every item is off by default or changes nothing until an organization uses it, a
 | Record floor: the daily retention run never deletes an ended application sooner than the floor, and a shorter period is refused | CO-8, CA-7 | `ScreenHire:Retention:MinimumMonths` (unset) | [data requests](../architecture/data-requests.md) |
 | Rejection reasons: a fixed list a person picks from when rejecting, kept on the move; a knockout automation records its own | CO-5 | none: optional for a person | [workflow engine](../architecture/workflow-engine.md) |
 | Outcome counts in the equality totals: per answer, how many moved on, were hired and were flagged | NY-2 | `ScreenHire:Forms:EqualityMonitoring:Enabled` (already off until a legal review) | [reports](../architecture/reports.md) |
-| Checks changelog and a bell notice for two weeks after a new rules version | CO-2 | `ScreenHire:Compliance:ChangeNotices:Enabled` | [checks changelog](../compliance/checks-changelog.md) |
+| Checks changelog and a bell notice for 14 days from the date in a new rules version (a later deploy sends none) | CO-2 | `ScreenHire:Compliance:ChangeNotices:Enabled` | [checks changelog](../compliance/checks-changelog.md) |
 | No automation acts on an answer that gives a postal or zip code | IL-2 | none: the workflow builder refuses it | [workflow engine](../architecture/workflow-engine.md) |
 
 The decision record meets the bar of a duty no reasonable reading avoids through GDPR Art. 15 alone: an employer
@@ -155,7 +155,9 @@ Choices made while building, each with the alternative left open:
   organization edits, which needs a new table and a settings page.
 - **The proxy rule refuses rather than warns,** because the workflow builder has no warning tier. A location requirement
   is asked as itself. The alternative is a warning that lets the automation save.
-- **The change notice is the bell,** to the people who can change settings. The alternative is an email to every Owner.
+- **The change notice is the bell,** to the people who can change settings, for 14 days from the date in the version. The
+  alternatives are an email to every Owner, and recording which version each organization was told about, so a version
+  deployed late is still announced.
 - **The flagged count sits in the equality totals only,** behind their legal-review setting, never in the hiring report.
   The alternative is an auditor's export with no dashboard column.
 
