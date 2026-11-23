@@ -235,7 +235,10 @@ today, and the hints and the server's refusal are what hold it to the person's w
 ## Rejection
 
 `move_to_stage` follows the same rules as the HTTP move, Rejected included: moving a candidate to Rejected is a
-person's choice made through their assistant, and the person confirms it ("Confirmation"). No tool acts on verification
+person's choice made through their assistant, and the person confirms it ("Confirmation"). The one difference is the
+principal reason: the HTTP move takes an optional `rejectionReason` for a move into a rejected stage
+([workflow engine](workflow-engine.md#7-what-v1-implements)), and the tool takes only the stage and a note, so a rejection made
+through an assistant records no reason beside its note. No tool acts on verification
 output: the verification tools only read, `apply_view` refuses a view that filters on verification, and nothing in the
 server turns a level into a move, a tag, an email or a rejection. The tool descriptions and the server instructions tell
 the assistant to move a candidate to a Rejected stage only when the person it works for explicitly asks, and never

@@ -922,8 +922,9 @@ tasks assigned to the signed-in person, oldest first; `scope=Team` lists the one
 /v1/tasks/{id}/complete` records who finished it and when, once, and raises `ApplicationTaskCompleted`; `POST
 /v1/tasks/{id}/reopen`, the dashboard's Undo, opens a done task again and raises `ApplicationTaskReopened`. Neither
 changes the application, so a rejection review is still decided by a person moving the candidate. Anyone whose role
-changes hiring data may complete or reopen any of the organization's to-dos and rejection reviews; the team shares the
-work. A task is ticked off where its work is done (ADR-0017 decision 11), so these two routes refuse a review and a
+changes hiring data may complete or reopen any of the organization's to-dos, rejection reviews and candidates' review
+requests (a `ReviewRequest` task, opened by a rejected candidate from their own page, [candidate portal](candidate-portal.md#review-requests));
+the team shares the work. A task is ticked off where its work is done (ADR-0017 decision 11), so these two routes refuse a review and a
 requested scorecard with a 409: those are done when the scorecard is submitted (below), and a submitted scorecard is
 final, so they never reopen. The `AddScorecardRequests` migration finished the open reviews a scorecard had already
 answered, so none was left with no way to finish. A person with Create tasks, or an API key with the Write scope, gives the team a task by hand
