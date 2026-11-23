@@ -130,6 +130,12 @@ public static class NotificationKinds
     public const string TrialKey = "trial";
 
     /// <summary>
+    /// ScreenHire's checks changed: a new rules version is in use (docs/compliance/checks-changelog.md). Key: the version.
+    /// Payload: <c>version</c>. Raised only while <c>ScreenHire:Compliance:ChangeNotices:Enabled</c> is on.
+    /// </summary>
+    public const string ChecksChanged = "checks-changed";
+
+    /// <summary>
     /// Kinds the daily retention purge keeps. They say something that stays true until a person acts, and the code that raises
     /// them clears them when it stops being true: a trial that ended with no plan is still the case a month later.
     /// </summary>

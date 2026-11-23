@@ -110,7 +110,7 @@ subsystem.
   Google and Microsoft each need a `ClientId` and their `google-calendar-client-secret` / `microsoft-calendar-client-secret`
   parameter, `Sandbox:Enabled` is the local sandbox calendar, on in `pnpm dev` and the test stacks) goes to the API and worker alike; see
   [`docs/architecture/interview-scheduling.md`](docs/architecture/interview-scheduling.md). `ScreenHire:DataRequests:*` (due days, link and copy lifetimes,
-  the rate limit, the copies' container) and `ScreenHire:Retention:*` (`BatchSize`) go to the API and worker alike; see
+  the rate limit, the copies' container) and `ScreenHire:Retention:*` (`BatchSize`, and `MinimumMonths`, an optional floor for decision records) go to the API and worker alike; see
   [`docs/architecture/data-requests.md`](docs/architecture/data-requests.md). `ScreenHire:Tags:*` (`BatchSize`, the applications one
   rename, merge or delete in Settings, Tags changes at a time; 2 in the test stack) goes to the API and worker alike; see
   [`docs/architecture/tags.md`](docs/architecture/tags.md). `ScreenHire:Portal:*` (the candidate's own page:
@@ -120,7 +120,11 @@ subsystem.
   API and worker alike; see [`docs/architecture/notifications.md`](docs/architecture/notifications.md). `ScreenHire:Forms:*`
   (`EqualityMonitoring:Enabled`, default false: equality monitoring forms in the library and their totals in Reports; off until
   the owner's legal review, on in the test stacks) goes to the API; see
-  [`docs/architecture/workflow-engine.md`](docs/architecture/workflow-engine.md) section 7. `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
+  [`docs/architecture/workflow-engine.md`](docs/architecture/workflow-engine.md) section 7. `ScreenHire:Compliance:*`
+  (`DecisionRecord:Enabled`, default false: an application's decision record for the team, on in the test stacks;
+  `ReviewRequests:Enabled`, default false: a candidate asks from their own page for a person to review a rejection, on in the test stacks;
+  `ChangeNotices:Enabled`, default false: a bell notice when ScreenHire's checks change, off in the test stacks too; each off until the owner and counsel
+  decide) goes to the API and worker alike; see [`docs/research/compliance-gap-map.md`](docs/research/compliance-gap-map.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.

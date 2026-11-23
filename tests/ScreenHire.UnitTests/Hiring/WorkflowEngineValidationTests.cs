@@ -384,6 +384,46 @@ public sealed class WorkflowEngineValidationTests
         DefinitionValidator.Validate(workflow).Should().BeEmpty();
     }
 
+    // Illinois makes a zip code used as a proxy for a protected class a civil rights violation (compliance gap map, IL-2):
+    // a form may ask for one, but no automation acts on the answer, whatever the action. A question about the requirement
+    // itself, and words that only contain "zip", pass.
+    [Theory]
+    [InlineData("What is your zip code?", null, ActionType.QueueForRejectionReview)]
+    [InlineData("Postcode", null, ActionType.AddTag)]
+    [InlineData("Where do you live?", "Your postal code is enough.", ActionType.NotifyTeam)]
+    public void No_automation_acts_on_an_answer_that_gives_a_postal_code(string label, string? helpText, ActionType action)
+    {
+        var postal = new Question("home", QuestionType.ShortText, label, HelpText: helpText);
+        var workflow = Workflow([postal],
+        [
+            new("a", "A", new AutomationTrigger(TriggerType.ApplicationSubmitted), Rules(new AutomationCondition("answers.home", ConditionOperator.EqualTo, "60601")),
+                [action switch
+                {
+                    ActionType.QueueForRejectionReview => new AutomationAction(action, Reason: "Outside the area"),
+                    ActionType.AddTag => new AutomationAction(action, Tag: "far"),
+                    _ => new AutomationAction(action, Note: "Look"),
+                }]),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().ContainSingle()
+            .Which.Should().Match<DefinitionError>(e => e.Path == "automations[0].conditions.rules[0].fact" && e.Message.Contains("postal or zip code"));
+    }
+
+    [Theory]
+    [InlineData("Can you work from our Denver office?")]
+    [InlineData("Have you used zipper merges in Git?")]
+    public void A_question_about_the_requirement_itself_may_drive_an_automation(string label)
+    {
+        var question = new Question("office", QuestionType.ShortText, label);
+        var workflow = Workflow([question],
+        [
+            new("a", "A", new AutomationTrigger(TriggerType.ApplicationSubmitted), Rules(new AutomationCondition("answers.office", ConditionOperator.EqualTo, "yes")),
+                [new AutomationAction(ActionType.NotifyTeam, Note: "Look")]),
+        ]);
+
+        DefinitionValidator.Validate(workflow).Should().BeEmpty();
+    }
+
     private static readonly Guid Avery = Guid.Parse("00000000-0000-0000-0000-0000000000a1");
     private static readonly Guid Robin = Guid.Parse("00000000-0000-0000-0000-0000000000a2");
     private static readonly Guid Sam = Guid.Parse("00000000-0000-0000-0000-0000000000a3");

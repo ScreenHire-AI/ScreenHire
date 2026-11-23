@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ApplicationEventType } from './applicationEventType.ts';
+import type { RejectionReason } from './rejectionReason.ts';
 import type { TalentPoolExit } from './talentPoolExit.ts';
 
 /**
@@ -65,4 +66,5 @@ export interface ApplicationTimelineEntry {
   endsAt?: string | null;
   /** @nullable */
   templateVersionId?: string | null;
+  rejectionReason?: null | RejectionReason;
 }

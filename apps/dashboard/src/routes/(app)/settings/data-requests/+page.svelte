@@ -215,14 +215,17 @@
   const retention = createGetOrganizationRetention();
   const retentionData = $derived(retention.data?.data);
   const savedMonths = $derived(retentionData?.months ?? null);
+  // The deployment's floor for decision records, when it has one: a shorter period is refused, so no count is asked for it.
+  const fewestMonths = $derived(retentionData?.minimumMonths ?? 1);
   const update = createUpdateOrganizationRetention(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, retentionPath) } }));
 
-  const monthsMessage = 'Enter a whole number of months from 1 to 120.';
+  // Read when the form checks, so a floor the query brings later still counts.
+  const monthsMessage = () => `Enter a whole number of months from ${fewestMonths} to 120.`;
   const retentionSchema = z
     .object({ enabled: z.boolean(), months: z.number().nullable() })
     .superRefine((value, context) => {
-      if (value.enabled && !(value.months !== null && Number.isInteger(value.months) && value.months >= 1 && value.months <= 120)) {
-        context.addIssue({ code: 'custom', path: ['months'], message: monthsMessage });
+      if (value.enabled && !(value.months !== null && Number.isInteger(value.months) && value.months >= fewestMonths && value.months <= 120)) {
+        context.addIssue({ code: 'custom', path: ['months'], message: monthsMessage() });
       }
     });
 
@@ -285,7 +288,7 @@
   };
 
   const validMonths = $derived(
-    $form.enabled && typeof $form.months === 'number' && Number.isInteger($form.months) && $form.months >= 1 && $form.months <= 120 ? $form.months : undefined,
+    $form.enabled && typeof $form.months === 'number' && Number.isInteger($form.months) && $form.months >= fewestMonths && $form.months <= 120 ? $form.months : undefined,
   );
   // The dry run follows the typed months once typing pauses, so it asks the API once, not for every digit.
   let previewMonths = $state<number | undefined>(undefined);
@@ -452,7 +455,7 @@
                     name="months"
                     type="number"
                     inputmode="numeric"
-                    min={1}
+                    min={fewestMonths}
                     max={120}
                     step={1}
                     autocomplete="off"

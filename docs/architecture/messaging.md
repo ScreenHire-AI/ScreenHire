@@ -235,7 +235,9 @@ nothing.
   candidates' data past their download window, and `PurgeEndedApplications` deletes each organization's ended applications past its
   retention period (off by default); both fan out per organization ([data-requests.md](data-requests.md)). `PurgeExpiredNotifications` deletes the bell's notifications and the digest's items past `ScreenHire:Notifications:RetentionDays`, fanning out per organization; `SendDueDigests`, every half hour, fans out `SendOrganizationDigests` to send each person's daily digest at 08:00 their time; and
   `RecheckSendingDomains` looks each organization's sending domain up again, daily, and schedules a confirming look an hour later for a
-  verified one that failed ([notifications.md](notifications.md)). `PurgeExpiredOAuthData` deletes
+  verified one that failed ([notifications.md](notifications.md)). `AnnounceChecksChange`, daily, fans out a `RaiseNotification` per
+  organization while the rules version's date is under two weeks old, only with `ScreenHire:Compliance:ChangeNotices:Enabled`
+  ([checks changelog](../compliance/checks-changelog.md)). `PurgeExpiredOAuthData` deletes
   OAuth client registrations nobody approved within a day, then fans out per organization to delete codes and tokens a day past their
   expiry ([oauth-server.md](oauth-server.md)). Saved candidates have no sweep: they have no end date
   ([saved candidates](talent-pool.md)).

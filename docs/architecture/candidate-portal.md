@@ -162,6 +162,24 @@ the same sent email.
   written, so posts at the same instant can pass it by a few: a soft cap, with the rate limit as the hard one. A reply is at most
   `ReplyBodyMax` characters.
 
+## Review requests
+
+Off until the owner turns on `ScreenHire:Compliance:ReviewRequests:Enabled` (the API's `ComplianceOptions`; on in the test
+stacks), because the page's wording is the owner's call with counsel ([compliance gap map](../research/compliance-gap-map.md),
+CO-6 and CA-2). With it on, an application in a rejected stage reads Not moving forward with a button, "Ask a person to look
+again": a native form posted to the `askPortalReview` action, which calls `POST .../portal/{token}/applications/{id}/review-request`
+(`RequestPublicPortalReview`) and returns to the page.
+
+- The route answers 404 while the setting is off, for a token that finds nothing or an application that is not the token's
+  candidate's; 409 for an application not in a rejected stage; and 202 otherwise.
+- It opens one `ReviewRequest` task for the hiring team (`JobApplication.AskForReview`), with a fixed note and no actor, a
+  `TaskCreated` entry in Activity and `ApplicationTaskCreated` for open dashboards. Asking again while that task is open
+  answers 202 and adds nothing, two posts at once included: a partial unique index allows one open `ReviewRequest` task per
+  application (`ix_application_tasks_open_review_request`), and the losing save answers 202 too. A person ticks the task off by hand once they have looked again; the candidate can then ask again.
+- The page's payload says `canAskForReview` (on, rejected, nothing waiting) and `reviewRequested` (a task is waiting, shown as
+  "You asked for a person to look at this again"). Neither says anything about how the decision was made.
+- The candidate's reasons go in a reply, as before: the request carries no text of its own.
+
 ## The link every email carries
 
 `CandidatePortalFooter` ends an email's text and HTML with "See where your application stands and read your messages:" and the

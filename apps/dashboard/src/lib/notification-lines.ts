@@ -33,6 +33,8 @@ const lines: Record<string, (payload: Payload, now: Date) => string> = {
   'ai-credits-empty': () => 'AI credits ran out: the AI checks are paused',
   'ai-credits-reload-failed': () => 'Auto-reload could not add AI credits, so it is off',
   'ai-usage-spike': () => 'AI usage yesterday was well above the recent average',
+  // A new version of ScreenHire's checks (docs/compliance/checks-changelog.md says what changed).
+  'checks-changed': (payload) => (payload.version ? `ScreenHire's checks were updated (version ${payload.version})` : "ScreenHire's checks were updated"),
   // The person's own interview notices (NotifyInterviewChanged): what happened, from the change the payload names.
   'interview-changed': (payload) => interviewLines[payload.change ?? ''] ?? 'An interview changed',
 };

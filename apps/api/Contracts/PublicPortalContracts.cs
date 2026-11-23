@@ -39,7 +39,11 @@ public sealed record PublicPortalWaiting(PublicPortalWaitingKind Kind, string To
 /// </summary>
 public sealed record PublicPortalFunnel(IReadOnlyList<string> Steps, int? Current, FunnelEnd Ended);
 
-/// <summary>One of the candidate's applications to this organization.</summary>
+/// <summary>
+/// One of the candidate's applications to this organization. <c>canAskForReview</c>: the application is not moving forward
+/// (a rejected stage), the organization's deployment takes review requests, and none is waiting; <c>reviewRequested</c>: one
+/// is waiting for the team. Both are false wherever review requests are off.
+/// </summary>
 public sealed record PublicPortalApplication(
     Guid Id,
     string JobTitle,
@@ -47,7 +51,9 @@ public sealed record PublicPortalApplication(
     PublicPortalFunnel Funnel,
     IReadOnlyList<PublicPortalWaiting> Waiting,
     bool HasMessages,
-    bool CanReply);
+    bool CanReply,
+    bool CanAskForReview = false,
+    bool ReviewRequested = false);
 
 /// <summary>An application the candidate started and saved to finish later; <c>token</c> opens the job's apply page with it.</summary>
 public sealed record PublicPortalDraft(string JobTitle, string JobSlug, string Token, DateTimeOffset ExpiresAt);

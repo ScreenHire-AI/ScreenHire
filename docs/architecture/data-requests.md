@@ -23,6 +23,9 @@ sources:
   - resource: src/ScreenHire.Application/Privacy/PurgeEndedApplications.cs
   - resource: src/ScreenHire.Application/Privacy/NotifyDataRequestReceived.cs
   - resource: apps/api/Endpoints/DataRequestEndpoints.cs
+  - resource: apps/api/Endpoints/DecisionRecordEndpoints.cs
+  - resource: apps/api/Contracts/DecisionRecordContracts.cs
+  - resource: apps/api/Configuration/ComplianceOptions.cs
   - resource: apps/api/Endpoints/RetentionEndpoints.cs
   - resource: apps/api/Contracts/DataRequestContracts.cs
   - resource: apps/dashboard/src/routes/(app)/settings/data-requests/+page.svelte
@@ -186,6 +189,31 @@ asked {organization} for a copy of their data" or "to erase their data", with a 
 dashboard host (`ScreenHire:Domains:AppHost`). It carries no name or address. Delivery is at least once, so a crash between a
 send and the commit can repeat a notification.
 
+### Decision record
+
+`GET /v1/applications/{applicationId}/decision-record` (`GetApplicationDecisionRecord`) is the team's copy of one
+application's record, for answering a candidate's access, correction or review request. It is off until the owner turns
+on `ScreenHire:Compliance:DecisionRecord:Enabled` (`ComplianceOptions`, forwarded by the AppHost, on in the test stacks);
+off, the route is a 404. The setting waits on counsel ([the gap map](../research/compliance-gap-map.md)).
+
+It answers a signed-in member who sees the application, the same reach as the verification and timeline reads, and never
+an API key: verification reaches a key only through the verification read routes, which log each read (ADR-0021).
+Another organization's application, or one outside the member's jobs, is a 404. The application's Activity tab offers it as a
+download (`DecisionRecordDownload`, a JSON file named for the application) when `decisionRecordEnabled`, on the signed-in
+person's organization in `GET /v1/auth/me`, says the setting is on. It holds:
+
+- the job, the candidate's name, when they applied, the current stage, the privacy notice version they saw and whether
+  they turned on the assistive technology switch;
+- `activity`, the timeline as `GET .../timeline` returns it, and `stages`, the name of every stage id it mentions;
+- `automationRuns`, each automation evaluated for the application with its name, workflow version, trigger, status and
+  what each action did (the facts it read stay on `GET .../automation-runs`);
+- `verification`, the record `GET .../verification` returns: levels, reasons, evidence and counter-evidence, and the
+  review log with every dismissal and explanation and its reason.
+
+Nothing in it is a score (ADR-0004; `DecisionRecordContractTests` walks every type it carries). It sends nothing to the
+candidate, and the candidate's copy above still leaves verification out: what reaches the candidate is the organization's
+decision and a legal review item.
+
 ## Retention
 
 `GET /v1/organization/data-retention` (`GetOrganizationRetention`) returns `months` (null is off), `lastUpdated` (the usual
@@ -196,8 +224,15 @@ null, upserts the row and records the change in the settings history; two first 
 with the same cutoff the run would use. `GET .../history` (`GetOrganizationRetentionHistory`) pages the settings history. All
 four need Erase candidates and a person who sees every job.
 
+A deployment can set a floor, `ScreenHire:Retention:MinimumMonths` (unset by default, 1 to 120, checked when the host starts),
+for the laws that keep automated-decision records 3 or 4 years ([the gap map](../research/compliance-gap-map.md), CO-8 and
+CA-7). The `GET` returns it as `minimumMonths`. `PUT` and the preview refuse a shorter period with a validation problem on
+`months`, the dashboard's field starts at it, and the daily run never deletes sooner than it even when an older, shorter period
+is saved (`RecordRetentionOptions.EffectiveMonths`). Off stays off. The floor holds the daily run only: a candidate's own
+erasure request still erases everything, which is a legal decision the gap map leaves open.
+
 `PurgeEndedApplications` runs daily at 04:12 UTC and fans out `PurgeOrganizationEndedApplications(OrganizationId, Now)`. Each
-handler reads its own setting and does nothing when it is off. Otherwise it runs `RetentionSelection.FindAsync` (the worker's
+handler reads its own setting, lengthened to the floor when there is one, and does nothing when it is off. Otherwise it runs `RetentionSelection.FindAsync` (the worker's
 tenant has no user, so it sees every job), takes up to `BatchSize` application ids, and calls
 `CandidateErasure.EraseApplicationsAsync` inside the handler's transaction. It returns the erasure's messages (files, calendar
 events, duplicate checks and one `CandidateErased` event per candidate left with nothing) and, while more are waiting, itself

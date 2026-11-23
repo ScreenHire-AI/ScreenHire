@@ -97,6 +97,10 @@ public sealed class RejectionEmailTests(AppHostFixture fixture)
         var detail = await recruiter.GetAsync($"/v1/applications/{applicationId}");
         detail.Text("stage.id").Should().Be("rejected");
         detail.At("tags").EnumerateArray().Select(t => t.GetString()).Should().Contain("careers", "application.source reached the facts");
+        // The move keeps its principal reason, so a disclosure can say the automation applied a knockout answer.
+        (await recruiter.GetAsync($"/v1/applications/{applicationId}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
+            .Single(e => e.GetProperty("type").GetString() == "StageChanged" && e.GetProperty("toStageId").GetString() == "rejected")
+            .GetProperty("rejectionReason").GetString().Should().Be("KnockoutAnswer");
     }
 
     // Replaces the questionnaire with the one yes/no knockout question the rule reads. "No" disqualifies.

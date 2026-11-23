@@ -27,6 +27,23 @@ public sealed class RetentionTests
         settings.Cutoff(Now).Should().BeNull();
     }
 
+    // A deployment's floor for decision records (ScreenHire:Retention:MinimumMonths, compliance gap map CO-8 and CA-7): the
+    // daily run never deletes sooner, a shorter choice is refused, and turning deleting off is always allowed.
+    [Fact]
+    public void A_floor_outlasts_a_shorter_period_and_refuses_choosing_one()
+    {
+        var floored = new RecordRetentionOptions { MinimumMonths = 36 };
+        var unfloored = new RecordRetentionOptions();
+
+        floored.EffectiveMonths(12).Should().Be(36, "the floor outlasts a shorter period already saved");
+        floored.EffectiveMonths(48).Should().Be(48);
+        floored.EffectiveMonths(null).Should().BeNull("off stays off: a floor never turns deleting on");
+        floored.Allows(35).Should().BeFalse();
+        floored.Allows(36).Should().BeTrue();
+        unfloored.EffectiveMonths(1).Should().Be(1);
+        unfloored.Allows(1).Should().BeTrue();
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]

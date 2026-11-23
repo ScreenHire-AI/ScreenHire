@@ -11,11 +11,14 @@ import type { RetentionLastRun } from './retentionLastRun.ts';
  * The organization's record retention. `months` is how long after it ended an application stays before it is deleted
  * (1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is
  * the default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted
- * something, or `null` when none has.
+ * something, or `null` when none has. `minimumMonths` is the deployment's floor for decision records
+ * (`ScreenHire:Retention:MinimumMonths`): a shorter period is refused. `null` when there is none.
  */
 export interface OrganizationRetention {
   /** @nullable */
   months: number | null;
   lastUpdated: LastUpdate;
   lastRun: null | RetentionLastRun;
+  /** @nullable */
+  minimumMonths?: number | null;
 }

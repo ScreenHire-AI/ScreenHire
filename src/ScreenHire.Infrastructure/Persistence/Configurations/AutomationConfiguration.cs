@@ -82,5 +82,11 @@ internal sealed class ApplicationTaskConfiguration : IEntityTypeConfiguration<Ap
         builder.HasIndex(t => new { t.OrganizationId, t.ApplicationId });
         // My tasks: Mine and For the team list by assignee, open or done.
         builder.HasIndex(t => new { t.OrganizationId, t.AssigneeUserId, t.CompletedAt });
+        // A candidate's review request is open once per application: two posts at the same moment (a double click) both
+        // pass the endpoint's check, and the second save fails here (PublicPortalEndpoints.RequestReview answers 202).
+        // Named, so EF keeps it apart from the plain index on the same columns above.
+        builder.HasIndex(t => new { t.OrganizationId, t.ApplicationId }, "ix_application_tasks_open_review_request").IsUnique()
+            .HasFilter("kind = 'ReviewRequest' AND completed_at IS NULL")
+            .HasDatabaseName("ix_application_tasks_open_review_request");
     }
 }

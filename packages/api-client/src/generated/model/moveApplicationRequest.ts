@@ -4,13 +4,16 @@
  * ScreenHire.Api | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { RejectionReason } from './rejectionReason.ts';
 
 /**
  * Moves an application to another stage of its job's workflow. Only people move applications here. The optional
- * `note` is kept on the move's timeline entry.
+ * `note` is kept on the move's timeline entry, and so is `rejectionReason`, the principal reason for a move into
+ * a rejected stage (refused with any other stage). `KnockoutAnswer` is the automations' own and refused here.
  */
 export interface MoveApplicationRequest {
   toStageId: string;
   /** @nullable */
   note?: string | null;
+  rejectionReason?: null | RejectionReason;
 }

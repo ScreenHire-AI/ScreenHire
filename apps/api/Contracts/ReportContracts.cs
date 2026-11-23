@@ -95,5 +95,10 @@ public sealed record EqualityForm(Guid FormTemplateId, string Name, int? Respons
 /// <summary>One question's totals, a count per answer and one for no answer (<c>value</c> empty).</summary>
 public sealed record EqualityQuestion(string QuestionId, string Label, IReadOnlyList<EqualityAnswerCount> Answers);
 
-/// <summary>How many gave this answer, or null where the count is hidden.</summary>
-public sealed record EqualityAnswerCount(string Value, string Label, int? Count);
+/// <summary>
+/// How many gave this answer, or null where the count is hidden. Of them, for an impact-ratio bias audit
+/// (docs/compliance/bias-audit-method.md): <c>advanced</c> moved forward past the first stage, <c>hired</c> are in a hired
+/// stage, <c>flagged</c> were assigned an authenticity level above the lowest. Each hides its small counts as <c>count</c>
+/// does, and is null whenever <c>count</c> is.
+/// </summary>
+public sealed record EqualityAnswerCount(string Value, string Label, int? Count, int? Advanced = null, int? Hired = null, int? Flagged = null);

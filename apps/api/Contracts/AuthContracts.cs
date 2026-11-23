@@ -46,11 +46,13 @@ public sealed record CurrentUser(Guid Id, string Email, string DisplayName, stri
 /// The organization the signed-in user works in, their role there (a built-in one, or Custom with <c>customRoleId</c>),
 /// its name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;
 /// the API checks the same permissions on every request (ADR-0014). <c>seesAllJobs</c> is false for a member on Only
-/// jobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015).
+/// jobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015). <c>decisionRecordEnabled</c> says
+/// this deployment serves an application's decision record (<c>ScreenHire:Compliance:DecisionRecord:Enabled</c>), so the
+/// dashboard offers its download only when the route answers.
 /// </summary>
 public sealed record CurrentOrganization(
     Guid Id, string Name, string Slug, OrganizationRole Role, Guid? CustomRoleId, string RoleName, IReadOnlyList<Permission> Permissions,
-    bool SeesAllJobs);
+    bool SeesAllJobs, bool DecisionRecordEnabled = false);
 
 /// <summary>
 /// One of the signed-in user's organizations, for the organization switcher, with their role there. <c>roleName</c> is

@@ -130,6 +130,12 @@ Reports show no levels, no signals and no counts by level (ADR-0004). They read 
 through one counts at the rows it reached around it, and its time in that stage is not shown. Custom stages have no row
 because they have no fixed place in a pipeline, and Rejected and Withdrawn end an application without moving it on.
 
+The one exception is the equality monitoring totals (section 7): a bias audit has to know whether the checks flag one
+group more than another (ADR-0004 keeps versions "for audit and bias testing"; [bias audit method](../compliance/bias-audit-method.md)),
+so they count, per answer, the candidates given an authenticity level above the lowest. That count sits behind the same
+legal-review setting and Edit settings permission as the rest of those totals, hides small counts the same way, and
+never reaches the hiring report, its CSV or an API key.
+
 ## 5. The page
 
 `apps/dashboard/src/routes/(app)/reports/+page.svelte`, on the Overview template (design system section 7): the headline cards,
@@ -170,6 +176,12 @@ the report arrives and while it is empty.
 `GET /v1/reports/equality` (`GetEqualityReport`, `apps/api/Reports/EqualityReportReads.cs`) counts the answers to the
 organization's equality monitoring forms ([workflow engine](workflow-engine.md), section 7, Forms): for each such library
 form, how many candidates answered it in the range, and per question how many gave each answer and how many gave none.
+Beside each count are the outcomes an impact-ratio bias audit divides ([bias audit method](../compliance/bias-audit-method.md)):
+`advanced`, those who entered a later stage that does not end an application (a template switch is not a move) or are
+hired, so `hired` never exceeds it, `hired`,
+those in a hired stage now, and `flagged`, those whose newest authenticity assessment is above the lowest level,
+dismissed or not, because NYC counts being assigned a classification. Each column hides its small counts with
+`SmallCounts.Suppress`, and an outcome is null whenever its answer's count is.
 It groups the answered requests by their library form (`questionnaire_requests.form_template_id`), so a form used by
 several templates and jobs is counted once across them.
 
@@ -184,8 +196,8 @@ several templates and jobs is counted once across them.
   choice or yes/no question; each one stays unknown. A form fewer than 5 candidates answered in the range shows only that.
 - **Nothing names a candidate.** The response carries the forms, questions and answers and their counts, never an id of
   an application or a person. Labels come from every published version, the newest winning.
-- **The page.** `equality-report-panel.svelte`, after the other panels, a panel per form and a table per question, with
-  "Fewer than 5" where a count is hidden, for someone who may see it where the deployment offers equality forms.
+- **The page.** `equality-report-panel.svelte`, after the other panels, a panel per form and a table per question
+  (Candidates, Moved on, Hired, Flagged), with "Fewer than 5" where a count is hidden, for someone who may see it where the deployment offers equality forms.
 - **Known limit: differencing.** Hiding small counts protects each response on its own, not two responses compared.
   Someone who may see the totals can still narrow a count down to one candidate in three ways: two ranges that differ by
   a few minutes (the application's timeline shows when each candidate answered); one job's totals against all jobs'; and

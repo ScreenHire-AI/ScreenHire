@@ -169,7 +169,8 @@ public sealed class JobApplication : IJobScoped
     /// was in; the caller takes it out of the saved candidates.
     /// </remarks>
     public ApplicationEvent? MoveTo(
-        WorkflowStage target, DateTimeOffset now, Guid? actorUserId, string? note, Guid? automationRunId = null, Guid? actorApiKeyId = null)
+        WorkflowStage target, DateTimeOffset now, Guid? actorUserId, string? note, Guid? automationRunId = null, Guid? actorApiKeyId = null,
+        RejectionReason? rejectionReason = null)
     {
         ArgumentNullException.ThrowIfNull(target);
         if (target.Id == CurrentStageId && KeptInMindAt is null)
@@ -184,7 +185,9 @@ public sealed class JobApplication : IJobScoped
         return NewEvent(
             ApplicationEventType.StageChanged,
             new ApplicationEventData(
-                from, target.Id, string.IsNullOrWhiteSpace(note) ? null : note.Trim(), AutomationRunId: automationRunId, ApiKeyId: actorApiKeyId),
+                from, target.Id, string.IsNullOrWhiteSpace(note) ? null : note.Trim(), AutomationRunId: automationRunId, ApiKeyId: actorApiKeyId,
+                // A reason is kept only on a move into a rejected stage.
+                RejectionReason: target.Kind == StageKind.Rejected ? rejectionReason?.ToString() : null),
             now,
             actorUserId);
     }
@@ -588,6 +591,27 @@ public sealed class JobApplication : IJobScoped
         };
         return (task, NewEvent(
             ApplicationEventType.TaskCreated, new ApplicationEventData(Note: task.Note, ApiKeyId: actorApiKeyId, TaskId: task.Id), now, actorUserId));
+    }
+
+    /// <summary>The fixed note of a candidate's review request: the candidate's own words go in a reply, never here.</summary>
+    public const string ReviewRequestNote = "The candidate asked for a person to review the decision on this application.";
+
+    /// <summary>
+    /// The candidate asks for a person to review the decision: a <see cref="ApplicationTaskKind.ReviewRequest"/> task for the
+    /// hiring team and the timeline entry that records it, with no actor, because the candidate is not a member.
+    /// </summary>
+    public (ApplicationTask Task, ApplicationEvent Entry) AskForReview(DateTimeOffset now)
+    {
+        var task = new ApplicationTask
+        {
+            OrganizationId = OrganizationId,
+            ApplicationId = Id,
+            Kind = ApplicationTaskKind.ReviewRequest,
+            Note = ReviewRequestNote,
+            StageId = CurrentStageId,
+            CreatedAt = now,
+        };
+        return (task, NewEvent(ApplicationEventType.TaskCreated, new ApplicationEventData(Note: task.Note, TaskId: task.Id), now, null));
     }
 
     /// <summary>

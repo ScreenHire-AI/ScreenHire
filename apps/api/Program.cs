@@ -112,6 +112,8 @@ builder.Services.AddOptions<CareersEmbeddingOptions>().BindConfiguration(Careers
 // The addresses of our Terms, Privacy Policy and DPA, which the sign-in page's agreement line links to.
 builder.Services.AddOptions<LegalOptions>().BindConfiguration(LegalOptions.Section);
 builder.Services.AddOptions<FormsOptions>().BindConfiguration(FormsOptions.Section);
+// Compliance features, each off until the owner turns it on (docs/research/compliance-gap-map.md).
+builder.Services.AddOptions<ComplianceOptions>().BindConfiguration(ComplianceOptions.Section);
 // Slack (docs/architecture/slack.md): connecting a workspace and linking accounts happen here; the worker posts.
 builder.Services.AddScreenHireSlack();
 builder.Services.AddOrganizationModels();
@@ -197,6 +199,7 @@ app.MapRoleEndpoints();
 app.MapApiKeyEndpoints();
 app.MapWorkflowEndpoints();
 app.MapAutomationEndpoints();
+app.MapDecisionRecordEndpoints();
 app.MapTaskEndpoints();
 app.MapTagEndpoints();
 app.MapReportEndpoints();

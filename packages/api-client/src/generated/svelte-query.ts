@@ -37,6 +37,7 @@ import type {
   AiUsageSummary,
   ApiKeySummary,
   ApiMeta,
+  ApplicationDecisionRecord,
   ApplicationDetail,
   ApplicationEmailDraft,
   ApplicationFollowUp,
@@ -6047,6 +6048,105 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return createMutation(() => ({ ...getSendPublicPortalReplyMutationOptions(options?.()) }), queryClient);
+    }
+
+export type requestPublicPortalReviewResponse202 = {
+  data: void
+  status: 202
+}
+
+export type requestPublicPortalReviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestPublicPortalReviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type requestPublicPortalReviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestPublicPortalReviewResponseSuccess = (requestPublicPortalReviewResponse202) & {
+  headers: Headers;
+};
+export type requestPublicPortalReviewResponseError = (requestPublicPortalReviewResponse404 | requestPublicPortalReviewResponse409 | requestPublicPortalReviewResponse429) & {
+  headers: Headers;
+};
+
+export const getRequestPublicPortalReviewUrl = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}/applications/${applicationId}/review-request`
+}
+
+export const requestPublicPortalReview = async (organizationSlug: string,
+    token: string,
+    applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<requestPublicPortalReviewResponseSuccess> => {
+
+  return apiQueryFetch<requestPublicPortalReviewResponseSuccess>(getRequestPublicPortalReviewUrl(organizationSlug,token,applicationId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRequestPublicPortalReviewMutationKey = () => ['requestPublicPortalReview'] as const;
+
+export const getRequestPublicPortalReviewMutationOptions = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof requestPublicPortalReview>>, TError,RequestPublicPortalReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+): CreateMutationOptions<Awaited<ReturnType<typeof requestPublicPortalReview>>, TError,RequestPublicPortalReviewMutationVariables, TContext> => {
+
+const mutationKey = getRequestPublicPortalReviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestPublicPortalReview>>, RequestPublicPortalReviewMutationVariables> = (props) => {
+          const {organizationSlug,token,applicationId} = props ?? {};
+
+          return  requestPublicPortalReview(organizationSlug,token,applicationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestPublicPortalReviewMutationResult = NonNullable<Awaited<ReturnType<typeof requestPublicPortalReview>>>
+
+    export type RequestPublicPortalReviewMutationError = ErrorType<void | ProblemDetails>
+    export type RequestPublicPortalReviewMutationVariables = {organizationSlug: string;token: string;applicationId: string}
+
+    export const createRequestPublicPortalReview = <TError = ErrorType<void | ProblemDetails>,
+    TContext = unknown>(options?: () => { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof requestPublicPortalReview>>, TError,RequestPublicPortalReviewMutationVariables, TContext>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient): CreateMutationResult<
+        Awaited<ReturnType<typeof requestPublicPortalReview>>,
+        TError,
+        RequestPublicPortalReviewMutationVariables,
+        TContext
+      > => {
+      return createMutation(() => ({ ...getRequestPublicPortalReviewMutationOptions(options?.()) }), queryClient);
     }
 
 export type listJobsResponse200 = {
@@ -23198,6 +23298,99 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getRunManualAutomationMutationOptions(options?.()) }), queryClient);
     }
+
+export type getApplicationDecisionRecordResponse200 = {
+  data: ApplicationDecisionRecord
+  status: 200
+}
+
+export type getApplicationDecisionRecordResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApplicationDecisionRecordResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApplicationDecisionRecordResponseSuccess = (getApplicationDecisionRecordResponse200) & {
+  headers: Headers;
+};
+export type getApplicationDecisionRecordResponseError = (getApplicationDecisionRecordResponse401 | getApplicationDecisionRecordResponse404) & {
+  headers: Headers;
+};
+
+export const getGetApplicationDecisionRecordUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/decision-record`
+}
+
+export const getApplicationDecisionRecord = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApplicationDecisionRecordResponseSuccess> => {
+
+  return apiQueryFetch<getApplicationDecisionRecordResponseSuccess>(getGetApplicationDecisionRecordUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApplicationDecisionRecordQueryKey = (applicationId: string,) => {
+    return [
+    'v1','applications',applicationId,'decision-record'
+    ] as const;
+    }
+
+
+export const getGetApplicationDecisionRecordQueryOptions = <TData = Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError = ErrorType<void>>(applicationId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApplicationDecisionRecordQueryKey(applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApplicationDecisionRecord>>> = ({ signal }) => getApplicationDecisionRecord(applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApplicationDecisionRecordQueryResult = NonNullable<Awaited<ReturnType<typeof getApplicationDecisionRecord>>>
+export type GetApplicationDecisionRecordQueryError = ErrorType<void>
+
+
+
+export function createGetApplicationDecisionRecord<TData = Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError = ErrorType<void>>(
+ applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetApplicationDecisionRecordQueryOptions(applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type listTasksResponse200 = {
   data: TaskListItem[]

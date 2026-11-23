@@ -27,6 +27,7 @@ import type { ActivityEntry, ApplicationEventType, ApplicationTimelineEntry, Tal
 import type { Component } from 'svelte';
 import { formatDateTime } from '#lib/dates.js';
 import { sentenceStart } from '#lib/history.js';
+import { rejectionReasonLabels } from '#lib/rejection.js';
 import { personName } from '#lib/team.js';
 
 /**
@@ -148,7 +149,7 @@ export function describeEvent(entry: ApplicationTimelineEntry, names: ActivityNa
           ? `The pipeline changed: stayed in ${names.stageName(entry.toStageId)}`
           : `The pipeline changed: from ${names.stageName(entry.fromStageId)} to ${names.stageName(entry.toStageId)}`;
       }
-      return `Moved from ${names.stageName(entry.fromStageId)} to ${names.stageName(entry.toStageId)}`;
+      return `Moved from ${names.stageName(entry.fromStageId)} to ${names.stageName(entry.toStageId)}${entry.rejectionReason ? `: ${rejectionReasonLabels[entry.rejectionReason]}` : ''}`;
     case 'TagAdded':
       return `Tagged "${entry.tag}"`;
     case 'TagRemoved':

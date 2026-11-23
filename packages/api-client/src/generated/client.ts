@@ -21,6 +21,7 @@ import type {
   AiUsageSummary,
   ApiKeySummary,
   ApiMeta,
+  ApplicationDecisionRecord,
   ApplicationDetail,
   ApplicationEmailDraft,
   ApplicationFollowUp,
@@ -3361,6 +3362,60 @@ return apiFetch<sendPublicPortalReplyResponse>(getSendPublicPortalReplyUrl(organ
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(publicPortalReplyRequest)
+  }
+);}
+
+
+
+export type requestPublicPortalReviewResponse202 = {
+  data: void
+  status: 202
+}
+
+export type requestPublicPortalReviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestPublicPortalReviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type requestPublicPortalReviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestPublicPortalReviewResponseSuccess = (requestPublicPortalReviewResponse202) & {
+  headers: Headers;
+};
+export type requestPublicPortalReviewResponseError = (requestPublicPortalReviewResponse404 | requestPublicPortalReviewResponse409 | requestPublicPortalReviewResponse429) & {
+  headers: Headers;
+};
+
+export type requestPublicPortalReviewResponse = (requestPublicPortalReviewResponseSuccess | requestPublicPortalReviewResponseError)
+
+export const getRequestPublicPortalReviewUrl = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}/applications/${applicationId}/review-request`
+}
+
+export const requestPublicPortalReview = async (organizationSlug: string,
+    token: string,
+    applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<requestPublicPortalReviewResponse> => {
+
+  return apiFetch<requestPublicPortalReviewResponse>(getRequestPublicPortalReviewUrl(organizationSlug,token,applicationId),
+  {
+    ...options,
+    method: 'POST'
+
+
   }
 );}
 
@@ -12830,6 +12885,51 @@ export const runManualAutomation = async (applicationId: string,
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getApplicationDecisionRecordResponse200 = {
+  data: ApplicationDecisionRecord
+  status: 200
+}
+
+export type getApplicationDecisionRecordResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApplicationDecisionRecordResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApplicationDecisionRecordResponseSuccess = (getApplicationDecisionRecordResponse200) & {
+  headers: Headers;
+};
+export type getApplicationDecisionRecordResponseError = (getApplicationDecisionRecordResponse401 | getApplicationDecisionRecordResponse404) & {
+  headers: Headers;
+};
+
+export type getApplicationDecisionRecordResponse = (getApplicationDecisionRecordResponseSuccess | getApplicationDecisionRecordResponseError)
+
+export const getGetApplicationDecisionRecordUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/decision-record`
+}
+
+export const getApplicationDecisionRecord = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationDecisionRecordResponse> => {
+
+  return apiFetch<getApplicationDecisionRecordResponse>(getGetApplicationDecisionRecordUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

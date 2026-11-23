@@ -46,7 +46,9 @@
 //                               forwarded to the API and the worker: LinkLifetime, LinkCooldown, PermitsPerMinute, ReplyBodyMax and
 //                               RepliesPerDay.
 //   Retention:*                 the daily record retention run (ScreenHire.Application RecordRetentionOptions), forwarded to
-//                               the API and the worker: BatchSize. Each organization's period is its own setting, off by default.
+//                               the API and the worker: BatchSize, and MinimumMonths (unset), a floor no organization's period
+//                               goes under, for decision records some laws keep 3 or 4 years (docs/research/compliance-gap-map.md).
+//                               Each organization's period is its own setting, off by default.
 //   Tags:*                      Settings, Tags (ScreenHire.Application TagOptions, docs/architecture/tags.md), forwarded to the
 //                               API and the worker: BatchSize (200), the applications one rename or delete changes at a time.
 //   Notifications:*             how long the bell keeps notifications (ScreenHire.Application NotificationOptions,
@@ -65,6 +67,14 @@
 //                               Forms), forwarded to the API: EqualityMonitoring:Enabled (default false) offers equality
 //                               monitoring forms and their totals in Reports. It waits on a legal review; the test stacks
 //                               turn it on.
+//   Compliance:*                features for the rules on automated decisions in hiring (docs/research/compliance-gap-map.md),
+//                               forwarded to the API and the worker: DecisionRecord:Enabled (default false, the API's
+//                               ComplianceOptions) serves an application's decision record (docs/architecture/data-requests.md);
+//                               ReviewRequests:Enabled (default false, the API's) lets a candidate ask from their own page for a
+//                               person to review a rejection (docs/architecture/candidate-portal.md);
+//                               ChangeNotices:Enabled (default false, the worker's ChangeNoticeOptions) puts a notice in the
+//                               bell when ScreenHire's checks change (docs/compliance/checks-changelog.md). Each waits on the
+//                               owner and counsel; the test stacks turn on the decision record and review requests.
 //   Fonts:*                     heading fonts (the API's FontsOptions, docs/architecture/branding.md section 3, ADR-0031),
 //                               forwarded to the API: Sandbox:Enabled=true is the local catalogue of a dozen bundled fonts
 //                               (appsettings.Development.json and the test stacks turn it on, so nothing needs the
@@ -357,6 +367,18 @@ foreach (var (key, value) in settings.GetSection("Forms").AsEnumerable(makePaths
     if (value is not null)
     {
         api.WithEnvironment($"ScreenHire__Forms__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+    }
+}
+
+// Compliance features, each off until turned on: the decision record (the API) and the notice that the checks changed
+// (the worker). Both hosts get the section; each reads its own part.
+foreach (var (key, value) in settings.GetSection("Compliance").AsEnumerable(makePathsRelative: true))
+{
+    if (value is not null)
+    {
+        var name = $"ScreenHire__Compliance__{key.Replace(":", "__", StringComparison.Ordinal)}";
+        api.WithEnvironment(name, value);
+        worker.WithEnvironment(name, value);
     }
 }
 

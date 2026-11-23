@@ -2,7 +2,7 @@
 // page with it, read the messages about an application and answer them. Native forms posted to Astro Actions, so every page
 // works with JavaScript off. Nothing about the browser goes with any of it: no telemetry and no device check. Server-only
 // (it calls the API); the pure parts are exported for the unit tests.
-import { requestPublicPortalLink, sendPublicPortalReply } from './api';
+import { requestPublicPortalLink, requestPublicPortalReview, sendPublicPortalReply } from './api';
 import { text } from './apply';
 import { forwardedFor, TURNSTILE_FIELD } from './apply-server';
 import { isToken } from './questionnaire';
@@ -139,6 +139,43 @@ export async function requestLink(form: FormData, clientAddress: string | undefi
   const outcome = linkOutcome(response.status);
   return outcome === 'sent' ? { outcome } : { outcome, email };
 }
+
+/** What the page says after the candidate asks for a review. `asked` redirects back to the page, which then shows it waiting. */
+export type ReviewOutcome = 'asked' | 'not-possible' | 'expired' | 'busy' | 'error';
+
+/** The outcome of asking for a person to review a decision, from the API's status. */
+export function reviewOutcome(status: number): ReviewOutcome {
+  if (status === 202) return 'asked';
+  if (status === 409) return 'not-possible';
+  if (status === 429) return 'busy';
+  if (status === 404) return 'expired';
+  return 'error';
+}
+
+/**
+ * Asks for a person to review the decision on an application that is not moving forward (docs/architecture/candidate-portal.md,
+ * Review requests). The token and the application travel in hidden fields. Never throws for the candidate.
+ */
+export async function askForReview(form: FormData, clientAddress: string | undefined): Promise<{ outcome: ReviewOutcome }> {
+  const organization = text(form, 'organization');
+  const token = text(form, 'token');
+  const application = text(form, 'application');
+  if (!isToken(token) || !isGuid(application)) return { outcome: 'expired' };
+  try {
+    const response = await requestPublicPortalReview(organization, token, application, forwardedFor(clientAddress));
+    return { outcome: reviewOutcome(response.status) };
+  } catch {
+    return { outcome: 'error' };
+  }
+}
+
+/** What the page says when asking for a review did not go through. */
+export const REVIEW_MESSAGES: Record<Exclude<ReviewOutcome, 'asked'>, string> = {
+  'not-possible': 'This application can no longer be reviewed again from here. Write to the team instead.',
+  expired: 'This link has expired. Ask for a new one to try again.',
+  busy: 'Too many attempts. Wait a minute and try again.',
+  error: 'Something went wrong. Try again in a moment.',
+};
 
 /** The longest message the API takes, until the page learns the real limit from it. */
 export const DEFAULT_BODY_MAX = 5000;

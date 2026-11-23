@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/svelte-query';
 import { tick } from 'svelte';
 import { enteringLines } from '#lib/automation-sentence.js';
 import { preferences } from '#lib/preferences.svelte.js';
+import type { RejectionReason } from '#lib/rejection.js';
 import { describeError, invalidatePath } from '#lib/query.js';
 import { applicationsPath, candidatesPath, jobsPath } from '#lib/realtime.js';
 import { getShell } from '#lib/shell.js';
@@ -167,11 +168,14 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
       return mutation.isPending;
     },
 
-    /** Moves one application, after asking if its stage does something; `note` is kept on the move's entry in its Activity. */
-    async move(application: Movable, to: WorkflowStage, note?: string): Promise<boolean> {
+    /**
+     * Moves one application, after asking if its stage does something; `note` is kept on the move's entry in its Activity,
+     * and so is `rejectionReason`, the principal reason for a move into a rejected stage.
+     */
+    async move(application: Movable, to: WorkflowStage, note?: string, rejectionReason?: RejectionReason): Promise<boolean> {
       failure = '';
       if (!(await ask([application], to))) return false;
-      const moved = await perform(application, to, note);
+      const moved = await perform(application, to, note, rejectionReason);
       if (afterMove) await refocus(afterMove);
       return moved;
     },
@@ -218,7 +222,7 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
     });
   }
 
-  async function perform(application: Movable, to: WorkflowStage, note?: string): Promise<boolean> {
+  async function perform(application: Movable, to: WorkflowStage, note?: string, rejectionReason?: RejectionReason): Promise<boolean> {
     const stage: ApplicationStage = { id: to.id, name: to.name, kind: to.kind };
     const queryKey = getListJobApplicationsQueryKey(application.jobId);
     // A refetch already in flight (another dashboard's ApplicationMoved) would land after this and put the card back.
@@ -227,7 +231,14 @@ export function createMoves(options: { allowed?: () => boolean } = {}) {
       cached && { ...cached, data: cached.data.map((item) => (item.id === application.id ? { ...item, stage, keptInMindAt: null } : item)) },
     );
     try {
-      await mutation.mutateAsync({ applicationId: application.id, data: { toStageId: to.id, ...(note?.trim() ? { note: note.trim() } : {}) } });
+      await mutation.mutateAsync({
+        applicationId: application.id,
+        data: {
+          toStageId: to.id,
+          ...(note?.trim() ? { note: note.trim() } : {}),
+          ...(rejectionReason && to.kind === 'Rejected' ? { rejectionReason } : {}),
+        },
+      });
       done(['You moved ', application.candidateName, ` to ${to.name}`], `/applications/${application.id}`, application.jobTitle, `Moved ${application.candidateName} to ${to.name}.`);
       return true;
     } catch (error) {

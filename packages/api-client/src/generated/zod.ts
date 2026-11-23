@@ -194,6 +194,8 @@ export const GetSignInMethodsResponse = zod.object({
 }).describe('How a person can sign in here: the configured identity providers, whether email links work, and the legal documents the\nsign-in page\'s agreement line links to.')
 
 
+export const getCurrentUserResponseOrganizationTwoDecisionRecordEnabledDefault = false;
+
 export const GetCurrentUserResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
@@ -207,8 +209,9 @@ export const GetCurrentUserResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
-  "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "seesAllJobs": zod.boolean(),
+  "decisionRecordEnabled": zod.boolean().default(getCurrentUserResponseOrganizationTwoDecisionRecordEnabledDefault)
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015). `decisionRecordEnabled` says\nthis deployment serves an application\'s decision record (`ScreenHire:Compliance:DecisionRecord:Enabled`), so the\ndashboard offers its download only when the route answers.')]),
   "photoUrl": zod.string().nullish()
 }).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
@@ -255,6 +258,8 @@ export const CompleteOnboardingBody = zod.object({
   "name": zod.string()
 }).describe('Creates the signed-in user\'s organization, with them as its Owner. `name` is the person\'s own name, asked for here\nbecause the team\'s lists and every "by" line show it; it replaces the one the identity provider gave, if any.')
 
+export const completeOnboardingResponseOrganizationTwoDecisionRecordEnabledDefault = false;
+
 export const CompleteOnboardingResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
@@ -268,8 +273,9 @@ export const CompleteOnboardingResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
-  "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "seesAllJobs": zod.boolean(),
+  "decisionRecordEnabled": zod.boolean().default(completeOnboardingResponseOrganizationTwoDecisionRecordEnabledDefault)
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015). `decisionRecordEnabled` says\nthis deployment serves an application\'s decision record (`ScreenHire:Compliance:DecisionRecord:Enabled`), so the\ndashboard offers its download only when the route answers.')]),
   "photoUrl": zod.string().nullish()
 }).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
@@ -290,6 +296,8 @@ export const AcceptInvitationBody = zod.object({
   "name": zod.string().nullish()
 }).describe('Accepts the invitation whose token an emailed link carries, signing in as the invited address. `name` is required\nwhen the invited address has no account with a name yet (`needsName` on the lookup), and ignored otherwise.')
 
+export const acceptInvitationResponseOrganizationTwoDecisionRecordEnabledDefault = false;
+
 export const AcceptInvitationResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
@@ -303,8 +311,9 @@ export const AcceptInvitationResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
-  "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "seesAllJobs": zod.boolean(),
+  "decisionRecordEnabled": zod.boolean().default(acceptInvitationResponseOrganizationTwoDecisionRecordEnabledDefault)
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015). `decisionRecordEnabled` says\nthis deployment serves an application\'s decision record (`ScreenHire:Compliance:DecisionRecord:Enabled`), so the\ndashboard offers its download only when the route answers.')]),
   "photoUrl": zod.string().nullish()
 }).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
@@ -312,6 +321,8 @@ export const AcceptInvitationResponse = zod.object({
 export const SwitchOrganizationBody = zod.object({
   "organizationId": zod.uuid()
 }).describe('Makes another of the signed-in user\'s organizations the one they work in.')
+
+export const switchOrganizationResponseOrganizationTwoDecisionRecordEnabledDefault = false;
 
 export const SwitchOrganizationResponse = zod.object({
   "id": zod.uuid(),
@@ -326,8 +337,9 @@ export const SwitchOrganizationResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
-  "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "seesAllJobs": zod.boolean(),
+  "decisionRecordEnabled": zod.boolean().default(switchOrganizationResponseOrganizationTwoDecisionRecordEnabledDefault)
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015). `decisionRecordEnabled` says\nthis deployment serves an application\'s decision record (`ScreenHire:Compliance:DecisionRecord:Enabled`), so the\ndashboard offers its download only when the route answers.')]),
   "photoUrl": zod.string().nullish()
 }).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
@@ -1264,6 +1276,9 @@ export const GetPublicPortalParams = zod.object({
   "token": zod.string()
 })
 
+export const getPublicPortalResponseApplicationsItemCanAskForReviewDefault = false;
+export const getPublicPortalResponseApplicationsItemReviewRequestedDefault = false;
+
 export const GetPublicPortalResponse = zod.object({
   "organizationName": zod.string(),
   "firstName": zod.string(),
@@ -1282,8 +1297,10 @@ export const GetPublicPortalResponse = zod.object({
   "meetingName": zod.string().nullish()
 }).describe('Something the candidate can act on, with the token of the existing careers page for it\n(`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team\'s wording for it\nand is not sent. `meetingName` is on an interview only: what the team calls the meeting, such as "trial shift".')),
   "hasMessages": zod.boolean(),
-  "canReply": zod.boolean()
-}).describe('One of the candidate\'s applications to this organization.')),
+  "canReply": zod.boolean(),
+  "canAskForReview": zod.boolean().default(getPublicPortalResponseApplicationsItemCanAskForReviewDefault),
+  "reviewRequested": zod.boolean().default(getPublicPortalResponseApplicationsItemReviewRequestedDefault)
+}).describe('One of the candidate\'s applications to this organization. `canAskForReview`: the application is not moving forward\n(a rejected stage), the organization\'s deployment takes review requests, and none is waiting; `reviewRequested`: one\nis waiting for the team. Both are false wherever review requests are off.')),
   "drafts": zod.array(zod.object({
   "jobTitle": zod.string(),
   "jobSlug": zod.string(),
@@ -1330,6 +1347,15 @@ export const SendPublicPortalReplyBody = zod.object({
 }).describe('A reply written on the page. `key` is the form\'s own random id (32 hex digits), so sending the same form twice stores one\nreply.')
 
 export const SendPublicPortalReplyResponse = zod.void()
+
+
+export const RequestPublicPortalReviewParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string(),
+  "applicationId": zod.uuid()
+})
+
+export const RequestPublicPortalReviewResponse = zod.void()
 
 
 /**
@@ -5910,8 +5936,9 @@ export const MoveApplicationParams = zod.object({
 
 export const MoveApplicationBody = zod.object({
   "toStageId": zod.string(),
-  "note": zod.string().nullish()
-}).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\n`note` is kept on the move\'s timeline entry.')
+  "note": zod.string().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
+}).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\n`note` is kept on the move\'s timeline entry, and so is `rejectionReason`, the principal reason for a move into\na rejected stage (refused with any other stage). `KnockoutAnswer` is the automations\' own and refused here.')
 
 export const moveApplicationResponseCandidateEmailIssueDefault = `None`;
 export const moveApplicationResponseAiUseDeclarationDefault = `NotProvided`;
@@ -6051,7 +6078,8 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
   "endsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "templateVersionId": zod.uuid().nullish()
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -6096,7 +6124,8 @@ export const AddApplicationNoteResponse = zod.object({
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
   "endsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "templateVersionId": zod.uuid().nullish()
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -6375,7 +6404,7 @@ export const CreateApplicationTaskBody = zod.object({
 export const CreateApplicationTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -6394,7 +6423,7 @@ export const ListApplicationTasksParams = zod.object({
 export const ListApplicationTasksResponseItem = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -6533,7 +6562,8 @@ export const GetCandidateHistoryResponseItem = zod.object({
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
   "endsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "templateVersionId": zod.uuid().nullish()
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.'),
   "fromStageName": zod.string().nullish(),
   "toStageName": zod.string().nullish(),
@@ -6617,8 +6647,9 @@ export const GetOrganizationRetentionResponse = zod.object({
   "lastRun": zod.union([zod.null(),zod.object({
   "at": zod.iso.datetime({"offset":true}),
   "applicationsRemoved": zod.int()
-}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')])
-}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has.')
+}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')]),
+  "minimumMonths": zod.int().nullish()
+}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has. `minimumMonths` is the deployment\'s floor for decision records\n(`ScreenHire:Retention:MinimumMonths`): a shorter period is refused. `null` when there is none.')
 
 
 export const UpdateOrganizationRetentionBody = zod.object({
@@ -6639,8 +6670,9 @@ export const UpdateOrganizationRetentionResponse = zod.object({
   "lastRun": zod.union([zod.null(),zod.object({
   "at": zod.iso.datetime({"offset":true}),
   "applicationsRemoved": zod.int()
-}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')])
-}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has.')
+}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')]),
+  "minimumMonths": zod.int().nullish()
+}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has. `minimumMonths` is the deployment\'s floor for decision records\n(`ScreenHire:Retention:MinimumMonths`): a shorter period is refused. `null` when there is none.')
 
 
 export const GetOrganizationRetentionHistoryQueryParams = zod.object({
@@ -9445,7 +9477,8 @@ export const GetActivityResponse = zod.object({
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
   "endsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "templateVersionId": zod.uuid().nullish()
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')]),
   "fromStageName": zod.string().nullable(),
   "toStageName": zod.string().nullable(),
@@ -10506,6 +10539,333 @@ export const RunManualAutomationResponse = zod.object({
 }).describe('A manual automation was queued. `eventId` keys its run: find it in the application\'s automation runs.')
 
 
+export const GetApplicationDecisionRecordParams = zod.object({
+  "applicationId": zod.uuid()
+})
+
+export const getApplicationDecisionRecordResponseAutomationRunsItemActionsItemActionInterviewOptionTwoDefault = `OurTimes`;
+export const getApplicationDecisionRecordResponseVerificationAiAssistanceTwoDeclarationDefault = `NotProvided`;
+
+export const GetApplicationDecisionRecordResponse = zod.object({
+  "applicationId": zod.uuid(),
+  "jobId": zod.uuid(),
+  "jobTitle": zod.string(),
+  "candidateId": zod.uuid(),
+  "candidateName": zod.string(),
+  "submittedAt": zod.iso.datetime({"offset":true}),
+  "currentStage": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.enum(['Applied', 'Screening', 'Assessment', 'Verification', 'Interview', 'Offer', 'Hired', 'Rejected', 'Withdrawn', 'Custom'])
+}).describe('A stage of the job\'s workflow, as an application sees it.'),
+  "privacyNoticeVersion": zod.string().nullable(),
+  "accommodationRequested": zod.boolean(),
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}).describe('A stage id the decision record mentions, and its name.')),
+  "activity": zod.array(zod.object({
+  "id": zod.uuid(),
+  "type": zod.enum(['Submitted', 'StageChanged', 'TagAdded', 'VerificationAssessed', 'TagRemoved', 'NoteAdded', 'ScorecardSubmitted', 'EmailSent', 'QuestionnaireSent', 'QuestionnaireCompleted', 'NoteEdited', 'NoteDeleted', 'TaskCreated', 'KeptInMind', 'LeftTalentPool', 'InvitedToApply', 'InterviewInvited', 'InterviewBooked', 'InterviewRescheduled', 'InterviewCancelled', 'InterviewNewTimesOffered', 'InterviewOptionChanged', 'InterviewTimesSuggested', 'InterviewAnotherTimeAsked', 'EmailReceived']),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "actorUserId": zod.uuid().nullable(),
+  "fromStageId": zod.string().nullable(),
+  "toStageId": zod.string().nullable(),
+  "note": zod.string().nullable(),
+  "tag": zod.string().nullable(),
+  "automationRunId": zod.uuid().nullable(),
+  "actorApiKeyId": zod.uuid().nullable(),
+  "scorecardId": zod.uuid().nullable(),
+  "stageId": zod.string().nullable(),
+  "recommendation": zod.string().nullable(),
+  "emailTemplateId": zod.string().nullish(),
+  "emailSubject": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish(),
+  "questionnaireRequestId": zod.uuid().nullish(),
+  "noteId": zod.uuid().nullish(),
+  "noteEditedAt": zod.iso.datetime({"offset":true}).nullish(),
+  "actorApiKeyName": zod.string().nullish(),
+  "emailId": zod.uuid().nullish(),
+  "taskId": zod.uuid().nullish(),
+  "poolExit": zod.union([zod.null(),zod.union([zod.literal('Expired'),zod.literal('Removed'),zod.literal('CandidateAsked'),zod.literal('AddedToJob'),zod.literal('AppliedAgain'),zod.literal('BackInJob'),zod.literal('KeptFromAnotherJob'),zod.literal(null)])]).optional(),
+  "otherJobId": zod.uuid().nullish(),
+  "otherApplicationId": zod.uuid().nullish(),
+  "interviewId": zod.uuid().nullish(),
+  "startsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "endsAt": zod.iso.datetime({"offset":true}).nullish(),
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
+}).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')),
+  "automationRuns": zod.array(zod.object({
+  "id": zod.uuid(),
+  "automationName": zod.string(),
+  "workflowVersion": zod.int(),
+  "trigger": zod.enum(['ApplicationSubmitted', 'StageEntered', 'StageExited', 'QuestionnaireCompleted', 'VerificationAssessed', 'VerificationCompleted', 'ReviewerDecision', 'TimeElapsed', 'CandidateReplied', 'InterviewScheduled', 'Manual', 'SlaBreached']),
+  "status": zod.enum(['NotMatched', 'Skipped', 'Blocked', 'Running', 'Completed', 'Failed']),
+  "detail": zod.string().nullable(),
+  "actions": zod.array(zod.object({
+  "index": zod.int(),
+  "action": zod.object({
+  "type": zod.enum(['SendEmail', 'SendQuestionnaire', 'RequestVerification', 'MoveToStage', 'AddTag', 'AssignReviewer', 'NotifyTeam', 'ScheduleInterview', 'CreateTask', 'CallWebhook', 'QueueForRejectionReview', 'Reject']),
+  "stageId": zod.string().nullish(),
+  "emailTemplate": zod.string().nullish(),
+  "tag": zod.string().nullish(),
+  "reason": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "assigneeUserId": zod.uuid().nullish(),
+  "verificationProvider": zod.string().nullish(),
+  "questionnaireId": zod.string().nullish(),
+  "interviewerUserIds": zod.array(zod.uuid()).nullish(),
+  "interviewMinutes": zod.int().nullish(),
+  "interviewWindowDays": zod.int().nullish(),
+  "interviewTimeZone": zod.string().nullish(),
+  "interviewMode": zod.union([zod.null(),zod.union([zod.literal('Send'),zod.literal('Choose'),zod.literal(null)])]).optional(),
+  "interviewOption": zod.union([zod.null(),zod.enum(['OurTimes', 'TheirTimes', 'OurSuggestion']).default(getApplicationDecisionRecordResponseAutomationRunsItemActionsItemActionInterviewOptionTwoDefault).describe('How the candidate picks a time (docs/architecture/interview-scheduling.md, "Three ways to pick a time"), chosen for each\ninterview before the candidate is told and changeable while it waits.')]).optional()
+}).describe('One action. Which optional members apply depends on ActionType AutomationAction.Type; DefinitionValidator checks\nthat each type has what it needs and nothing else.'),
+  "status": zod.enum(['Pending', 'Completed', 'Skipped', 'Failed']),
+  "detail": zod.string().nullable(),
+  "finishedAt": zod.iso.datetime({"offset":true}).nullable()
+})),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "finishedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('One automation that was evaluated for the application: its name and workflow version when it ran, what triggered it,\nhow it ended and what each action did. The facts its conditions saw are on `GET /v1/applications/{id}/automation-runs`.')),
+  "verification": zod.object({
+  "applicationId": zod.uuid(),
+  "status": zod.enum(['Pending', 'Assessed']),
+  "authenticity": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "level": zod.enum(['NoConcerns', 'ReviewSuggested', 'VerificationRecommended']).describe('Authenticity levels, lowest first (verification-engine.md §2).'),
+  "reasonCodes": zod.array(zod.string()),
+  "summary": zod.string(),
+  "nextStep": zod.string(),
+  "signals": zod.array(zod.object({
+  "id": zod.uuid(),
+  "code": zod.string(),
+  "title": zod.string(),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
+  "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
+  "countsTowardLevel": zod.boolean(),
+  "contextOnly": zod.boolean(),
+  "accessibilitySensitive": zod.boolean(),
+  "explanation": zod.string(),
+  "evidence": zod.array(zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+  "counterEvidence": zod.array(zod.object({
+  "explanation": zod.string(),
+  "evidence": zod.union([zod.null(),zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
+  "source": zod.string(),
+  "sourceVersion": zod.int(),
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
+  "rulesetVersion": zod.string(),
+  "assessedAt": zod.iso.datetime({"offset":true}),
+  "dismissal": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "dismissedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer set an assessment aside. `actorName` is the reviewer\'s display name, when they have one.')])
+}).describe('Is this a real, unique, present person who is who they say they are?')]),
+  "aiAssistance": zod.union([zod.null(),zod.object({
+  "id": zod.uuid(),
+  "level": zod.enum(['NotIndicated', 'SomeIndicators', 'StrongIndicators']).describe('AI assistance levels, lowest first. Informational and relative to the job\'s AI policy.'),
+  "reasonCodes": zod.array(zod.string()),
+  "summary": zod.string(),
+  "nextStep": zod.string(),
+  "signals": zod.array(zod.object({
+  "id": zod.uuid(),
+  "code": zod.string(),
+  "title": zod.string(),
+  "category": zod.enum(['Network', 'Identity', 'Automation', 'Behavioural', 'Document', 'Content']).describe('Independent kinds of evidence. A level above the lowest needs two of them (verification-engine.md §2), so that one noisy\nsource, such as a corporate VPN, cannot raise a level by itself.'),
+  "weight": zod.enum(['Low', 'Medium', 'High']).describe('How much a signal counts towards its category. Categorical on purpose: there is no score (ADR-0004).'),
+  "confidence": zod.enum(['Low', 'Medium', 'High']).describe('How sure the analyzer is of the observation itself (a lookup that matched exactly, or a heuristic).'),
+  "countsTowardLevel": zod.boolean(),
+  "contextOnly": zod.boolean(),
+  "accessibilitySensitive": zod.boolean(),
+  "explanation": zod.string(),
+  "evidence": zod.array(zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')),
+  "counterEvidence": zod.array(zod.object({
+  "explanation": zod.string(),
+  "evidence": zod.union([zod.null(),zod.object({
+  "kind": zod.enum(['Fact', 'Quote', 'TextComparison', 'Metric', 'List']).describe('How a piece of evidence renders, so the dashboard can show any signal without code of its own per signal.'),
+  "label": zod.string(),
+  "value": zod.string().nullish(),
+  "text": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "left": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "right": zod.union([zod.null(),zod.object({
+  "label": zod.string(),
+  "text": zod.string()
+}).describe('One side of a text comparison.')]).optional(),
+  "amount": zod.number().nullish(),
+  "unit": zod.string().nullish(),
+  "reference": zod.number().nullish(),
+  "referenceLabel": zod.string().nullish(),
+  "items": zod.array(zod.string()).nullish()
+}).describe('One piece of evidence. One flat record for every kind, members that do not apply left null, like timeline data, so\nthe JSON column, the API and the generated client stay one simple shape. EvidenceKind SignalEvidence.Kind says which members apply.\nA metric is a measurement (seconds, a count), never a likelihood or a score.')]).optional()
+}).describe('Something that argues against a signal, in plain language, with optional evidence of its own.')),
+  "source": zod.string(),
+  "sourceVersion": zod.int(),
+  "observedAt": zod.iso.datetime({"offset":true}),
+  "informational": zod.boolean(),
+  "llm": zod.union([zod.null(),zod.object({
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string(),
+  "consistencyModel": zod.string()
+}).describe('Which prompt and models produced an LLM-derived signal, for audit (verification-engine.md §5). The model ids are the\nones the provider reported serving, not the configured names.')]),
+  "explained": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "explainedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer marked one reason explained. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.')
+}).describe('One signal, renderable by its evidence kinds alone (`evidence[].kind`). Weight and confidence are categories,\nnot numbers.')),
+  "rulesetVersion": zod.string(),
+  "assessedAt": zod.iso.datetime({"offset":true}),
+  "dismissal": zod.union([zod.null(),zod.object({
+  "actionId": zod.uuid(),
+  "reason": zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.'),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid(),
+  "actorName": zod.string().nullable(),
+  "dismissedAt": zod.iso.datetime({"offset":true})
+}).describe('A reviewer set an assessment aside. `actorName` is the reviewer\'s display name, when they have one.')]),
+  "policy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
+  "declaration": zod.enum(['NotProvided', 'DidNotUse', 'Used']).default(getApplicationDecisionRecordResponseVerificationAiAssistanceTwoDeclarationDefault).describe('The candidate\'s answer to "did you use AI tools to apply?".'),
+  "policyContext": zod.enum(['AllowedByPolicy', 'Disclosed', 'NotDisclosed', 'DeclaredUseNotAllowed', 'NotAllowed']).describe('Where the candidate\'s AI use stands against the job\'s policy, from the policy and the declaration only.')
+}).describe('How much of the content appears generated or templated? Informational, and relative to the job\'s AI policy.')]),
+  "reviewLog": zod.array(zod.object({
+  "id": zod.uuid(),
+  "type": zod.enum(['Dismissed', 'NoteAdded', 'ReasonExplained', 'ExplanationUndone', 'ReadByKey', 'EvidenceChanged']),
+  "assessmentKind": zod.union([zod.null(),zod.union([zod.literal('Authenticity'),zod.literal('AiAssistance'),zod.literal(null)])]),
+  "assessmentId": zod.uuid().nullable(),
+  "dismissReason": zod.union([zod.null(),zod.enum(['VerifiedOutsideScreenHire', 'ExplainedByCandidate', 'FalsePositive', 'Other']).describe('Why a reviewer dismissed an assessment.')]),
+  "note": zod.string().nullable(),
+  "actorUserId": zod.uuid().nullable(),
+  "actorName": zod.string().nullable(),
+  "occurredAt": zod.iso.datetime({"offset":true}),
+  "signalId": zod.uuid().nullable(),
+  "signalTitle": zod.string().nullable(),
+  "explainReason": zod.union([zod.null(),zod.enum(['ConfirmedWithCandidate', 'ExpectedForRole', 'KnownFalsePositive', 'Other']).describe('Why a reviewer marked a reason explained.')]),
+  "apiKeyId": zod.uuid().nullable(),
+  "apiKeyName": zod.string().nullable(),
+  "keyCreatedByName": zod.string().nullable()
+}).describe('One entry of the verification audit log, oldest first.')),
+  "requestVerification": zod.object({
+  "available": zod.boolean(),
+  "reason": zod.string().nullable()
+}).describe('Whether an action is offered, and why not when it is not.'),
+  "consistencyCheck": zod.union([zod.null(),zod.object({
+  "status": zod.enum(['Running', 'Completed', 'Unavailable', 'Disabled', 'OverBudget', 'Paused', 'NotEnoughSources']),
+  "note": zod.string().nullable(),
+  "promptVersion": zod.string(),
+  "extractionModel": zod.string().nullable(),
+  "consistencyModel": zod.string().nullable(),
+  "contradictions": zod.int(),
+  "completedAt": zod.iso.datetime({"offset":true}).nullable()
+}).describe('The LLM consistency check for an application: its status, why it did not run (`note`), and the prompt version and\nmodels it ran with. Contradictions appear as `CNT_INCONSISTENCY` signals, each citing both spans.')]),
+  "checksNotRun": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "kind": zod.enum(['TurnedOff', 'Trusted', 'Paused']).describe('Why an analyzer\'s run says it did not look, or did not count something, because of the organization\'s settings.'),
+  "note": zod.string()
+}).describe('A group of checks that did not run, or did not count something, because of the organization\'s settings: its group was turned\noff, or a domain or network it trusts stopped a signal. `note` says which. A result without signals from this group is\nnot a clean result, and a reviewer reads this before relying on it.')).nullish(),
+  "checkGroups": zod.array(zod.object({
+  "group": zod.enum(['Network', 'Contact', 'Documents', 'Answers', 'Duplicates', 'FormUse']).describe('The groups of checks an organization may turn off (verification-engine.md §10). Every analyzer belongs to exactly one\ngroup (CheckGroup? CheckGroups.Of(string analyzerName)), so a new analyzer cannot escape a switch.'),
+  "label": zod.string(),
+  "state": zod.enum(['Found', 'InformationOnly', 'NothingFound', 'NotChecked', 'TurnedOff', 'Paused']).describe('The one word a group of checks has on the Verification tab.'),
+  "found": zod.int(),
+  "notes": zod.int(),
+  "checked": zod.string(),
+  "note": zod.string().nullable()
+}).describe('What one group of checks did for an application. `found` counts its signals that count toward the level; `notes`\nthe others (AI help and context that never counts), which are information only. `state` is the one word for the group:\n`Found` when `found` is above 0, else `InformationOnly` when `notes` is, else `NotChecked` (the\napplication was added by hand, so there was no careers form for this group to read), `TurnedOff` (the organization\'s\nsettings) or `NothingFound`. `checked` names what the group looks at. `note` is what the organization\'s\nsettings changed in it (it is turned off, or a trusted domain or network stopped a signal), when they did.')).nullish()
+}).describe('An application\'s verification: two separate assessments, each a categorical level with reason codes, the signals and\ntheir evidence and counter-evidence, a plain-language summary and a suggested next step (ADR-0004). There is no score\nor percentage anywhere in it, and nothing here decides anything: every action is a person\'s, and every action is in\n`reviewLog`, the audit trail the dashboard shows in the candidate\'s Activity.'),
+  "generatedAt": zod.iso.datetime({"offset":true})
+}).describe('One application\'s decision record, for the team answering a candidate\'s access, correction or review request\n(docs/architecture/data-requests.md, Decision record): what the application was, everything that happened to it, what\nthe automations did, and its verification with every reviewer action. It is the team\'s copy. What goes on to the\ncandidate is the organization\'s decision, and nothing here sends anything.')
+
+
 export const ListTasksQueryParams = zod.object({
   "status": zod.enum(['Open', 'Completed']).optional(),
   "scope": zod.enum(['Mine', 'Team', 'Everyone']).optional()
@@ -10517,7 +10877,7 @@ export const ListTasksResponseItem = zod.object({
   "jobId": zod.uuid(),
   "candidateName": zod.string(),
   "jobTitle": zod.string(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -10536,7 +10896,7 @@ export const CompleteTaskParams = zod.object({
 export const CompleteTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -10555,7 +10915,7 @@ export const ReopenTaskParams = zod.object({
 export const ReopenTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -10743,8 +11103,11 @@ export const GetEqualityReportResponse = zod.object({
   "answers": zod.array(zod.object({
   "value": zod.string(),
   "label": zod.string(),
-  "count": zod.int().nullable()
-}).describe('How many gave this answer, or null where the count is hidden.'))
+  "count": zod.int().nullable(),
+  "advanced": zod.int().nullish(),
+  "hired": zod.int().nullish(),
+  "flagged": zod.int().nullish()
+}).describe('How many gave this answer, or null where the count is hidden. Of them, for an impact-ratio bias audit\n(docs/compliance/bias-audit-method.md): `advanced` moved forward past the first stage, `hired` are in a hired\nstage, `flagged` were assigned an authenticity level above the lowest. Each hides its small counts as `count`\ndoes, and is null whenever `count` is.'))
 }).describe('One question\'s totals, a count per answer and one for no answer (`value` empty).'))
 }).describe('One form\'s totals. `responses` is how many candidates answered it in the range, null when that is under the\nminimum, and then `questions` is empty.')),
   "minimumCount": zod.int()
@@ -10861,7 +11224,7 @@ export const RequestScorecardBody = zod.object({
 export const RequestScorecardResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),

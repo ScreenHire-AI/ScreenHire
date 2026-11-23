@@ -134,6 +134,8 @@ public enum ApplicationEventType
 /// the time it had for a cancellation of a booked interview, and none for an invitation.
 /// <c>templateVersionId</c>: For a <see cref="ApplicationEventType.StageChanged"/> entry, the template version the job switched
 /// to when the entry came from that switch rather than a move; <c>fromStageId</c> and <c>toStageId</c> may then be equal.
+/// <c>rejectionReason</c>: For a <see cref="ApplicationEventType.StageChanged"/> entry into a rejected stage, the principal
+/// reason (<see cref="Applications.RejectionReason"/>), when the person or the automation gave one.
 /// </remarks>
 public sealed record ApplicationEventData(
     string? FromStageId = null,
@@ -161,4 +163,5 @@ public sealed record ApplicationEventData(
     Guid? InterviewId = null,
     DateTimeOffset? StartsAt = null,
     DateTimeOffset? EndsAt = null,
-    Guid? TemplateVersionId = null);
+    Guid? TemplateVersionId = null,
+    string? RejectionReason = null);

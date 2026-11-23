@@ -711,7 +711,13 @@ The data model and API from the jobs and templates task, and the engine that run
   automation moves applications, every `StageExited` automation counts as well: the stage a move leaves is wherever the
   application is when the action runs, which no definition can know. Only an automation whose
   every condition is a knockout question equal to its disqualifying answer, with `allowAutoReject` set, may `Reject`,
-  and it must give the candidate a reason. Accommodation status and the AI-use declaration are not facts. Publishing a
+  and it must give the candidate a reason. Its move into the rejected stage keeps `rejectionReason` `KnockoutAnswer` on the
+  timeline entry; a person moving an application into a rejected stage may give another reason from the same short list
+  (`RejectionReason`: requirement not met, another candidate, position closed, no reply, other), and a reason with any
+  other stage, or a person's `KnockoutAnswer`, is refused. Accommodation status and the AI-use declaration are not facts. No condition
+  reads the answer to a question whose label or help text asks for a postal or zip code: Illinois makes a zip code used
+  as a proxy for a protected class a civil rights violation ([compliance gap map](../research/compliance-gap-map.md),
+  IL-2). The form may still ask; a location requirement is asked as itself ("Can you work from our Denver office?"). Publishing a
   template version validates it again, so a draft saved under older rules cannot go live. A `ScheduleInterview` action
   needs `interviewerUserIds` (one to five different members), `interviewMinutes` (one of the lengths an interview
   request allows), `interviewWindowDays` (1 to 60) and `interviewTimeZone` (an IANA id the host knows), and no
@@ -916,8 +922,9 @@ tasks assigned to the signed-in person, oldest first; `scope=Team` lists the one
 /v1/tasks/{id}/complete` records who finished it and when, once, and raises `ApplicationTaskCompleted`; `POST
 /v1/tasks/{id}/reopen`, the dashboard's Undo, opens a done task again and raises `ApplicationTaskReopened`. Neither
 changes the application, so a rejection review is still decided by a person moving the candidate. Anyone whose role
-changes hiring data may complete or reopen any of the organization's to-dos and rejection reviews; the team shares the
-work. A task is ticked off where its work is done (ADR-0017 decision 11), so these two routes refuse a review and a
+changes hiring data may complete or reopen any of the organization's to-dos, rejection reviews and candidates' review
+requests (a `ReviewRequest` task, opened by a rejected candidate from their own page, [candidate portal](candidate-portal.md#review-requests));
+the team shares the work. A task is ticked off where its work is done (ADR-0017 decision 11), so these two routes refuse a review and a
 requested scorecard with a 409: those are done when the scorecard is submitted (below), and a submitted scorecard is
 final, so they never reopen. The `AddScorecardRequests` migration finished the open reviews a scorecard had already
 answered, so none was left with no way to finish. A person with Create tasks, or an API key with the Write scope, gives the team a task by hand

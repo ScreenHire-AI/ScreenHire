@@ -124,6 +124,35 @@ public sealed partial class FormSendingTests(AppHostFixture fixture)
         form.GetProperty("questions")[0].GetProperty("answers").EnumerateArray()
             .Select(a => (a.GetProperty("label").GetString(), a.GetProperty("count").ValueKind == JsonValueKind.Null ? (int?)null : a.GetProperty("count").GetInt32()))
             .Should().Equal(("Yes", 5), ("No", null), ("No answer", null));
+        // The outcomes a bias audit divides (docs/compliance/bias-audit-method.md), hidden by the same rule.
+        var yes = form.GetProperty("questions")[0].GetProperty("answers")[0];
+        yes.GetProperty("advanced").GetInt32().Should().Be(5, "each of them moved on to screening");
+        yes.GetProperty("hired").ValueKind.Should().Be(JsonValueKind.Null, "nobody was hired, and a count under five is hidden");
+        form.GetProperty("questions")[0].GetProperty("answers")[1].GetProperty("advanced").ValueKind
+            .Should().Be(JsonValueKind.Null, "an outcome of a hidden group would give its size away");
+        // Flagged: those whose authenticity level, as the verification route reads it, is above the lowest; hidden under five.
+        var levels = new List<string?>();
+        foreach (var id in applications.Take(5))
+        {
+            levels.Add((await VerificationSupport.AssessedAsync(owner, id)).Text("authenticity.level"));
+        }
+
+        var raised = levels.Count(level => level != "NoConcerns");
+        var flagged = (await ReportAsync(owner, from)).At("forms").EnumerateArray()
+            .Single(f => f.GetProperty("formTemplateId").GetGuid() == formId).GetProperty("questions")[0].GetProperty("answers")[0].GetProperty("flagged");
+        if (raised >= 5)
+        {
+            flagged.GetInt32().Should().Be(raised);
+        }
+        else
+        {
+            flagged.ValueKind.Should().Be(JsonValueKind.Null, "fewer than five is hidden");
+        }
+
+        report.Body.GetRawText().Should().NotContainAny(["reasonCodes", "evidence", "\"level\""], "the totals carry a count, never what the checks found");
+        var hiring = await owner.GetAsync(
+            $"/v1/reports/hiring?from={Uri.EscapeDataString(from.ToString("O"))}&to={Uri.EscapeDataString(DateTimeOffset.UtcNow.AddMinutes(5).ToString("O"))}");
+        hiring.Expect(HttpStatusCode.OK).Body.GetRawText().Should().NotContainEquivalentOf("flagged", "the hiring report counts nothing by level");
         report.Body.GetRawText().Should().NotContain(applications[0].ToString(), "totals name no candidate");
 
         using var otherOrganization = await fixture.SignedInWithOrganizationAsync();

@@ -8,7 +8,9 @@ import type { PublicPortalFunnel } from './publicPortalFunnel.ts';
 import type { PublicPortalWaiting } from './publicPortalWaiting.ts';
 
 /**
- * One of the candidate's applications to this organization.
+ * One of the candidate's applications to this organization. `canAskForReview`: the application is not moving forward
+ * (a rejected stage), the organization's deployment takes review requests, and none is waiting; `reviewRequested`: one
+ * is waiting for the team. Both are false wherever review requests are off.
  */
 export interface PublicPortalApplication {
   id: string;
@@ -18,4 +20,6 @@ export interface PublicPortalApplication {
   waiting: PublicPortalWaiting[];
   hasMessages: boolean;
   canReply: boolean;
+  canAskForReview?: boolean;
+  reviewRequested?: boolean;
 }

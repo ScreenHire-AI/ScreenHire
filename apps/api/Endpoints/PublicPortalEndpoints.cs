@@ -4,13 +4,17 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ScreenHire.Api.Applications;
+using ScreenHire.Api.Configuration;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Api.Email;
 using ScreenHire.Application.Applications;
+using ScreenHire.Application.Automations;
 using ScreenHire.Application.Portal;
 using ScreenHire.Application.Scheduling;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Candidates;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Domain.Scheduling;
@@ -60,7 +64,69 @@ internal static class PublicPortalEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(MaxReplyBytes))
             .ProducesProblem(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status429TooManyRequests);
+        group.MapPost("{token}/applications/{applicationId:guid}/review-request", RequestReview).WithName("RequestPublicPortalReview")
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status429TooManyRequests);
         return app;
+    }
+
+    // The candidate asks for a person to review the decision on an application that is not moving forward: a task for the
+    // hiring team and a timeline entry, once while one is waiting (asking again answers the same 202). Behind
+    // ScreenHire:Compliance:ReviewRequests:Enabled, off until the owner turns it on.
+    private static async Task<Results<Accepted, NotFound, ProblemHttpResult>> RequestReview(
+        string organizationSlug,
+        string token,
+        Guid applicationId,
+        IDbContextOutbox<ScreenHireDbContext> outbox,
+        TenantContext tenant,
+        CandidatePortalLinks links,
+        IServiceProvider services,
+        IOptions<ComplianceOptions> compliance,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        var db = outbox.DbContext;
+        if (!compliance.Value.ReviewRequests.Enabled
+            || await FindLinkAsync(organizationSlug, token, db, tenant, links, services, cancellationToken) is not { } found)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var application = await db.Applications.AsNoTracking()
+            .SingleOrDefaultAsync(a => a.Id == applicationId && a.CandidateId == found.Candidate.Id, cancellationToken);
+        if (application is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var job = await db.Jobs.AsNoTracking().SingleAsync(j => j.Id == application.JobId, cancellationToken);
+        if (job.Workflow.FindStage(application.CurrentStageId)?.Kind != StageKind.Rejected)
+        {
+            return TypedResults.Problem("Only an application that is not moving forward can be reviewed again.", statusCode: StatusCodes.Status409Conflict);
+        }
+
+        if (await db.ApplicationTasks.AnyAsync(
+                t => t.ApplicationId == application.Id && t.Kind == ApplicationTaskKind.ReviewRequest && t.CompletedAt == null, cancellationToken))
+        {
+            return TypedResults.Accepted((string?)null);
+        }
+
+        var now = time.GetUtcNow();
+        var (task, entry) = application.AskForReview(now);
+        db.ApplicationTasks.Add(task);
+        db.ApplicationEvents.Add(entry);
+        await outbox.PublishAsync(new ApplicationTaskCreated(application.OrganizationId, task.Id, application.Id, application.JobId, now));
+        try
+        {
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            // A second post at the same moment (a double click) passed the check above; the open request's index kept
+            // one, so this one answers as the repeat does.
+        }
+
+        return TypedResults.Accepted((string?)null);
     }
 
     /// <summary>
@@ -161,6 +227,7 @@ internal static class PublicPortalEndpoints
         InterviewLinks interviewLinks,
         ApplicationDrafts drafts,
         IServiceProvider services,
+        IOptions<ComplianceOptions> compliance,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -196,6 +263,15 @@ internal static class PublicPortalEndpoints
                 .ToListAsync(cancellationToken))
             .ToHashSet();
 
+        var reviewsOn = compliance.Value.ReviewRequests.Enabled;
+        var reviewsWaiting = reviewsOn
+            ? (await db.ApplicationTasks.AsNoTracking()
+                    .Where(t => ids.Contains(t.ApplicationId) && t.Kind == ApplicationTaskKind.ReviewRequest && t.CompletedAt == null)
+                    .Select(t => t.ApplicationId)
+                    .ToListAsync(cancellationToken))
+                .ToHashSet()
+            : [];
+
         var applications = new List<PublicPortalApplication>(rows.Count);
         foreach (var row in rows)
         {
@@ -223,7 +299,9 @@ internal static class PublicPortalEndpoints
                 new PublicPortalFunnel(CandidateFunnel.Steps, funnel.Current, funnel.Ended),
                 waiting,
                 written.Contains(application.Id) || replied.Contains(application.Id),
-                written.Contains(application.Id)));
+                written.Contains(application.Id),
+                reviewsOn && stage?.Kind == StageKind.Rejected && !reviewsWaiting.Contains(application.Id),
+                reviewsWaiting.Contains(application.Id)));
         }
 
         // A saved draft is found by the candidate's address: the link proves they received mail there, as a draft's own link does.

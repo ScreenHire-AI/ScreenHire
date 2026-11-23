@@ -344,7 +344,11 @@ default hiring team; Clear, Review and Verify stay, and To review holds Review o
   from `ScreenHire:Legal:TermsUrl`, `PrivacyUrl` and `DpaUrl` and leaves a line out until its address is set.
 - **Compliance** ([legal](research/legal.md)): bias audits,
   Colorado and California automated-decision rules (due 1 January 2027), EU AI Act provider duties (due 2 December
-  2027), the customer documentation pack.
+  2027), the customer documentation pack. The [compliance gap map](research/compliance-gap-map.md) sets each duty
+  against the product and lists what was built: the decision record and its download, review requests from the candidate's
+  page, a record floor for retention, rejection reasons, outcome counts in the equality totals, the checks changelog with
+  its bell notice and the postal-code rule, each behind a setting that is off or unset by default. The pack's drafts are in
+  [compliance](compliance/index.md).
 - **Accessibility:** an external WCAG 2.2 audit before general availability (ADR-0009).
 - **Owner actions:** the accounts, keys and decisions in the [MVP status](status.md#owner-actions).
 

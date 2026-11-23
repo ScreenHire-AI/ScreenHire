@@ -4,6 +4,10 @@
 // follow-up questionnaire, an interview to book) and a link to the messages. Server rendered with no client JavaScript.
 // The link is the candidate's alone: never cached, indexed or sent on as a referrer. It collects nothing about the browser.
 // It shows the employer's name and the job's title, never a stage name, a rating, a note or anything about verification.
+// Where the deployment takes review requests, an application that is not moving forward offers to ask for a person to look
+// again: one native form posted to the `askPortalReview` action, then back here, where it shows as asked.
+import { actions } from 'astro:actions';
+import Notice from '../../../../components/Notice.astro';
 import Panel from '../../../../components/Panel.astro';
 import PortalLinkProblem from '../../../../components/PortalLinkProblem.astro';
 import CareersLayout from '../../../../layouts/CareersLayout.astro';
@@ -12,11 +16,16 @@ import { forwardedFor } from '../../../../lib/apply-server';
 import { localeOf, longDate } from '../../../../lib/locale';
 import { basePath } from '../../../../lib/host';
 import { meetingNameOf } from '../../../../lib/interview';
-import { ENDED, isToken, stepStates } from '../../../../lib/portal';
+import { ENDED, isToken, REVIEW_MESSAGES, stepStates } from '../../../../lib/portal';
 
 const { organization, token } = Astro.params;
 const base = basePath(Astro.request, organization!);
 const locale = localeOf(Astro.request);
+const review = Astro.getActionResult(actions.askPortalReview);
+if (review?.data?.outcome === 'asked' && isToken(token)) {
+  return Astro.redirect(`${base}/my-applications/${token}`, 303);
+}
+const reviewProblem = review?.data && review.data.outcome !== 'asked' ? REVIEW_MESSAGES[review.data.outcome] : review?.error ? REVIEW_MESSAGES.error : null;
 
 Astro.response.headers.set('Cache-Control', 'no-store');
 
@@ -67,6 +76,8 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
           Hi {portal.firstName}. This page is yours alone, so please do not share its link.
         </p>
 
+        {reviewProblem && <div class="mt-5"><Notice kind="problem" message={reviewProblem} /></div>}
+
         {portal.drafts.length > 0 && (
           <Panel id="saved" title="Saved to finish later" class="mt-6" bodyClass="flex flex-col gap-5">
             {portal.drafts.map((draft) => (
@@ -98,6 +109,17 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
                   <div>
                     <p class="font-semibold">{ended.label}</p>
                     <p class="text-candidate-hint text-candidate-muted-foreground">{ended.detail}</p>
+                    {application.reviewRequested && (
+                      <p class="mt-2 text-candidate-body">You asked for a person to look at this again.</p>
+                    )}
+                    {application.canAskForReview && (
+                      <form method="POST" action={actions.askPortalReview} class="mt-3">
+                        <input type="hidden" name="organization" value={organization} />
+                        <input type="hidden" name="token" value={token} />
+                        <input type="hidden" name="application" value={application.id} />
+                        <button type="submit" class="button-secondary">Ask a person to look again</button>
+                      </form>
+                    )}
                   </div>
                 </div>
               ) : (

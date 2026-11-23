@@ -2736,6 +2736,62 @@
         }
       }
     },
+    "/v1/public/organizations/{organizationSlug}/portal/{token}/applications/{applicationId}/review-request": {
+      "post": {
+        "tags": [
+          "Public careers"
+        ],
+        "operationId": "RequestPublicPortalReview",
+        "parameters": [
+          {
+            "name": "organizationSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        }
+      }
+    },
     "/v1/jobs": {
       "get": {
         "tags": [
@@ -11816,6 +11872,48 @@
         ]
       }
     },
+    "/v1/applications/{applicationId}/decision-record": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "GetApplicationDecisionRecord",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDecisionRecord"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/tasks": {
       "get": {
         "tags": [
@@ -20171,6 +20269,87 @@
         },
         "description": "One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`."
       },
+      "ApplicationDecisionRecord": {
+        "required": [
+          "applicationId",
+          "jobId",
+          "jobTitle",
+          "candidateId",
+          "candidateName",
+          "submittedAt",
+          "currentStage",
+          "privacyNoticeVersion",
+          "accommodationRequested",
+          "stages",
+          "activity",
+          "automationRuns",
+          "verification",
+          "generatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentStage": {
+            "$ref": "#/components/schemas/ApplicationStage"
+          },
+          "privacyNoticeVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accommodationRequested": {
+            "type": "boolean"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionRecordStage"
+            }
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationTimelineEntry"
+            }
+          },
+          "automationRuns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionRecordAutomationRun"
+            }
+          },
+          "verification": {
+            "$ref": "#/components/schemas/ApplicationVerification"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One application's decision record, for the team answering a candidate's access, correction or review request\n(docs/architecture/data-requests.md, Decision record): what the application was, everything that happened to it, what\nthe automations did, and its verification with every reviewer action. It is the team's copy. What goes on to the\ncandidate is the organization's decision, and nothing here sends anything."
+      },
       "ApplicationDetail": {
         "required": [
           "id",
@@ -20963,7 +21142,8 @@
           "Task",
           "RejectionReview",
           "Scorecard",
-          "ChooseScheduling"
+          "ChooseScheduling",
+          "ReviewRequest"
         ]
       },
       "ApplicationTimelineEntry": {
@@ -21169,6 +21349,16 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "rejectionReason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RejectionReason"
+              }
+            ]
           }
         },
         "description": "One entry of an application's timeline, oldest first. Members that do not apply to the type are null."
@@ -23943,9 +24133,13 @@
           },
           "seesAllJobs": {
             "type": "boolean"
+          },
+          "decisionRecordEnabled": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015)."
+        "description": "The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they're on, who sees just the jobs whose hiring team they are on (ADR-0015). `decisionRecordEnabled` says\nthis deployment serves an application's decision record (`ScreenHire:Compliance:DecisionRecord:Enabled`), so the\ndashboard offers its download only when the route answers."
       },
       "CurrentUser": {
         "required": [
@@ -24248,6 +24442,79 @@
           "Friday",
           "Saturday"
         ]
+      },
+      "DecisionRecordAutomationRun": {
+        "required": [
+          "id",
+          "automationName",
+          "workflowVersion",
+          "trigger",
+          "status",
+          "detail",
+          "actions",
+          "createdAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "automationName": {
+            "type": "string"
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/TriggerType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AutomationRunStatus"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationActionEntry"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One automation that was evaluated for the application: its name and workflow version when it ran, what triggered it,\nhow it ended and what each action did. The facts its conditions saw are on `GET /v1/applications/{id}/automation-runs`."
+      },
+      "DecisionRecordStage": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "A stage id the decision record mentions, and its name."
       },
       "DeclineDataRequestRequest": {
         "required": [
@@ -24558,9 +24825,30 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "advanced": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "hired": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "flagged": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
-        "description": "How many gave this answer, or null where the count is hidden."
+        "description": "How many gave this answer, or null where the count is hidden. Of them, for an impact-ratio bias audit\n(docs/compliance/bias-audit-method.md): `advanced` moved forward past the first stage, `hired` are in a hired\nstage, `flagged` were assigned an authenticity level above the lowest. Each hides its small counts as `count`\ndoes, and is null whenever `count` is."
       },
       "EqualityForm": {
         "required": [
@@ -27868,9 +28156,19 @@
               "null",
               "string"
             ]
+          },
+          "rejectionReason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RejectionReason"
+              }
+            ]
           }
         },
-        "description": "Moves an application to another stage of its job's workflow. Only people move applications here. The optional\n`note` is kept on the move's timeline entry."
+        "description": "Moves an application to another stage of its job's workflow. Only people move applications here. The optional\n`note` is kept on the move's timeline entry, and so is `rejectionReason`, the principal reason for a move into\na rejected stage (refused with any other stage). `KnockoutAnswer` is the automations' own and refused here."
       },
       "MyOrganization": {
         "required": [
@@ -28540,9 +28838,16 @@
                 "$ref": "#/components/schemas/RetentionLastRun"
               }
             ]
+          },
+          "minimumMonths": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         },
-        "description": "The organization's record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change (\"by ScreenHire\" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has."
+        "description": "The organization's record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change (\"by ScreenHire\" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has. `minimumMonths` is the deployment's floor for decision records\n(`ScreenHire:Retention:MinimumMonths`): a shorter period is refused. `null` when there is none."
       },
       "OrganizationRole": {
         "enum": [
@@ -30259,9 +30564,17 @@
           },
           "canReply": {
             "type": "boolean"
+          },
+          "canAskForReview": {
+            "type": "boolean",
+            "default": false
+          },
+          "reviewRequested": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "description": "One of the candidate's applications to this organization."
+        "description": "One of the candidate's applications to this organization. `canAskForReview`: the application is not moving forward\n(a rejected stage), the organization's deployment takes review requests, and none is waiting; `reviewRequested`: one\nis waiting for the team. Both are false wherever review requests are off."
       },
       "PublicPortalAttachment": {
         "required": [
@@ -31038,6 +31351,17 @@
           }
         },
         "description": "The browser's answer to a registration ceremony, and the name to give the passkey (a device, as the person typed it)."
+      },
+      "RejectionReason": {
+        "enum": [
+          "RequirementNotMet",
+          "KnockoutAnswer",
+          "AnotherCandidate",
+          "PositionClosed",
+          "NoResponse",
+          "Other",
+          null
+        ]
       },
       "RemoveFromTalentPoolRequest": {
         "type": "object",

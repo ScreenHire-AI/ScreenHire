@@ -75,14 +75,14 @@ internal static class AuthEndpoints
     // Signed in or not, the answer carries a fresh antiforgery token: the dashboard asks on every page load, and a page
     // such as the email-link one posts before anyone is signed in.
     private static async Task<Results<Ok<CurrentUser>, UnauthorizedHttpResult>> GetCurrentUser(
-        HttpContext context, UserManager<ApplicationUser> users, ITenantContext tenant, ScreenHireDbContext db,
+        HttpContext context, UserManager<ApplicationUser> users, ITenantContext tenant, ScreenHireDbContext db, IOptions<ComplianceOptions> compliance,
         CancellationToken cancellationToken)
     {
         var user = await users.GetUserAsync(context.User);
         Antiforgery.IssueRequestToken(context);
         return user is null
             ? TypedResults.Unauthorized()
-            : TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+            : TypedResults.Ok(await DescribeAsync(user, tenant, db, compliance.Value, cancellationToken));
     }
 
     private static Results<ChallengeHttpResult, NotFound> ChallengeProvider(
@@ -227,7 +227,7 @@ internal static class AuthEndpoints
     // close, on every device, so each reconnects into the one its next request reads.
     private static async Task<Results<Ok<CurrentUser>, NotFound, UnauthorizedHttpResult>> SwitchOrganization(
         SwitchOrganizationRequest request, HttpContext context, UserManager<ApplicationUser> users, TenantContext tenant,
-        ScreenHireDbContext db, RealtimeConnections connections, CancellationToken cancellationToken)
+        ScreenHireDbContext db, RealtimeConnections connections, IOptions<ComplianceOptions> compliance, CancellationToken cancellationToken)
     {
         if (await users.GetUserAsync(context.User) is not { } user)
         {
@@ -248,7 +248,7 @@ internal static class AuthEndpoints
             connections.Close(user.Id, left);
         }
 
-        return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+        return TypedResults.Ok(await DescribeAsync(user, tenant, db, compliance.Value, cancellationToken));
     }
 
     // Names the organization and role an open invitation offers, so the page can say what accepting does. Knowing the
@@ -298,7 +298,7 @@ internal static class AuthEndpoints
     private static async Task<Results<Ok<CurrentUser>, ValidationProblem>> AcceptInvitation(
         InvitationAcceptance request, IValidator<InvitationAcceptance> validator, HttpContext context,
         UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, TenantContext tenant, ScreenHireDbContext db,
-        TimeProvider time, CancellationToken cancellationToken)
+        TimeProvider time, IOptions<ComplianceOptions> compliance, CancellationToken cancellationToken)
     {
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
@@ -349,7 +349,7 @@ internal static class AuthEndpoints
         }
 
         await SignInAsync(context, signIn, user);
-        return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+        return TypedResults.Ok(await DescribeAsync(user, tenant, db, compliance.Value, cancellationToken));
     }
 
     // One transaction under the organization's member lock: use up the invitation (one conditional UPDATE, so two clicks
@@ -406,7 +406,7 @@ internal static class AuthEndpoints
 
     private static async Task<Results<Ok<CurrentUser>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> CompleteOnboarding(
         OnboardingRequest request, IValidator<OnboardingRequest> validator, HttpContext context, UserManager<ApplicationUser> users,
-        TenantContext tenant, IDbContextOutbox<ScreenHireDbContext> outbox, BillingService billing, TimeProvider time, CancellationToken cancellationToken)
+        TenantContext tenant, IDbContextOutbox<ScreenHireDbContext> outbox, BillingService billing, TimeProvider time, IOptions<ComplianceOptions> compliance, CancellationToken cancellationToken)
     {
         var db = outbox.DbContext;
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
@@ -439,12 +439,12 @@ internal static class AuthEndpoints
                 return AlreadyOnboarded();
             }
 
-            return await CreateOrganizationAsync(request, user, tenant, outbox, billing, time, cancellationToken);
+            return await CreateOrganizationAsync(request, user, tenant, outbox, billing, time, compliance.Value, cancellationToken);
         });
     }
 
     private static async Task<Results<Ok<CurrentUser>, ValidationProblem, Conflict<ProblemDetails>, UnauthorizedHttpResult>> CreateOrganizationAsync(
-        OnboardingRequest request, ApplicationUser user, TenantContext tenant, IDbContextOutbox<ScreenHireDbContext> outbox, BillingService billing, TimeProvider time,
+        OnboardingRequest request, ApplicationUser user, TenantContext tenant, IDbContextOutbox<ScreenHireDbContext> outbox, BillingService billing, TimeProvider time, ComplianceOptions compliance,
         CancellationToken cancellationToken)
     {
         var db = outbox.DbContext;
@@ -496,7 +496,7 @@ internal static class AuthEndpoints
             return SlugTaken(); // another sign-up took the slug between the check and the insert
         }
 
-        return TypedResults.Ok(await DescribeAsync(user, tenant, db, cancellationToken));
+        return TypedResults.Ok(await DescribeAsync(user, tenant, db, compliance, cancellationToken));
     }
 
     private static Conflict<ProblemDetails> AlreadyOnboarded() =>
@@ -589,7 +589,7 @@ internal static class AuthEndpoints
     }
 
     private static async Task<CurrentUser> DescribeAsync(
-        ApplicationUser user, ITenantContext tenant, ScreenHireDbContext db, CancellationToken cancellationToken)
+        ApplicationUser user, ITenantContext tenant, ScreenHireDbContext db, ComplianceOptions compliance, CancellationToken cancellationToken)
     {
         CurrentOrganization? organization = null;
         if (tenant.OrganizationId is { } organizationId
@@ -606,7 +606,7 @@ internal static class AuthEndpoints
             organization = new CurrentOrganization(
                 found.Id, found.Name, found.Slug, role.Role, role.CustomRoleId, role.Name,
                 [.. RolePermissions.Permissions.Select(p => p.Permission).Where(role.Permissions.Contains)],
-                JobAccessRules.SeesAllJobs(role.Role, jobAccess));
+                JobAccessRules.SeesAllJobs(role.Role, jobAccess), compliance.DecisionRecord.Enabled);
         }
 
         var email = user.Email ?? "";

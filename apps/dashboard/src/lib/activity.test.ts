@@ -55,6 +55,14 @@ describe('activity', () => {
     expect(kindCounts([reply]).emails).toBe(1);
   });
 
+  it('says why a rejection happened when the move kept a reason', () => {
+    const rejected = entry('r', { type: 'StageChanged', fromStageId: 'applied', toStageId: 'rejected', rejectionReason: 'KnockoutAnswer' });
+    const named = { ...names, stageName: (id: string | null | undefined) => (id === 'rejected' ? 'Rejected' : 'Applied') };
+
+    expect(describeEvent(rejected, named)).toBe('Moved from Applied to Rejected: An answer to a knockout question');
+    expect(describeEvent({ ...rejected, rejectionReason: null }, named)).toBe('Moved from Applied to Rejected');
+  });
+
   it("names an API key's changes by the key", () => {
     expect(actorText(entry('k', { type: 'NoteAdded', actorApiKeyId: 'k1', actorApiKeyName: 'ATS sync' }), [], undefined)).toBe('by ATS sync');
     expect(actorText(entry('k', { type: 'NoteAdded', actorApiKeyId: 'k1' }), [], undefined)).toBe('by an API key');

@@ -169,6 +169,30 @@ public sealed class ApplicationsApiTests(AppHostFixture fixture)
         (await recruiter.GetAsync($"/v1/jobs/{job.Id()}/applications")).Text("0.stage.id").Should().Be("screening");
     }
 
+    // A rejection keeps its principal reason for a disclosure (compliance gap map, CO-5). It goes with a rejected stage only,
+    // and the knockout answer is the automations' own reason.
+    [Fact]
+    public async Task A_rejection_keeps_its_reason_and_a_reason_goes_with_a_rejected_stage_only()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var job = await recruiter.CreateJobAsync(Samples.RemoteJob("Reasons"));
+        var application = await recruiter.CreateApplicationAsync(job.Id(), CandidateEmail);
+        var move = $"/v1/applications/{application.Id()}/move";
+
+        var onScreening = await recruiter.PostAsync(move, new JsonObject { ["toStageId"] = "screening", ["rejectionReason"] = "AnotherCandidate" });
+        var asKnockout = await recruiter.PostAsync(move, new JsonObject { ["toStageId"] = "rejected", ["rejectionReason"] = "KnockoutAnswer" });
+        (await recruiter.PostAsync(move, new JsonObject { ["toStageId"] = "rejected", ["rejectionReason"] = "AnotherCandidate", ["note"] = "Hired someone." }))
+            .Expect(HttpStatusCode.OK);
+
+        onScreening.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("rejectionReason");
+        asKnockout.Expect(HttpStatusCode.BadRequest).ProblemKeys().Should().Equal("rejectionReason");
+        var timeline = await recruiter.StageEntriesAsync(application.Id());
+        timeline.Count().Should().Be(2, "neither refused move happened");
+        timeline.Text("1.toStageId").Should().Be("rejected");
+        timeline.Text("1.rejectionReason").Should().Be("AnotherCandidate");
+        timeline.Text("1.note").Should().Be("Hired someone.");
+    }
+
     [Fact]
     public async Task Moving_to_a_stage_the_job_does_not_have_is_a_validation_error_and_changes_nothing()
     {

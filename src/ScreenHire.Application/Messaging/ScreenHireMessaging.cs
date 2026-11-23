@@ -11,6 +11,7 @@ using ScreenHire.Application.Applications;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Billing;
 using ScreenHire.Application.Branding;
+using ScreenHire.Application.Compliance;
 using ScreenHire.Application.Distribution;
 using ScreenHire.Application.Distribution.GoogleIndexing;
 using ScreenHire.Application.Verification;
@@ -208,6 +209,7 @@ public static class ScreenHireMessaging
         // data until the worker registers its blob store first.
         opts.Services.AddScreenHirePrivacy();
         opts.Services.AddScreenHireNotifications();
+        opts.Services.AddOptions<ChangeNoticeOptions>().BindConfiguration(ChangeNoticeOptions.Section);
         // Settings, Tags: how many applications one rename or delete changes at a time.
         opts.Services.AddScreenHireTags();
         // The reminders before a free trial ends read the trial's settings and the plan catalogue (docs/architecture/billing.md).
@@ -320,6 +322,8 @@ public static class ScreenHireMessaging
         opts.Schedules.ScheduleRecurring<SendDueDigests>("*/30 * * * *");
         // Each organization's sending domain looked up again, daily (docs/architecture/notifications.md).
         opts.Schedules.ScheduleRecurring<RecheckSendingDomains>("47 5 * * *");
+        // A bell notice when ScreenHire's checks changed in the last two weeks, daily; off until turned on (docs/compliance/checks-changelog.md).
+        opts.Schedules.ScheduleRecurring<AnnounceChecksChange>("57 5 * * *");
         // AI usage (docs/architecture/ai-usage.md): yesterday judged against the recent average, ledger rows past each
         // organization's retention, and paused AI checks asked again once there are credits.
         opts.Schedules.ScheduleRecurring<CheckAiUsageSpikes>("7 6 * * *");
