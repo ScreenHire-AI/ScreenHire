@@ -101,12 +101,14 @@ prints any, report that the demo data is partial, with the exception. Report:
 
 In a Kangentic task, use the task's browser pane (the `kangentic_browser_*` tools):
 
-1. `kangentic_browser_open_pane` with the dashboard's URL plus `/sign-in`.
-2. Wait for either `a[href*="/v1/auth/challenge/dev-sso"]` (signed out) or `h1` with text `Jobs` (already signed in:
-   browsers share `localhost` cookies across ports, so an earlier preview's session may carry over).
-3. Signed out: click `a[href*="/v1/auth/challenge/dev-sso"]`, wait for `form input[value="brightwater-owner"]`, then
-   click `form:has(input[value="brightwater-owner"]) button`. That is Avery Quinn. Do not match on text: the
-   "Unverified address" button signs in with Avery's email and is refused. Wait for `h1` with text `Jobs`.
+1. `kangentic_browser_open_pane` with the dashboard's URL plus `/v1/auth/challenge/dev-sso?returnUrl=%2F`. Never
+   open `/sign-in`: on load it quietly asks for a saved passkey, and on Windows the pane hands that to the operating
+   system, which shows a "Choose a passkey" dialog on the person's screen that no agent can answer. The challenge
+   address goes straight to Dev SSO, signed in or not.
+2. Wait for `form input[value="brightwater-owner"]`, then click `form:has(input[value="brightwater-owner"]) button`.
+   That is Avery Quinn. Do not match on text: the "Unverified address" button signs in with Avery's email and is
+   refused.
+3. Wait for `h1` with text `Jobs`.
 4. `kangentic_browser_query_all` on `a[href^="/jobs/"]` with `includeHtml`, take the `href` of "Senior .NET Engineer"
    and `kangentic_browser_navigate` to it. Clicking by text can land on the first job link.
 5. Wait up to 60 s, twice if needed, for `[data-verification-chip][data-level="verify"]` (the one-word Verify state).
