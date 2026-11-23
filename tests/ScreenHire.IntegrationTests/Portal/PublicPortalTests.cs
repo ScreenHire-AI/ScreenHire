@@ -373,7 +373,9 @@ public sealed partial class PublicPortalTests(AppHostFixture fixture)
         await MoveAsync(world, "rejected");
         (await ApplicationOfAsync(client, world, token)).GetProperty("canAskForReview").GetBoolean().Should().BeTrue();
 
-        (await client.PostAsync(ask, null, Ct)).StatusCode.Should().Be(HttpStatusCode.Accepted);
+        // Two posts at once (a double click) both pass the endpoint's check; the open request's unique index keeps one.
+        var together = await Task.WhenAll(client.PostAsync(ask, null, Ct), client.PostAsync(ask, null, Ct));
+        together.Select(response => response.StatusCode).Should().AllBeEquivalentTo(HttpStatusCode.Accepted);
         (await client.PostAsync(ask, null, Ct)).StatusCode.Should().Be(HttpStatusCode.Accepted, "asking again while one waits changes nothing");
 
         var shown = await ApplicationOfAsync(client, world, token);
