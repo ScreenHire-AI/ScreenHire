@@ -174,7 +174,8 @@ again": a native form posted to the `askPortalReview` action, which calls `POST 
   candidate's; 409 for an application not in a rejected stage; and 202 otherwise.
 - It opens one `ReviewRequest` task for the hiring team (`JobApplication.AskForReview`), with a fixed note and no actor, a
   `TaskCreated` entry in Activity and `ApplicationTaskCreated` for open dashboards. Asking again while that task is open
-  answers 202 and adds nothing. A person ticks the task off by hand once they have looked again; the candidate can then ask again.
+  answers 202 and adds nothing, two posts at once included: a partial unique index allows one open `ReviewRequest` task per
+  application (`ix_application_tasks_open_review_request`), and the losing save answers 202 too. A person ticks the task off by hand once they have looked again; the candidate can then ask again.
 - The page's payload says `canAskForReview` (on, rejected, nothing waiting) and `reviewRequested` (a task is waiting, shown as
   "You asked for a person to look at this again"). Neither says anything about how the decision was made.
 - The candidate's reasons go in a reply, as before: the request carries no text of its own.

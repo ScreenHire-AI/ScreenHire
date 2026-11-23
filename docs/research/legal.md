@@ -244,7 +244,7 @@ What changed since the last snapshot: the rule text is now read. No amendment wa
 3. FPF, 24 Mar 2026 — https://fpf.org/blog/red-lines-under-eu-ai-act-unpacking-the-prohibition-of-emotion-recognition-in-the-workplace-and-education-institutions/
 5. Venable, Jul 2026 — https://www.venable.com/insights/publications/2026/07/colorados-new-ai-law-what-employers-need-to
 6. Jenner, Apr 2026 — https://www.jenner.com/en/news-insights/client-alerts/doj-joins-xai-in-lawsuit-challenging-colorado-ai-act
-7. CPPA regulation text (approved text; OAL approval was 22 Sep 2025 [33]) — https://cppa.ca.gov/regulations/pdf/ccpa_updates_cyber_risk_admt_appr_text.pdf
+7. CPPA regulation text (approved text; OAL approval was 22 Sep 2025 [33]) - https://cppa.ca.gov/regulations/pdf/ccpa_updates_cyber_risk_admt_appr_text.pdf
 8. Cal. Civil Rights Council, 30 Jun 2025 — https://calcivilrights.ca.gov/2025/06/30/civil-rights-council-secures-approval-for-regulations-to-protect-against-employment-discrimination-related-to-artificial-intelligence/
 9. Burke Law, 16 Jun 2026 — https://www.burkelaw.com/alert-illinois-department-of-human-rights-withdraws-proposed-ai-in-employment-rules
 10. NY State Comptroller, 2 Dec 2025 — https://www.osc.ny.gov/state-agencies/audits/2025/12/02/enforcement-local-law-144-automated-employment-decision-tools

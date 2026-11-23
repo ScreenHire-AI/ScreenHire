@@ -177,7 +177,8 @@ the report arrives and while it is empty.
 organization's equality monitoring forms ([workflow engine](workflow-engine.md), section 7, Forms): for each such library
 form, how many candidates answered it in the range, and per question how many gave each answer and how many gave none.
 Beside each count are the outcomes an impact-ratio bias audit divides ([bias audit method](../compliance/bias-audit-method.md)):
-`advanced`, those who entered a later stage that does not end an application (a template switch is not a move), `hired`,
+`advanced`, those who entered a later stage that does not end an application (a template switch is not a move) or are
+hired, so `hired` never exceeds it, `hired`,
 those in a hired stage now, and `flagged`, those whose newest authenticity assessment is above the lowest level,
 dismissed or not, because NYC counts being assigned a classification. Each column hides its small counts with
 `SmallCounts.Suppress`, and an outcome is null whenever its answer's count is.

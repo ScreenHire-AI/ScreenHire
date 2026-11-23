@@ -123,7 +123,7 @@ subsystem.
   [`docs/architecture/workflow-engine.md`](docs/architecture/workflow-engine.md) section 7. `ScreenHire:Compliance:*`
   (`DecisionRecord:Enabled`, default false: an application's decision record for the team, on in the test stacks;
   `ReviewRequests:Enabled`, default false: a candidate asks from their own page for a person to review a rejection, on in the test stacks;
-  `ChangeNotices:Enabled`, default false: a bell notice when ScreenHire's checks change; both off until the owner and counsel
+  `ChangeNotices:Enabled`, default false: a bell notice when ScreenHire's checks change, off in the test stacks too; each off until the owner and counsel
   decide) goes to the API and worker alike; see [`docs/research/compliance-gap-map.md`](docs/research/compliance-gap-map.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`

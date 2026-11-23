@@ -25,5 +25,5 @@ Read the lines below, open the folder or doc whose line answers the question, an
 ## Records
 
 * [Research](research/index.md) - Research behind the decisions: competitors, frontend and dashboard frameworks, component libraries, .NET licences, hosting, job boards, the legal landscape and the compliance gap map.
-* [Compliance](compliance/index.md) - Drafts for customers, not legal advice: the system description, the DPIA and legitimate interests template, the CPPA risk-assessment template and the bias audit method.
+* [Compliance](compliance/index.md) - Drafts for customers, not legal advice: the system description, the DPIA and legitimate interests template, the CPPA risk-assessment template, the bias audit method, the AI Act technical documentation skeleton and the checks changelog.
 * [Log](log.md) - Dated changes to the layout of these docs, newest first.
