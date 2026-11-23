@@ -156,16 +156,8 @@ public class E2EFixture : AppHostFixture
     {
         try
         {
-            // HEADED=1 shows the browser while debugging a test locally. The sign-in page quietly asks for a saved passkey
-            // on load (conditional mediation), and on Windows Chromium hands that to the operating system, which opened a
-            // "Choose a passkey" dialog on the owner's screen for every test that signed in, one nobody could answer.
-            // Without the native Windows API, Chromium keeps the request to itself and a headless browser shows nothing.
-            // PasskeyTests is unaffected: its virtual authenticator answers through the DevTools WebAuthn domain.
-            return await playwright.Chromium.LaunchAsync(new()
-            {
-                Headless = Environment.GetEnvironmentVariable("HEADED") != "1",
-                Args = ["--disable-features=WebAuthenticationUseNativeWinApi"],
-            });
+            // HEADED=1 shows the browser while debugging a test locally.
+            return await playwright.Chromium.LaunchAsync(new() { Headless = Environment.GetEnvironmentVariable("HEADED") != "1" });
         }
         catch (PlaywrightException exception) when (exception.Message.Contains("Executable doesn't exist", StringComparison.Ordinal))
         {
