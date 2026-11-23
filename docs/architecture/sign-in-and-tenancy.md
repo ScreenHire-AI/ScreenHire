@@ -113,7 +113,10 @@ creates their account (a passkey is added later, from a signed-in session). ASP.
 The sign-in page puts the Work email field and a Continue button first, then one "or" divider, then "Sign in with a passkey"
 and each provider as equal buttons (design system section 7). The field carries `autocomplete="email webauthn"`, and where
 the browser supports conditional mediation the page starts a pending passkey request behind it, so a saved passkey shows up in
-the field's own list; pressing the passkey button ends that request first. The agreement line at the foot of the card links
+the field's own list; pressing the passkey button ends that request first. A headed browser on Windows can hand that
+request to the operating system, which opens a "Choose a passkey" dialog no agent can answer, so `/preview` signs the
+Kangentic browser pane in through `/v1/auth/challenge/dev-sso` and never opens the sign-in page. The headless Chromium of
+the end-to-end tests opened no such dialog when measured (2026-11-23). The agreement line at the foot of the card links
 ScreenHire's Terms of Service, Privacy Policy and Data Processing Agreement from `ScreenHire:Legal:TermsUrl`, `PrivacyUrl` and
 `DpaUrl` (`LegalOptions`, forwarded to the API by the AppHost, nothing configured in the repository). An address counts only
 when it is an absolute http or https URL, and the line names only the documents that have one.
