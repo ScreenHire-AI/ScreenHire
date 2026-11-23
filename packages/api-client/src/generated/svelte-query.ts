@@ -37,6 +37,7 @@ import type {
   AiUsageSummary,
   ApiKeySummary,
   ApiMeta,
+  ApplicationDecisionRecord,
   ApplicationDetail,
   ApplicationEmailDraft,
   ApplicationFollowUp,
@@ -23198,6 +23199,99 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return createMutation(() => ({ ...getRunManualAutomationMutationOptions(options?.()) }), queryClient);
     }
+
+export type getApplicationDecisionRecordResponse200 = {
+  data: ApplicationDecisionRecord
+  status: 200
+}
+
+export type getApplicationDecisionRecordResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApplicationDecisionRecordResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApplicationDecisionRecordResponseSuccess = (getApplicationDecisionRecordResponse200) & {
+  headers: Headers;
+};
+export type getApplicationDecisionRecordResponseError = (getApplicationDecisionRecordResponse401 | getApplicationDecisionRecordResponse404) & {
+  headers: Headers;
+};
+
+export const getGetApplicationDecisionRecordUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/decision-record`
+}
+
+export const getApplicationDecisionRecord = async (applicationId: string, options?: Parameters<typeof apiQueryFetch>[1]): Promise<getApplicationDecisionRecordResponseSuccess> => {
+
+  return apiQueryFetch<getApplicationDecisionRecordResponseSuccess>(getGetApplicationDecisionRecordUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApplicationDecisionRecordQueryKey = (applicationId: string,) => {
+    return [
+    'v1','applications',applicationId,'decision-record'
+    ] as const;
+    }
+
+
+export const getGetApplicationDecisionRecordQueryOptions = <TData = Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError = ErrorType<void>>(applicationId: string, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApplicationDecisionRecordQueryKey(applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApplicationDecisionRecord>>> = ({ signal }) => getApplicationDecisionRecord(applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApplicationDecisionRecordQueryResult = NonNullable<Awaited<ReturnType<typeof getApplicationDecisionRecord>>>
+export type GetApplicationDecisionRecordQueryError = ErrorType<void>
+
+
+
+export function createGetApplicationDecisionRecord<TData = Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError = ErrorType<void>>(
+ applicationId: () =>  string, options?: () => { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof getApplicationDecisionRecord>>, TError, TData>>, request?: SecondParameter<typeof apiQueryFetch>}
+ , queryClient?: () => QueryClient
+ ): CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+
+
+  const query = createQuery(() => getGetApplicationDecisionRecordQueryOptions(applicationId(),options?.()), queryClient) as CreateQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return query
+}
+
+
+
+
+
+
 
 export type listTasksResponse200 = {
   data: TaskListItem[]

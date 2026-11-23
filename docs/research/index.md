@@ -1,9 +1,10 @@
 # Research
 
-Research written before a decision, as a snapshot of 2026-10-18. Each ADR names the research behind it.
+Research written before a decision, each doc dated in its own text (the first snapshot is of 2026-10-18). Each ADR names the research behind it.
 
 * [Billing Providers and Sales Tax for a US SaaS Seller](billing-providers.md) - Stripe Payments, Billing, Tax and Managed Payments, Paddle, Lemon Squeezy and Azure Marketplace compared on fees and tax duties as read on each vendor's own page on 2026-11-08, a state-by-state table of whether SaaS sold to businesses is taxed and each state's economic nexus threshold, how a seller's own presence creates nexus, EU and UK reverse charge, what Stripe Tax does and does not do, the monthly cost of each plan under each option, and the recommendation behind ADR-0029.
 * [Competitive Teardown](competitors.md) - ATS competitors' prices, AI features and fraud defences as of 2026-10-18, the AI and fraudulent applicant threat landscape, the gaps in the market, and ScreenHire's positioning against GoHire.
+* [Compliance gap map: automated-decision rules in hiring](compliance-gap-map.md) - Draft, not legal advice: each duty Colorado SB 26-189, the CPPA ADMT and FEHA rules, Illinois HB 3773 and NYC Local Law 144 place on a hiring-tool vendor or an employer, what ScreenHire does today with the code or doc that does it, the gap, the fix (product, document or an owner and legal decision), the tensions between the rules, and the follow-up work, as of 2026-11-23.
 * [Svelte 5 UI Libraries: Evaluation](component-libraries.md) - Whether the Svelte 5 ecosystem covers the dashboard's needs, shadcn-svelte against the other component libraries with sizes and ARIA gaps, the recommendation behind ADR-0009, risks, and an ecosystem map with versions and downloads.
 * [Recruiter Dashboard: Svelte 5 vs Angular 22](dashboard-framework.md) - The scored comparison behind ADR-0006: Svelte 5 with SvelteKit against Angular 22 on speed, measured fit with the Astro candidate pages, component libraries and risks.
 * [.NET Building Blocks: Licence Audit & Recommendations](dotnet-building-blocks.md) - The licence audit of .NET libraries (MediatR, AutoMapper, MassTransit, Finbuckle, Duende, Polly and more) with commercial thresholds and verdicts, the recommended stack behind ADR-0008, and its risks.

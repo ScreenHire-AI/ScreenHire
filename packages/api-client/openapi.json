@@ -11816,6 +11816,48 @@
         ]
       }
     },
+    "/v1/applications/{applicationId}/decision-record": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "GetApplicationDecisionRecord",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDecisionRecord"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "session": [ ]
+          }
+        ]
+      }
+    },
     "/v1/tasks": {
       "get": {
         "tags": [
@@ -20171,6 +20213,87 @@
         },
         "description": "One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`."
       },
+      "ApplicationDecisionRecord": {
+        "required": [
+          "applicationId",
+          "jobId",
+          "jobTitle",
+          "candidateId",
+          "candidateName",
+          "submittedAt",
+          "currentStage",
+          "privacyNoticeVersion",
+          "accommodationRequested",
+          "stages",
+          "activity",
+          "automationRuns",
+          "verification",
+          "generatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateName": {
+            "type": "string"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentStage": {
+            "$ref": "#/components/schemas/ApplicationStage"
+          },
+          "privacyNoticeVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accommodationRequested": {
+            "type": "boolean"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionRecordStage"
+            }
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationTimelineEntry"
+            }
+          },
+          "automationRuns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionRecordAutomationRun"
+            }
+          },
+          "verification": {
+            "$ref": "#/components/schemas/ApplicationVerification"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "One application's decision record, for the team answering a candidate's access, correction or review request\n(docs/architecture/data-requests.md, Decision record): what the application was, everything that happened to it, what\nthe automations did, and its verification with every reviewer action. It is the team's copy. What goes on to the\ncandidate is the organization's decision, and nothing here sends anything."
+      },
       "ApplicationDetail": {
         "required": [
           "id",
@@ -24248,6 +24371,79 @@
           "Friday",
           "Saturday"
         ]
+      },
+      "DecisionRecordAutomationRun": {
+        "required": [
+          "id",
+          "automationName",
+          "workflowVersion",
+          "trigger",
+          "status",
+          "detail",
+          "actions",
+          "createdAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "automationName": {
+            "type": "string"
+          },
+          "workflowVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/TriggerType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AutomationRunStatus"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationActionEntry"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "One automation that was evaluated for the application: its name and workflow version when it ran, what triggered it,\nhow it ended and what each action did. The facts its conditions saw are on `GET /v1/applications/{id}/automation-runs`."
+      },
+      "DecisionRecordStage": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "description": "A stage id the decision record mentions, and its name."
       },
       "DeclineDataRequestRequest": {
         "required": [

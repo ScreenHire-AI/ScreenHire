@@ -165,6 +165,16 @@ brackets.
   closed job, counted from when it ended; saved candidates are never removed); and of the careers privacy page wording and
   the decline email per market. Erasure sends no confirmation, because the address is erased with the candidate (the data
   requests task).
+- **Automated-decision rules.** Engage counsel on whether Colorado SB 26-189, California's CPPA ADMT and FEHA rules,
+  Illinois HB 3773 and NYC Local Law 144 reach ScreenHire as a vendor and its customers as employers, starting with
+  the four readings in the [compliance gap map](research/compliance-gap-map.md) (Colorado's fraud-prevention
+  exclusion, California's human involvement and knockout auto-reject, NYC's AEDT prongs, Illinois's AI notice). Review
+  and finalise the drafts in [compliance](compliance/index.md). Decide whether to turn on
+  `ScreenHire:Compliance:DecisionRecord:Enabled`, and whether any of a decision record goes to the candidate. Decide the
+  record floor against erasure (3 years in Colorado, 4 under FEHA). Decide the candidate-facing wording the gap map's
+  appendix drafts, with the apply notice, "a person looks at anything the checks flag" and the careers footer already
+  open. Check whether the marketing law pages for Colorado, California, Illinois and NYC need an update after the
+  2026-11-23 research (the compliance readiness task).
 - **Candidate portal.** A legal review of the candidate's own page: access by an emailed link alone with no account, valid for
   14 days (`ScreenHire:Portal:LinkLifetime`), which anyone who holds it can use to read the candidate's messages with the
   organization and to write as them; of the line every email to a candidate now ends with; of what the page shows and what it

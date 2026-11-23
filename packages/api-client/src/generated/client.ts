@@ -21,6 +21,7 @@ import type {
   AiUsageSummary,
   ApiKeySummary,
   ApiMeta,
+  ApplicationDecisionRecord,
   ApplicationDetail,
   ApplicationEmailDraft,
   ApplicationFollowUp,
@@ -12830,6 +12831,51 @@ export const runManualAutomation = async (applicationId: string,
   {
     ...options,
     method: 'POST'
+
+
+  }
+);}
+
+
+
+export type getApplicationDecisionRecordResponse200 = {
+  data: ApplicationDecisionRecord
+  status: 200
+}
+
+export type getApplicationDecisionRecordResponse401 = {
+  data: void
+  status: 401
+}
+
+export type getApplicationDecisionRecordResponse404 = {
+  data: void
+  status: 404
+}
+
+export type getApplicationDecisionRecordResponseSuccess = (getApplicationDecisionRecordResponse200) & {
+  headers: Headers;
+};
+export type getApplicationDecisionRecordResponseError = (getApplicationDecisionRecordResponse401 | getApplicationDecisionRecordResponse404) & {
+  headers: Headers;
+};
+
+export type getApplicationDecisionRecordResponse = (getApplicationDecisionRecordResponseSuccess | getApplicationDecisionRecordResponseError)
+
+export const getGetApplicationDecisionRecordUrl = (applicationId: string,) => {
+
+
+
+
+  return `/v1/applications/${applicationId}/decision-record`
+}
+
+export const getApplicationDecisionRecord = async (applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<getApplicationDecisionRecordResponse> => {
+
+  return apiFetch<getApplicationDecisionRecordResponse>(getGetApplicationDecisionRecordUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
 
 
   }

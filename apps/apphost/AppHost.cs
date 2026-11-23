@@ -65,6 +65,10 @@
 //                               Forms), forwarded to the API: EqualityMonitoring:Enabled (default false) offers equality
 //                               monitoring forms and their totals in Reports. It waits on a legal review; the test stacks
 //                               turn it on.
+//   Compliance:*                features for the rules on automated decisions in hiring (the API's ComplianceOptions,
+//                               docs/research/compliance-gap-map.md), forwarded to the API: DecisionRecord:Enabled (default
+//                               false) serves an application's decision record (docs/architecture/data-requests.md). Each
+//                               waits on the owner and counsel; the test stacks turn them on.
 //   Fonts:*                     heading fonts (the API's FontsOptions, docs/architecture/branding.md section 3, ADR-0031),
 //                               forwarded to the API: Sandbox:Enabled=true is the local catalogue of a dozen bundled fonts
 //                               (appsettings.Development.json and the test stacks turn it on, so nothing needs the
@@ -357,6 +361,15 @@ foreach (var (key, value) in settings.GetSection("Forms").AsEnumerable(makePaths
     if (value is not null)
     {
         api.WithEnvironment($"ScreenHire__Forms__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
+    }
+}
+
+// Compliance features (the decision record), read by the API, each off until turned on.
+foreach (var (key, value) in settings.GetSection("Compliance").AsEnumerable(makePathsRelative: true))
+{
+    if (value is not null)
+    {
+        api.WithEnvironment($"ScreenHire__Compliance__{key.Replace(":", "__", StringComparison.Ordinal)}", value);
     }
 }
 

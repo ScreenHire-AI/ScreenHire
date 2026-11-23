@@ -1,0 +1,8 @@
+# Compliance
+
+Drafts for customers, not legal advice, for review by counsel. The gap map behind them is in research.
+
+* [Bias audit method: impact ratios](bias-audit-method.md) - Draft, not legal advice: an impact-ratio bias audit in the shape NYC Local Law 144 sets (6 RCNY 5-301 to 5-303), applied to ScreenHire's checks and pipeline, with the rates it computes, the categories and exclusions, the data it needs, what ScreenHire collects today and what it lacks, and who may run it.
+* [CPPA risk-assessment template](cppa-risk-assessment-template.md) - Draft, not legal advice: a California risk assessment (11 CCR 7150 to 7157) that an employer using ScreenHire completes, in the order section 7152 sets, with the triggers, deadlines, retention and submission to the CPPA, and ScreenHire's facts filled in.
+* [DPIA and legitimate interests assessment template](dpia-lia-template.md) - Draft, not legal advice: a data protection impact assessment (GDPR Art. 35) and a legitimate interests assessment (Art. 6(1)(f)) that an employer using ScreenHire completes, with ScreenHire's facts filled in and the employer's choices left blank.
+* [System description: what ScreenHire's checks do and do not do](system-description.md) - Draft, not legal advice: the customer-facing description of ScreenHire's application checks, written to the shape of Colorado's developer documentation (C.R.S. 6-1-1702), covering intended and inappropriate uses, the data used and that no model is trained on applicants, known limitations, how a person reviews a flag, what an employer needs for its own notices, and how changes are announced.

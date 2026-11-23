@@ -120,7 +120,9 @@ subsystem.
   API and worker alike; see [`docs/architecture/notifications.md`](docs/architecture/notifications.md). `ScreenHire:Forms:*`
   (`EqualityMonitoring:Enabled`, default false: equality monitoring forms in the library and their totals in Reports; off until
   the owner's legal review, on in the test stacks) goes to the API; see
-  [`docs/architecture/workflow-engine.md`](docs/architecture/workflow-engine.md) section 7. `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
+  [`docs/architecture/workflow-engine.md`](docs/architecture/workflow-engine.md) section 7. `ScreenHire:Compliance:*`
+  (`DecisionRecord:Enabled`, default false: an application's decision record for the team, off until the owner and counsel
+  decide, on in the test stacks) goes to the API; see [`docs/research/compliance-gap-map.md`](docs/research/compliance-gap-map.md). `ScreenHire:PersistData` (default `true`) keeps Postgres, Azurite and
   Mailpit data in per-worktree volumes; `false` starts with none, as the tests do. `ScreenHire:Demo` (default: on with `Dev`
   frontends only) seeds the local demo's data on Brightwater, and the API is healthy only once it is in. The header of `apps/apphost/AppHost.cs`
   describes every setting.

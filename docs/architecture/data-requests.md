@@ -23,6 +23,9 @@ sources:
   - resource: src/ScreenHire.Application/Privacy/PurgeEndedApplications.cs
   - resource: src/ScreenHire.Application/Privacy/NotifyDataRequestReceived.cs
   - resource: apps/api/Endpoints/DataRequestEndpoints.cs
+  - resource: apps/api/Endpoints/DecisionRecordEndpoints.cs
+  - resource: apps/api/Contracts/DecisionRecordContracts.cs
+  - resource: apps/api/Configuration/ComplianceOptions.cs
   - resource: apps/api/Endpoints/RetentionEndpoints.cs
   - resource: apps/api/Contracts/DataRequestContracts.cs
   - resource: apps/dashboard/src/routes/(app)/settings/data-requests/+page.svelte
@@ -185,6 +188,29 @@ one email.
 asked {organization} for a copy of their data" or "to erase their data", with a link to Organization > Data requests built from the
 dashboard host (`ScreenHire:Domains:AppHost`). It carries no name or address. Delivery is at least once, so a crash between a
 send and the commit can repeat a notification.
+
+### Decision record
+
+`GET /v1/applications/{applicationId}/decision-record` (`GetApplicationDecisionRecord`) is the team's copy of one
+application's record, for answering a candidate's access, correction or review request. It is off until the owner turns
+on `ScreenHire:Compliance:DecisionRecord:Enabled` (`ComplianceOptions`, forwarded by the AppHost, on in the test stacks);
+off, the route is a 404. The setting waits on counsel ([the gap map](../research/compliance-gap-map.md)).
+
+It answers a signed-in member who sees the application, the same reach as the verification and timeline reads, and never
+an API key: verification reaches a key only through the verification read routes, which log each read (ADR-0021).
+Another organization's application, or one outside the member's jobs, is a 404. It holds:
+
+- the job, the candidate's name, when they applied, the current stage, the privacy notice version they saw and whether
+  they turned on the assistive technology switch;
+- `activity`, the timeline as `GET .../timeline` returns it, and `stages`, the name of every stage id it mentions;
+- `automationRuns`, each automation evaluated for the application with its name, workflow version, trigger, status and
+  what each action did (the facts it read stay on `GET .../automation-runs`);
+- `verification`, the record `GET .../verification` returns: levels, reasons, evidence and counter-evidence, and the
+  review log with every dismissal and explanation and its reason.
+
+Nothing in it is a score (ADR-0004; `DecisionRecordContractTests` walks every type it carries). It sends nothing to the
+candidate, and the candidate's copy above still leaves verification out: what reaches the candidate is the organization's
+decision and a legal review item.
 
 ## Retention
 
