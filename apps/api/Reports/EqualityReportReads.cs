@@ -52,8 +52,8 @@ internal static class EqualityReportReads
     // What happened to one application, for the audit's rates. A default Outcome is none of the three.
     private readonly record struct Outcome(bool Advanced, bool Hired, bool Flagged);
 
-    // Moved forward: entered a stage past the first that does not end the application (a template switch is not a move).
-    // Hired: in a hired stage now. Flagged: its newest authenticity assessment is above the lowest level, dismissed or not,
+    // Moved forward: entered a stage past the first that does not end the application (a template switch is not a move),
+    // or is hired. Hired: in a hired stage now. Flagged: its newest authenticity assessment is above the lowest level, dismissed or not,
     // because NYC counts being assigned a classification (6 RCNY 5-300).
     private static async Task<Dictionary<Guid, Outcome>> OutcomesAsync(ScreenHireDbContext db, IReadOnlyList<Guid> applicationIds, CancellationToken cancellationToken)
     {
@@ -83,7 +83,10 @@ internal static class EqualityReportReads
             var workflow = jobs[a.JobId].Workflow;
             var forward = moves[a.Id].Any(stageId => workflow.FindStage(stageId ?? "")?.Kind is { } kind
                 && kind is not (StageKind.Applied or StageKind.Rejected or StageKind.Withdrawn));
-            return new Outcome(forward, workflow.FindStage(a.CurrentStageId)?.Kind == StageKind.Hired, flagged.Contains(a.Id));
+            var hired = workflow.FindStage(a.CurrentStageId)?.Kind == StageKind.Hired;
+            // Hired counts as moved forward too, even with no move event (a template switch placed it there), so a row's
+            // hired count never exceeds its moved-forward count and the audit's selection rates stay nested.
+            return new Outcome(forward || hired, hired, flagged.Contains(a.Id));
         });
     }
 

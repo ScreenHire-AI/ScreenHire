@@ -1,10 +1,10 @@
 // The principal reason for a rejection, kept on the move's entry in Activity so the team can tell a candidate why in plain
 // words (docs/research/compliance-gap-map.md, CO-5). The list is the API's (RejectionReason.cs); there is no reason about
 // the checks, because a check never rejects anyone (ADR-0004).
-import type { RejectionReason as Nullable } from '@screenhire/api-client';
+import type { RejectionReason as GeneratedRejectionReason } from '@screenhire/api-client';
 
 /** A reason the move keeps; the generated type also allows null, for a move with none. */
-export type RejectionReason = NonNullable<Nullable>;
+export type RejectionReason = NonNullable<GeneratedRejectionReason>;
 
 export const rejectionReasonLabels: Record<RejectionReason, string> = {
   RequirementNotMet: 'Did not meet a stated requirement',

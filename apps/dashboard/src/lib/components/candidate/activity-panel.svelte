@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import PencilIcon from '~icons/lucide/pencil';
   import Trash2Icon from '~icons/lucide/trash-2';
   import { deleteApplicationNote, type ApplicationTimelineEntry, type Permission, type TeamMember, type VerificationReviewEntry } from '@screenhire/api-client';
@@ -34,6 +35,7 @@
     currentUserId,
     permissions,
     names,
+    footer,
   }: {
     applicationId: string;
     /** The timeline, oldest first as the API sends it; undefined while it loads. */
@@ -49,6 +51,8 @@
     /** What the person's role allows: Add notes and tags writes, edits and deletes their own notes, Delete anyone's notes any note. */
     permissions: readonly Permission[];
     names: ActivityNames;
+    /** Below the timeline, inside the panel: the Activity tab's decision record download. */
+    footer?: Snippet;
   } = $props();
 
   const queryClient = useQueryClient();
@@ -138,7 +142,7 @@
   {/if}
 {/snippet}
 
-<Panel title="Activity">
+<Panel title="Activity" {footer}>
   <div class="flex flex-col gap-4">
     {#if editable}
       <NoteForm {applicationId} members={mentionable ?? members ?? []} {currentUserId} ondone={refresh} />

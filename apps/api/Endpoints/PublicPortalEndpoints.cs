@@ -116,7 +116,16 @@ internal static class PublicPortalEndpoints
         db.ApplicationTasks.Add(task);
         db.ApplicationEvents.Add(entry);
         await outbox.PublishAsync(new ApplicationTaskCreated(application.OrganizationId, task.Id, application.Id, application.JobId, now));
-        await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        try
+        {
+            await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            // A second post at the same moment (a double click) passed the check above; the open request's index kept
+            // one, so this one answers as the repeat does.
+        }
+
         return TypedResults.Accepted((string?)null);
     }
 

@@ -219,12 +219,13 @@
   const fewestMonths = $derived(retentionData?.minimumMonths ?? 1);
   const update = createUpdateOrganizationRetention(() => ({ mutation: { onSettled: () => invalidatePath(queryClient, retentionPath) } }));
 
-  const monthsMessage = 'Enter a whole number of months from 1 to 120.';
+  // Read when the form checks, so a floor the query brings later still counts.
+  const monthsMessage = () => `Enter a whole number of months from ${fewestMonths} to 120.`;
   const retentionSchema = z
     .object({ enabled: z.boolean(), months: z.number().nullable() })
     .superRefine((value, context) => {
-      if (value.enabled && !(value.months !== null && Number.isInteger(value.months) && value.months >= 1 && value.months <= 120)) {
-        context.addIssue({ code: 'custom', path: ['months'], message: monthsMessage });
+      if (value.enabled && !(value.months !== null && Number.isInteger(value.months) && value.months >= fewestMonths && value.months <= 120)) {
+        context.addIssue({ code: 'custom', path: ['months'], message: monthsMessage() });
       }
     });
 

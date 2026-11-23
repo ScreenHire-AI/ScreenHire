@@ -1051,6 +1051,11 @@ namespace ScreenHire.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "AssigneeUserId", "CompletedAt")
                         .HasDatabaseName("ix_application_tasks_organization_id_assignee_user_id_complete");
 
+                    b.HasIndex(new[] { "OrganizationId", "ApplicationId" }, "ix_application_tasks_open_review_request")
+                        .IsUnique()
+                        .HasDatabaseName("ix_application_tasks_open_review_request")
+                        .HasFilter("kind = 'ReviewRequest' AND completed_at IS NULL");
+
                     b.ToTable("application_tasks", (string)null);
                 });
 

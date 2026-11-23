@@ -630,10 +630,9 @@
                 {currentUserId}
                 {permissions}
                 {names}
+                footer={page.data.user?.organization?.decisionRecordEnabled ? decisionRecord : undefined}
               />
-              {#if page.data.user?.organization?.decisionRecordEnabled}
-                <DecisionRecordDownload applicationId={detail.id} />
-              {/if}
+              {#snippet decisionRecord()}<DecisionRecordDownload applicationId={detail.id} />{/snippet}
             {/if}
           </Tabs.Content>
         </div>

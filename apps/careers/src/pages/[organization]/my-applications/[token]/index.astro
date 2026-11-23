@@ -110,7 +110,7 @@ const waitingPath = { Questionnaire: 'questionnaires', Interview: 'interviews' }
                     <p class="font-semibold">{ended.label}</p>
                     <p class="text-candidate-hint text-candidate-muted-foreground">{ended.detail}</p>
                     {application.reviewRequested && (
-                      <p class="mt-2 text-candidate-body">You asked for a person to look at this again. The team will be in touch.</p>
+                      <p class="mt-2 text-candidate-body">You asked for a person to look at this again.</p>
                     )}
                     {application.canAskForReview && (
                       <form method="POST" action={actions.askPortalReview} class="mt-3">

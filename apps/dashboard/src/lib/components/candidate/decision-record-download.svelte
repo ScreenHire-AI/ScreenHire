@@ -33,6 +33,6 @@
 
 <div class="flex flex-col items-start gap-2">
   <Button variant="outline" disabled={busy} onclick={download}><DownloadIcon aria-hidden="true" />Download decision record</Button>
-  <p class="text-caption text-muted-foreground">Everything on this application in one file, for a candidate's request to see or review a decision.</p>
+  <p class="text-caption text-muted-foreground">For a candidate's request to see or review a decision.</p>
   <FailureText message={failure} />
 </div>
