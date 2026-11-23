@@ -208,6 +208,7 @@ Both messages implement `ITenantMessage`, so the handler runs under the organiza
 | `ai-credits-empty` | `credits` | none | `/settings/billing#ai-credits` | Owners (`ManageBilling`) |
 | `ai-credits-reload-failed` | `credits` | `amount` (US dollars) | `/settings/billing#ai-credits` | Owners (`ManageBilling`) |
 | `ai-usage-spike` | `yyyy-MM-dd:spike` | `day` | `/settings/billing#ai-use` | who sees AI usage (`ViewAiUsage`) |
+| `checks-changed` | the rules version | `version` | `/settings/verification` | who can change settings (`EditSettings`); raised daily by `AnnounceChecksChange` for two weeks after a version's date, only with `ScreenHire:Compliance:ChangeNotices:Enabled` ([checks changelog](../compliance/checks-changelog.md)) |
 | `mention` | the note's id | `actor`, when known | the note on the candidate's Activity | the person mentioned |
 | `candidate-reply` | the reply's id | none: the line never names the candidate | the candidate's Messages | the person who sent the email it answers |
 | `task-assigned` | the task's id | `actor`, when a teammate gave it | the application | the person the task is for |

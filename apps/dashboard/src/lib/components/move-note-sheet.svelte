@@ -8,10 +8,12 @@
   import * as Field from '#lib/components/ui/field/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
+  import { personRejectionReasons, rejectionReasonLabels, type RejectionReason } from '#lib/rejection.js';
   import { cn } from '#lib/utils.js';
 
   // Move to stage with a note, in a sheet (design system section 9), from Move to stage's "With a note" item. The note
-  // stays on the move's entry in Activity. A plain move from the menu stays one click.
+  // stays on the move's entry in Activity, and so does the reason a move into a rejected stage can give. A plain move
+  // from the menu stays one click.
   let {
     open = $bindable(false),
     candidateName,
@@ -26,8 +28,8 @@
     stages: readonly WorkflowStage[];
     /** Why the last move failed, from the page's moves. */
     failure: string;
-    /** Moves the candidate; true when it worked. */
-    onmove: (stage: WorkflowStage, note: string) => Promise<boolean>;
+    /** Moves the candidate; true when it worked. `reason` comes only with a rejected stage. */
+    onmove: (stage: WorkflowStage, note: string, reason?: RejectionReason) => Promise<boolean>;
   } = $props();
 
   /** As the API allows it (MoveApplicationRequestValidator). */
@@ -35,6 +37,8 @@
   const targets = $derived(stages.filter((stage) => stage.id !== currentStageId));
   let stageId = $state('');
   let note = $state('');
+  let reason = $state<RejectionReason | ''>('');
+  const rejecting = $derived(targets.find((stage) => stage.id === stageId)?.kind === 'Rejected');
   let pending = $state(false);
   let tried = $state(false);
 
@@ -44,6 +48,7 @@
     untrack(() => {
       stageId = targets[0]?.id ?? '';
       note = '';
+      reason = '';
       tried = false;
     });
   });
@@ -54,7 +59,7 @@
     if (!stage) return;
     pending = true;
     tried = true;
-    const moved = await onmove(stage, note);
+    const moved = await onmove(stage, note, rejecting && reason ? reason : undefined);
     pending = false;
     if (moved) open = false;
   }
@@ -73,6 +78,16 @@
           {#each targets as stage (stage.id)}<option value={stage.id}>{stage.name}</option>{/each}
         </select>
       </Field.Field>
+      {#if rejecting}
+        <Field.Field>
+          <Field.Label for="move-reason">Reason</Field.Label>
+          <select id="move-reason" class={selectClass} bind:value={reason} aria-describedby="move-reason-hint">
+            <option value="">Not given</option>
+            {#each personRejectionReasons as option (option)}<option value={option}>{rejectionReasonLabels[option]}</option>{/each}
+          </select>
+          <Field.Description id="move-reason-hint">Kept with the move, so the team can tell the candidate why if they ask.</Field.Description>
+        </Field.Field>
+      {/if}
       <Field.Field>
         <Field.Label for="move-note">Note</Field.Label>
         <Textarea id="move-note" rows={4} maxlength={maxNoteLength} bind:value={note} />

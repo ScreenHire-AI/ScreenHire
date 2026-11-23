@@ -32,6 +32,7 @@
   import ActivityPanel from '#lib/components/candidate/activity-panel.svelte';
   import AskScorecardSheet from '#lib/components/ask-scorecard-sheet.svelte';
   import ApplicationTab from '#lib/components/candidate/application-tab.svelte';
+  import DecisionRecordDownload from '#lib/components/candidate/decision-record-download.svelte';
   import FilesTab from '#lib/components/candidate/files-tab.svelte';
   import HeaderMeta from '#lib/components/candidate/header-meta.svelte';
   import HeaderTags from '#lib/components/candidate/header-tags.svelte';
@@ -630,6 +631,9 @@
                 {permissions}
                 {names}
               />
+              {#if page.data.user?.organization?.decisionRecordEnabled}
+                <DecisionRecordDownload applicationId={detail.id} />
+              {/if}
             {/if}
           </Tabs.Content>
         </div>
@@ -702,7 +706,7 @@
         currentStageId={detail.stage.id}
         {stages}
         failure={moves.failure}
-        onmove={(stage, note) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage, note)}
+        onmove={(stage, note, reason) => moves.move({ id: detail.id, jobId: detail.jobId, candidateName: detail.candidate.fullName }, stage, note, reason)}
       />
     {/if}
   {/if}

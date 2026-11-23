@@ -386,10 +386,10 @@ public static partial class ExecuteAutomationActionHandler
 
     // The move, its timeline entry linked to this run, and the ApplicationMoved event that fires the next stage's
     // triggers. False when the application is already there.
-    private static bool Move(ActionContext context, WorkflowStage target, string note)
+    private static bool Move(ActionContext context, WorkflowStage target, string note, RejectionReason? rejectionReason = null)
     {
         var from = context.Application.CurrentStageId;
-        if (context.Application.MoveTo(target, context.Now, actorUserId: null, note, context.Run.Id) is not { } moved)
+        if (context.Application.MoveTo(target, context.Now, actorUserId: null, note, context.Run.Id, rejectionReason: rejectionReason) is not { } moved)
         {
             return false;
         }
@@ -507,7 +507,8 @@ public static partial class ExecuteAutomationActionHandler
         }
 
         await SendEmailAsync(context, EmailTemplateIds.ApplicationRejected, action.Reason, questionnaireLink: null, cancellationToken);
-        Move(context, rejected, $"Rejected by the automation \"{context.Run.AutomationName}\": {action.Reason}");
+        // Only a knockout automation may reject (DefinitionValidator), so its reason is the knockout answer.
+        Move(context, rejected, $"Rejected by the automation \"{context.Run.AutomationName}\": {action.Reason}", RejectionReason.KnockoutAnswer);
         return Completed("Rejected, and told the candidate why.");
     }
 

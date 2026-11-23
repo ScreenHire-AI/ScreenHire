@@ -194,6 +194,8 @@ export const GetSignInMethodsResponse = zod.object({
 }).describe('How a person can sign in here: the configured identity providers, whether email links work, and the legal documents the\nsign-in page\'s agreement line links to.')
 
 
+export const getCurrentUserResponseOrganizationTwoDecisionRecordEnabledDefault = false;
+
 export const GetCurrentUserResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
@@ -207,8 +209,9 @@ export const GetCurrentUserResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
-  "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "seesAllJobs": zod.boolean(),
+  "decisionRecordEnabled": zod.boolean().default(getCurrentUserResponseOrganizationTwoDecisionRecordEnabledDefault)
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015). `decisionRecordEnabled` says\nthis deployment serves an application\'s decision record (`ScreenHire:Compliance:DecisionRecord:Enabled`), so the\ndashboard offers its download only when the route answers.')]),
   "photoUrl": zod.string().nullish()
 }).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
@@ -255,6 +258,8 @@ export const CompleteOnboardingBody = zod.object({
   "name": zod.string()
 }).describe('Creates the signed-in user\'s organization, with them as its Owner. `name` is the person\'s own name, asked for here\nbecause the team\'s lists and every "by" line show it; it replaces the one the identity provider gave, if any.')
 
+export const completeOnboardingResponseOrganizationTwoDecisionRecordEnabledDefault = false;
+
 export const CompleteOnboardingResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
@@ -268,8 +273,9 @@ export const CompleteOnboardingResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
-  "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "seesAllJobs": zod.boolean(),
+  "decisionRecordEnabled": zod.boolean().default(completeOnboardingResponseOrganizationTwoDecisionRecordEnabledDefault)
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015). `decisionRecordEnabled` says\nthis deployment serves an application\'s decision record (`ScreenHire:Compliance:DecisionRecord:Enabled`), so the\ndashboard offers its download only when the route answers.')]),
   "photoUrl": zod.string().nullish()
 }).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
@@ -290,6 +296,8 @@ export const AcceptInvitationBody = zod.object({
   "name": zod.string().nullish()
 }).describe('Accepts the invitation whose token an emailed link carries, signing in as the invited address. `name` is required\nwhen the invited address has no account with a name yet (`needsName` on the lookup), and ignored otherwise.')
 
+export const acceptInvitationResponseOrganizationTwoDecisionRecordEnabledDefault = false;
+
 export const AcceptInvitationResponse = zod.object({
   "id": zod.uuid(),
   "email": zod.string(),
@@ -303,8 +311,9 @@ export const AcceptInvitationResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
-  "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "seesAllJobs": zod.boolean(),
+  "decisionRecordEnabled": zod.boolean().default(acceptInvitationResponseOrganizationTwoDecisionRecordEnabledDefault)
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015). `decisionRecordEnabled` says\nthis deployment serves an application\'s decision record (`ScreenHire:Compliance:DecisionRecord:Enabled`), so the\ndashboard offers its download only when the route answers.')]),
   "photoUrl": zod.string().nullish()
 }).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
@@ -312,6 +321,8 @@ export const AcceptInvitationResponse = zod.object({
 export const SwitchOrganizationBody = zod.object({
   "organizationId": zod.uuid()
 }).describe('Makes another of the signed-in user\'s organizations the one they work in.')
+
+export const switchOrganizationResponseOrganizationTwoDecisionRecordEnabledDefault = false;
 
 export const SwitchOrganizationResponse = zod.object({
   "id": zod.uuid(),
@@ -326,8 +337,9 @@ export const SwitchOrganizationResponse = zod.object({
   "customRoleId": zod.uuid().nullable(),
   "roleName": zod.string(),
   "permissions": zod.array(zod.enum(['ViewHiring', 'EditJobs', 'AddCandidates', 'MoveCandidates', 'AddNotesAndTags', 'CompleteTasks', 'EmailCandidates', 'FillInScorecards', 'ReviewVerification', 'RunAutomations', 'EditHiringTemplates', 'EditEmailTemplates', 'EditSettings', 'ManageApiKeys', 'ManageWebhooks', 'ManageTeam', 'ManageOwners', 'DeleteAnyNote', 'CreateTasks', 'ManageIntegrations', 'EraseCandidates', 'EditAnyView', 'GrantVerificationAccess', 'ManageBilling', 'ViewAiUsage']).describe('Something a role lets a person do. The ids are stable: custom roles store them. Names and descriptions are in\nRolePermissions.')),
-  "seesAllJobs": zod.boolean()
-}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015).')]),
+  "seesAllJobs": zod.boolean(),
+  "decisionRecordEnabled": zod.boolean().default(switchOrganizationResponseOrganizationTwoDecisionRecordEnabledDefault)
+}).describe('The organization the signed-in user works in, their role there (a built-in one, or Custom with `customRoleId`),\nits name, and every permission it gives them, in catalogue order. The dashboard shows and hides controls by these;\nthe API checks the same permissions on every request (ADR-0014). `seesAllJobs` is false for a member on Only\njobs they\'re on, who sees just the jobs whose hiring team they are on (ADR-0015). `decisionRecordEnabled` says\nthis deployment serves an application\'s decision record (`ScreenHire:Compliance:DecisionRecord:Enabled`), so the\ndashboard offers its download only when the route answers.')]),
   "photoUrl": zod.string().nullish()
 }).describe('The signed-in user, and the organization they work in (null until onboarding). `name` is the person\'s own name, or\nnull while the account has none (a name the provider left as the email address counts as none), which is how the\nonboarding and invitation forms know whether to ask. `displayName` is always something to show: the name, or the\nemail address while there is none. `photoUrl` is their profile photo\'s address, null while they have none.')
 
@@ -1264,6 +1276,9 @@ export const GetPublicPortalParams = zod.object({
   "token": zod.string()
 })
 
+export const getPublicPortalResponseApplicationsItemCanAskForReviewDefault = false;
+export const getPublicPortalResponseApplicationsItemReviewRequestedDefault = false;
+
 export const GetPublicPortalResponse = zod.object({
   "organizationName": zod.string(),
   "firstName": zod.string(),
@@ -1282,8 +1297,10 @@ export const GetPublicPortalResponse = zod.object({
   "meetingName": zod.string().nullish()
 }).describe('Something the candidate can act on, with the token of the existing careers page for it\n(`/questionnaires/{token}` or `/interviews/{token}`). The name of a questionnaire is the team\'s wording for it\nand is not sent. `meetingName` is on an interview only: what the team calls the meeting, such as "trial shift".')),
   "hasMessages": zod.boolean(),
-  "canReply": zod.boolean()
-}).describe('One of the candidate\'s applications to this organization.')),
+  "canReply": zod.boolean(),
+  "canAskForReview": zod.boolean().default(getPublicPortalResponseApplicationsItemCanAskForReviewDefault),
+  "reviewRequested": zod.boolean().default(getPublicPortalResponseApplicationsItemReviewRequestedDefault)
+}).describe('One of the candidate\'s applications to this organization. `canAskForReview`: the application is not moving forward\n(a rejected stage), the organization\'s deployment takes review requests, and none is waiting; `reviewRequested`: one\nis waiting for the team. Both are false wherever review requests are off.')),
   "drafts": zod.array(zod.object({
   "jobTitle": zod.string(),
   "jobSlug": zod.string(),
@@ -1330,6 +1347,15 @@ export const SendPublicPortalReplyBody = zod.object({
 }).describe('A reply written on the page. `key` is the form\'s own random id (32 hex digits), so sending the same form twice stores one\nreply.')
 
 export const SendPublicPortalReplyResponse = zod.void()
+
+
+export const RequestPublicPortalReviewParams = zod.object({
+  "organizationSlug": zod.string(),
+  "token": zod.string(),
+  "applicationId": zod.uuid()
+})
+
+export const RequestPublicPortalReviewResponse = zod.void()
 
 
 /**
@@ -5910,8 +5936,9 @@ export const MoveApplicationParams = zod.object({
 
 export const MoveApplicationBody = zod.object({
   "toStageId": zod.string(),
-  "note": zod.string().nullish()
-}).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\n`note` is kept on the move\'s timeline entry.')
+  "note": zod.string().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
+}).describe('Moves an application to another stage of its job\'s workflow. Only people move applications here. The optional\n`note` is kept on the move\'s timeline entry, and so is `rejectionReason`, the principal reason for a move into\na rejected stage (refused with any other stage). `KnockoutAnswer` is the automations\' own and refused here.')
 
 export const moveApplicationResponseCandidateEmailIssueDefault = `None`;
 export const moveApplicationResponseAiUseDeclarationDefault = `NotProvided`;
@@ -6051,7 +6078,8 @@ export const GetApplicationTimelineResponseItem = zod.object({
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
   "endsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "templateVersionId": zod.uuid().nullish()
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 export const GetApplicationTimelineResponse = zod.array(GetApplicationTimelineResponseItem)
 
@@ -6096,7 +6124,8 @@ export const AddApplicationNoteResponse = zod.object({
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
   "endsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "templateVersionId": zod.uuid().nullish()
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')
 
 
@@ -6375,7 +6404,7 @@ export const CreateApplicationTaskBody = zod.object({
 export const CreateApplicationTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -6394,7 +6423,7 @@ export const ListApplicationTasksParams = zod.object({
 export const ListApplicationTasksResponseItem = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -6533,7 +6562,8 @@ export const GetCandidateHistoryResponseItem = zod.object({
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
   "endsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "templateVersionId": zod.uuid().nullish()
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.'),
   "fromStageName": zod.string().nullish(),
   "toStageName": zod.string().nullish(),
@@ -6617,8 +6647,9 @@ export const GetOrganizationRetentionResponse = zod.object({
   "lastRun": zod.union([zod.null(),zod.object({
   "at": zod.iso.datetime({"offset":true}),
   "applicationsRemoved": zod.int()
-}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')])
-}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has.')
+}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')]),
+  "minimumMonths": zod.int().nullish()
+}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has. `minimumMonths` is the deployment\'s floor for decision records\n(`ScreenHire:Retention:MinimumMonths`): a shorter period is refused. `null` when there is none.')
 
 
 export const UpdateOrganizationRetentionBody = zod.object({
@@ -6639,8 +6670,9 @@ export const UpdateOrganizationRetentionResponse = zod.object({
   "lastRun": zod.union([zod.null(),zod.object({
   "at": zod.iso.datetime({"offset":true}),
   "applicationsRemoved": zod.int()
-}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')])
-}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has.')
+}).describe('When a retention run last deleted applications, and how many (the latest batch, when a run took several).')]),
+  "minimumMonths": zod.int().nullish()
+}).describe('The organization\'s record retention. `months` is how long after it ended an application stays before it is deleted\n(1 to 120), or `null` for never, the default. `lastUpdated` is the last change ("by ScreenHire" while it is\nthe default); its history is `/v1/organization/data-retention/history`. `lastRun` is the newest run that deleted\nsomething, or `null` when none has. `minimumMonths` is the deployment\'s floor for decision records\n(`ScreenHire:Retention:MinimumMonths`): a shorter period is refused. `null` when there is none.')
 
 
 export const GetOrganizationRetentionHistoryQueryParams = zod.object({
@@ -9445,7 +9477,8 @@ export const GetActivityResponse = zod.object({
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
   "endsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "templateVersionId": zod.uuid().nullish()
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')]),
   "fromStageName": zod.string().nullable(),
   "toStageName": zod.string().nullable(),
@@ -10560,7 +10593,8 @@ export const GetApplicationDecisionRecordResponse = zod.object({
   "interviewId": zod.uuid().nullish(),
   "startsAt": zod.iso.datetime({"offset":true}).nullish(),
   "endsAt": zod.iso.datetime({"offset":true}).nullish(),
-  "templateVersionId": zod.uuid().nullish()
+  "templateVersionId": zod.uuid().nullish(),
+  "rejectionReason": zod.union([zod.null(),zod.union([zod.literal('RequirementNotMet'),zod.literal('KnockoutAnswer'),zod.literal('AnotherCandidate'),zod.literal('PositionClosed'),zod.literal('NoResponse'),zod.literal('Other'),zod.literal(null)])]).optional()
 }).describe('One entry of an application\'s timeline, oldest first. Members that do not apply to the type are null.')),
   "automationRuns": zod.array(zod.object({
   "id": zod.uuid(),
@@ -10843,7 +10877,7 @@ export const ListTasksResponseItem = zod.object({
   "jobId": zod.uuid(),
   "candidateName": zod.string(),
   "jobTitle": zod.string(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -10862,7 +10896,7 @@ export const CompleteTaskParams = zod.object({
 export const CompleteTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -10881,7 +10915,7 @@ export const ReopenTaskParams = zod.object({
 export const ReopenTaskResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),
@@ -11069,8 +11103,11 @@ export const GetEqualityReportResponse = zod.object({
   "answers": zod.array(zod.object({
   "value": zod.string(),
   "label": zod.string(),
-  "count": zod.int().nullable()
-}).describe('How many gave this answer, or null where the count is hidden.'))
+  "count": zod.int().nullable(),
+  "advanced": zod.int().nullish(),
+  "hired": zod.int().nullish(),
+  "flagged": zod.int().nullish()
+}).describe('How many gave this answer, or null where the count is hidden. Of them, for an impact-ratio bias audit\n(docs/compliance/bias-audit-method.md): `advanced` moved forward past the first stage, `hired` are in a hired\nstage, `flagged` were assigned an authenticity level above the lowest. Each hides its small counts as `count`\ndoes, and is null whenever `count` is.'))
 }).describe('One question\'s totals, a count per answer and one for no answer (`value` empty).'))
 }).describe('One form\'s totals. `responses` is how many candidates answered it in the range, null when that is under the\nminimum, and then `questions` is empty.')),
   "minimumCount": zod.int()
@@ -11187,7 +11224,7 @@ export const RequestScorecardBody = zod.object({
 export const RequestScorecardResponse = zod.object({
   "id": zod.uuid(),
   "applicationId": zod.uuid(),
-  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling']),
+  "kind": zod.enum(['Review', 'Task', 'RejectionReview', 'Scorecard', 'ChooseScheduling', 'ReviewRequest']),
   "note": zod.string(),
   "assigneeUserId": zod.uuid().nullable(),
   "automationRunId": zod.uuid().nullable(),

@@ -120,7 +120,10 @@ Suggested practice for reviewers:
   [data requests](../architecture/data-requests.md)).
 - **Retention:** the organization sets how long ended applications are kept. Some laws set a minimum for decision
   records (3 years in Colorado, 4 under California's FEHA rules), so set the period with counsel.
-- **Candidate requests:** a candidate can ask for a copy of their data, or its erasure, from the careers site.
+- **Candidate requests:** a candidate can ask for a copy of their data, or its erasure, from the careers site, and,
+  where the organization turns it on, for a person to look again at a rejection from their own page.
+- **Rejection reasons:** a person rejecting can pick the principal reason from a short list, kept with the move; an
+  automation that rejects on a knockout answer records that as its reason.
 
 ## For the employer's own notices
 
@@ -133,5 +136,6 @@ An employer that must name the tool in a notice or a disclosure can use these:
 
 ## Changes
 
-ScreenHire versions its rules, and a change in what the checks do raises the version. A material change will be
-announced in release notes and by email to each organization's Owners (planned; see the gap map's follow-up tasks).
+ScreenHire versions its rules, and a change in what the checks do raises the version. Each version has an entry in
+the [changelog](checks-changelog.md), and the people who can change an organization's settings get a notice in the bell
+for two weeks after a new version ships (off until the owner turns on `ScreenHire:Compliance:ChangeNotices:Enabled`).

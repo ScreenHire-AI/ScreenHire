@@ -170,8 +170,10 @@ brackets.
   the four readings in the [compliance gap map](research/compliance-gap-map.md) (Colorado's fraud-prevention
   exclusion, California's human involvement and knockout auto-reject, NYC's AEDT prongs, Illinois's AI notice). Review
   and finalise the drafts in [compliance](compliance/index.md). Decide whether to turn on
-  `ScreenHire:Compliance:DecisionRecord:Enabled`, and whether any of a decision record goes to the candidate. Decide the
-  record floor against erasure (3 years in Colorado, 4 under FEHA). Decide the candidate-facing wording the gap map's
+  `ScreenHire:Compliance:DecisionRecord:Enabled`, `ScreenHire:Compliance:ReviewRequests:Enabled` (with the portal's wording
+  for it) and `ScreenHire:Compliance:ChangeNotices:Enabled`, and whether any of a decision record goes to the candidate.
+  Set `ScreenHire:Retention:MinimumMonths` (3 years in Colorado, 4 under FEHA) and decide whether an erasure request yields
+  to it. Confirm the rejection reasons list and the refusal of automations on postal-code answers. Decide the candidate-facing wording the gap map's
   appendix drafts, with the apply notice, "a person looks at anything the checks flag" and the careers footer already
   open. Check whether the marketing law pages for Colorado, California, Illinois and NYC need an update after the
   2026-11-23 research (the compliance readiness task).

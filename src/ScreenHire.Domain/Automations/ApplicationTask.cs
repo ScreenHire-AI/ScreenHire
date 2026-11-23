@@ -54,11 +54,11 @@ public sealed class ApplicationTask : IApplicationScoped
     public Guid? CompletedByApiKeyId { get; private set; }
 
     /// <summary>
-    /// Whether a person ticks it off by hand: a to-do and a rejection review. A review and a requested scorecard are done
+    /// Whether a person ticks it off by hand: a to-do, a rejection review and a candidate's review request. A review and a requested scorecard are done
     /// where their work is done, when the scorecard is submitted (ADR-0017 decision 11), so nobody marks them done
     /// without doing it.
     /// </summary>
-    public bool CompletesByHand => Kind is ApplicationTaskKind.Task or ApplicationTaskKind.RejectionReview;
+    public bool CompletesByHand => Kind is ApplicationTaskKind.Task or ApplicationTaskKind.RejectionReview or ApplicationTaskKind.ReviewRequest;
 
     /// <summary>
     /// Whether <paramref name="reviewerUserId"/> submitting a scorecard from the library scorecard
@@ -144,4 +144,10 @@ public enum ApplicationTaskKind
     /// an interview, never by ticking it.
     /// </summary>
     ChooseScheduling,
+
+    /// <summary>
+    /// The candidate asked, from their own page, for a person to review the decision on an application that is not moving
+    /// forward (docs/research/compliance-gap-map.md, CO-6 and CA-2). Done when a person ticks it, having looked again.
+    /// </summary>
+    ReviewRequest,
 }

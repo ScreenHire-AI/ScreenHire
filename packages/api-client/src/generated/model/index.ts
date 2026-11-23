@@ -439,6 +439,7 @@ export * from './receivedAttachment.ts';
 export * from './receivedEmail.ts';
 export * from './recommendation.ts';
 export * from './registerPasskeyRequest.ts';
+export * from './rejectionReason.ts';
 export * from './removeApplicationTagParams.ts';
 export * from './removeFromTalentPoolRequest.ts';
 export * from './renameTagRequest.ts';

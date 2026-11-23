@@ -4,8 +4,9 @@
 
 **A compliance folder, and a gap map for the automated-decision rules that start on 1 January 2027.** The new
 `docs/compliance/` holds the customer documentation pack as drafts for counsel: a system description in the shape of
-Colorado's developer documentation, a DPIA and legitimate interests template, a CPPA risk-assessment template and an
-impact-ratio bias audit method. `docs/research/compliance-gap-map.md` sets each duty in Colorado SB 26-189, the CPPA
+Colorado's developer documentation, a DPIA and legitimate interests template, a CPPA risk-assessment template, an
+impact-ratio bias audit method, a public changelog of the checks and the skeleton of the EU AI Act technical
+documentation. `docs/research/compliance-gap-map.md` sets each duty in Colorado SB 26-189, the CPPA
 ADMT and FEHA rules, Illinois HB 3773 and NYC Local Law 144 against the product, and `legal.md` gains a section read
 from the enacted Colorado text, the CPPA regulations and the NYC rule. Every new doc opens by saying it is not legal
 advice.

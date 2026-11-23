@@ -8,7 +8,8 @@
   import { describeError } from '#lib/query.js';
 
   // Equality monitoring totals (docs/architecture/reports.md, Equality monitoring): one panel per equality monitoring form,
-  // a table per question, a count per answer. Nothing names a candidate, and any count under 5 reads "Fewer than 5", as
+  // a table per question, a count per answer, and of those candidates how many moved on, were hired and were flagged by the
+  // checks: the counts an impact-ratio bias audit divides (docs/compliance/bias-audit-method.md). Nothing names a candidate, and any count under 5 reads "Fewer than 5", as
   // does the next smallest when it alone would give a hidden one away. Shown only where this deployment offers equality
   // monitoring forms, to someone who may edit the organization's settings, and only once the library has such a form.
   let { from, to, jobIds }: { from: string; to: string; jobIds: readonly string[] } = $props();
@@ -38,7 +39,10 @@
         {#if form.responses == null}
           <p class="text-muted-foreground">Fewer than {data.minimumCount} candidates answered it in these dates, so no totals are shown.</p>
         {:else}
-          <p class="mb-3 text-muted-foreground"><span class="tabular-nums">{form.responses}</span> candidates answered it in these dates.</p>
+          <p class="mb-3 text-muted-foreground">
+            <span class="tabular-nums">{form.responses}</span> candidates answered it in these dates. Moved on means they reached a later stage; flagged
+            means the checks suggested a closer look.
+          </p>
           <div class="flex flex-col gap-5">
             {#each form.questions as question (question.questionId)}
               <Table.Root>
@@ -47,6 +51,9 @@
                   <Table.Row>
                     <Table.Head>Answer</Table.Head>
                     <Table.Head class="text-right">Candidates</Table.Head>
+                    <Table.Head class="text-right">Moved on</Table.Head>
+                    <Table.Head class="text-right">Hired</Table.Head>
+                    <Table.Head class="text-right">Flagged</Table.Head>
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
@@ -54,6 +61,9 @@
                     <Table.Row>
                       <Table.Cell>{answer.label}</Table.Cell>
                       <Table.Cell class={['text-right tabular-nums', answer.count == null && 'text-muted-foreground']}>{count(answer.count)}</Table.Cell>
+                      {#each [answer.advanced, answer.hired, answer.flagged] as outcome, i (i)}
+                        <Table.Cell class={['text-right tabular-nums', outcome == null && 'text-muted-foreground']}>{count(outcome)}</Table.Cell>
+                      {/each}
                     </Table.Row>
                   {/each}
                 </Table.Body>

@@ -6,11 +6,20 @@
  */
 
 /**
- * How many gave this answer, or null where the count is hidden.
+ * How many gave this answer, or null where the count is hidden. Of them, for an impact-ratio bias audit
+ * (docs/compliance/bias-audit-method.md): `advanced` moved forward past the first stage, `hired` are in a hired
+ * stage, `flagged` were assigned an authenticity level above the lowest. Each hides its small counts as `count`
+ * does, and is null whenever `count` is.
  */
 export interface EqualityAnswerCount {
   value: string;
   label: string;
   /** @nullable */
   count: number | null;
+  /** @nullable */
+  advanced?: number | null;
+  /** @nullable */
+  hired?: number | null;
+  /** @nullable */
+  flagged?: number | null;
 }

@@ -124,6 +124,12 @@ public sealed partial class FormSendingTests(AppHostFixture fixture)
         form.GetProperty("questions")[0].GetProperty("answers").EnumerateArray()
             .Select(a => (a.GetProperty("label").GetString(), a.GetProperty("count").ValueKind == JsonValueKind.Null ? (int?)null : a.GetProperty("count").GetInt32()))
             .Should().Equal(("Yes", 5), ("No", null), ("No answer", null));
+        // The outcomes a bias audit divides (docs/compliance/bias-audit-method.md), hidden by the same rule.
+        var yes = form.GetProperty("questions")[0].GetProperty("answers")[0];
+        yes.GetProperty("advanced").GetInt32().Should().Be(5, "each of them moved on to screening");
+        yes.GetProperty("hired").ValueKind.Should().Be(JsonValueKind.Null, "nobody was hired, and a count under five is hidden");
+        form.GetProperty("questions")[0].GetProperty("answers")[1].GetProperty("advanced").ValueKind
+            .Should().Be(JsonValueKind.Null, "an outcome of a hidden group would give its size away");
         report.Body.GetRawText().Should().NotContain(applications[0].ToString(), "totals name no candidate");
 
         using var otherOrganization = await fixture.SignedInWithOrganizationAsync();

@@ -2,7 +2,7 @@ import { defineAction } from 'astro:actions';
 import { applyStep } from '../lib/apply-server';
 import { makeRequest, requestLink } from '../lib/data-request';
 import { changeInterview } from '../lib/interview';
-import { requestLink as requestPortalLink, sendReply } from '../lib/portal';
+import { askForReview, requestLink as requestPortalLink, sendReply } from '../lib/portal';
 import { answerQuestionnaire } from '../lib/questionnaire';
 import { stopKeeping } from '../lib/talent-pool';
 
@@ -104,6 +104,12 @@ export const server = {
   sendPortalReply: defineAction({
     accept: 'form',
     handler: async (form: FormData, context) => sendReply(form, addressOf(context)),
+  }),
+
+  /** Asks for a person to review the decision on an application that is not moving forward. Never throws for the candidate. */
+  askPortalReview: defineAction({
+    accept: 'form',
+    handler: async (form: FormData, context) => askForReview(form, addressOf(context)),
   }),
 
   /** A copy or erasure, chosen on the page the emailed link opens. The token travels in a hidden field. Never throws for the candidate. */

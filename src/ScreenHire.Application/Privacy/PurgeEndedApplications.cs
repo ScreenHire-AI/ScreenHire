@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using ScreenHire.Application.Candidates;
 using ScreenHire.Application.Messaging;
 using ScreenHire.Domain.Organizations;
+using ScreenHire.Domain.Privacy;
 using ScreenHire.Infrastructure.Persistence;
 using Wolverine;
 
@@ -52,7 +53,8 @@ public static partial class PurgeOrganizationEndedApplicationsHandler
     {
         var outgoing = new OutgoingMessages();
         var settings = await db.RetentionSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        if (settings?.Cutoff(message.Now) is not { } cutoff)
+        // The deployment's floor, when set, outlasts a shorter period the organization chose.
+        if (RetentionSettings.CutoffFor(options.Value.EffectiveMonths(settings?.EndedApplicationsMonths), message.Now) is not { } cutoff)
         {
             return outgoing;
         }

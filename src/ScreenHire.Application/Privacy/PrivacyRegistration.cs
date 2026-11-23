@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ScreenHire.Application.Applications;
 using ScreenHire.Application.Candidates;
 using ScreenHire.Application.Messaging;
+using ScreenHire.Domain.Privacy;
 
 namespace ScreenHire.Application.Privacy;
 
@@ -49,6 +50,20 @@ public sealed class RecordRetentionOptions
 
     /// <summary>The most applications one run deletes for an organization; a full batch schedules the next straight away.</summary>
     public int BatchSize { get; set; } = 200;
+
+    /// <summary>
+    /// The fewest months an ended application, and the decision record it carries, stays before the daily run deletes it,
+    /// whatever period an organization picks; null (the default) sets no floor. Some laws set one for automated-decision
+    /// records (3 years in Colorado, 4 under California's FEHA rules; docs/research/compliance-gap-map.md). It holds the
+    /// daily run only: a candidate's own erasure request still erases, which is the owner's and counsel's call to revisit.
+    /// </summary>
+    public int? MinimumMonths { get; set; }
+
+    /// <summary>The period the daily run applies for an organization that chose <paramref name="chosen"/>: never shorter than <see cref="MinimumMonths"/>.</summary>
+    public int? EffectiveMonths(int? chosen) => chosen is { } months ? Math.Max(months, MinimumMonths ?? months) : null;
+
+    /// <summary>Whether an organization may choose <paramref name="months"/>: not under the floor. Turning deleting off is always allowed.</summary>
+    public bool Allows(int months) => MinimumMonths is not { } floor || months >= floor;
 }
 
 /// <summary>
@@ -130,7 +145,11 @@ public static class PrivacyRegistration
     {
         ArgumentNullException.ThrowIfNull(services);
         services.AddOptions<DataRequestOptions>().BindConfiguration(DataRequestOptions.Section);
-        services.AddOptions<RecordRetentionOptions>().BindConfiguration(RecordRetentionOptions.Section);
+        services.AddOptions<RecordRetentionOptions>().BindConfiguration(RecordRetentionOptions.Section)
+            .Validate(
+                o => o.MinimumMonths is null || RetentionSettings.IsValidMonths(o.MinimumMonths.Value),
+                $"{RecordRetentionOptions.Section}:MinimumMonths is {RetentionSettings.MinMonths} to {RetentionSettings.MaxMonths} months, or unset.")
+            .ValidateOnStart();
         services.TryAddScoped<CandidateErasure>();
 
         // The signed links of the flow, with the careers settings they build addresses from and the Data Protection they sign with.

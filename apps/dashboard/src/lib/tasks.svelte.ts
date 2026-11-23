@@ -7,11 +7,11 @@ import { describeError, invalidatePath } from '#lib/query.js';
 import { applicationsPath, tasksPath } from '#lib/realtime.js';
 
 /**
- * Whether a person ticks a task off by hand: a to-do and a rejection review. A review and a requested scorecard are
+ * Whether a person ticks a task off by hand: a to-do, a rejection review and a candidate's review request. A review and a requested scorecard are
  * done where their work is done, when the scorecard is submitted (ADR-0017 decision 11), so they have no checkbox and
  * the API refuses to tick them.
  */
-export const completesByHand = (kind: ApplicationTaskKind): boolean => kind === 'Task' || kind === 'RejectionReview';
+export const completesByHand = (kind: ApplicationTaskKind): boolean => kind === 'Task' || kind === 'RejectionReview' || kind === 'ReviewRequest';
 
 /**
  * Where a task's work is done, for My tasks: a requested scorecard opens the candidate's Scorecards tab with the sheet

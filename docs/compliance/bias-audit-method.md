@@ -57,12 +57,13 @@ a finding of discrimination, and a small group's ratio swings widely.
 | Need | Today | Gap |
 |---|---|---|
 | Self-reported group | Equality monitoring forms, off by default until a legal review; optional questions the organization writes; answers hidden from the hiring team | The questions are free-form, so the EEO-1 categories are not guaranteed |
-| Totals by group | The equality report counts answers per question, hiding counts under 5 (`EqualityReportReads.cs`) | Answers are never joined to outcomes |
-| Stage outcomes and levels | On every application, with the timeline and the review log | No export that joins them to groups for an auditor |
+| Totals by group | The equality report counts answers per question, hiding counts under 5 (`EqualityReportReads.cs`) | None |
+| Stage outcomes and levels by group | The same report counts, per answer, those who moved on, were hired and were flagged, hidden under 5 alike ([reports](../architecture/reports.md)) | Rates and ratios are worked out by the auditor from the counts; no file export yet |
 | Pooled history across employers | None: each organization's data is its own | A pooled audit needs each employer's agreement and a separate legal basis |
 
-Closing the gaps is a follow-up product task (the gap map's follow-up 5). It would add an export of the joined,
-de-identified rows above, for one organization, with small counts hidden, only for people who may read equality data.
+The counts are per organization, for the people who may read equality data, and only where the deployment offers
+equality monitoring forms, which waits on a legal review. A selection rate is `advanced` (or `hired`) over `count`; a flag
+rate is `flagged` over `count`; an impact ratio divides each group's rate by the highest.
 
 ## Who runs it
 

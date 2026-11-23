@@ -22,6 +22,11 @@ describe('notification lines', () => {
     expect(notificationLine('ai-usage-cap', {})).toBe('Something needs a look');
   });
 
+  it('says the checks were updated, with the version when the payload has it', () => {
+    expect(notificationLine('checks-changed', { version: '2026-11-09.1' })).toBe("ScreenHire's checks were updated (version 2026-11-09.1)");
+    expect(notificationLine('checks-changed', {})).toBe("ScreenHire's checks were updated");
+  });
+
   it('words the AI usage spike alert', () => {
     expect(notificationLine('ai-usage-spike', { day: '2026-11-08' })).toBe('AI usage yesterday was well above the recent average');
   });

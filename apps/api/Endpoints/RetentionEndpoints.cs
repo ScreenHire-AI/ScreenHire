@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ScreenHire.Api.Auth;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Application.Privacy;
@@ -41,7 +42,7 @@ internal static class RetentionEndpoints
     }
 
     private static async Task<Results<Ok<OrganizationRetention>, NotFound>> GetRetention(
-        ScreenHireDbContext db, ITenantContext tenant, CancellationToken cancellationToken)
+        ScreenHireDbContext db, ITenantContext tenant, IOptions<RecordRetentionOptions> options, CancellationToken cancellationToken)
     {
         if (!tenant.SeesAllJobs)
         {
@@ -49,7 +50,7 @@ internal static class RetentionEndpoints
         }
 
         var settings = await db.RetentionSettings.AsNoTracking().SingleOrDefaultAsync(cancellationToken);
-        return TypedResults.Ok(await ToRetentionAsync(db, settings, cancellationToken));
+        return TypedResults.Ok(await ToRetentionAsync(db, settings, options.Value, cancellationToken));
     }
 
     private static Task<Results<Ok<HistoryPage>, NotFound, ValidationProblem>> GetRetentionHistory(
@@ -60,7 +61,8 @@ internal static class RetentionEndpoints
 
     // The count the daily run would act on now if this period were saved, from the same query the run uses.
     private static async Task<Results<Ok<RetentionPreview>, NotFound, ValidationProblem>> PreviewRetention(
-        int? months, ScreenHireDbContext db, ITenantContext tenant, TimeProvider time, CancellationToken cancellationToken)
+        int? months, ScreenHireDbContext db, ITenantContext tenant, IOptions<RecordRetentionOptions> options, TimeProvider time,
+        CancellationToken cancellationToken)
     {
         if (!tenant.SeesAllJobs)
         {
@@ -73,6 +75,11 @@ internal static class RetentionEndpoints
                 "months", $"Choose from {RetentionSettings.MinMonths} to {RetentionSettings.MaxMonths} months."));
         }
 
+        if (BelowFloor(value, options.Value) is { } floor)
+        {
+            return TypedResults.ValidationProblem(floor);
+        }
+
         var cutoff = RetentionSettings.CutoffFor(value, time.GetUtcNow())!.Value;
         var selection = await RetentionSelection.FindAsync(db, cutoff, cancellationToken);
         return TypedResults.Ok(new RetentionPreview(selection.ApplicationIds.Count, selection.CandidateCount));
@@ -82,6 +89,7 @@ internal static class RetentionEndpoints
     private static async Task<Results<Ok<OrganizationRetention>, NotFound, ValidationProblem>> UpdateRetention(
         UpdateRetentionRequest request,
         IValidator<UpdateRetentionRequest> validator,
+        IOptions<RecordRetentionOptions> options,
         ScreenHireDbContext db,
         ITenantContext tenant,
         TimeProvider time,
@@ -95,6 +103,11 @@ internal static class RetentionEndpoints
         if (await validator.ProblemsAsync(request, cancellationToken) is { } problems)
         {
             return TypedResults.ValidationProblem(problems);
+        }
+
+        if (request.Months is { } months && BelowFloor(months, options.Value) is { } floor)
+        {
+            return TypedResults.ValidationProblem(floor);
         }
 
         var now = time.GetUtcNow();
@@ -120,11 +133,18 @@ internal static class RetentionEndpoints
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        return TypedResults.Ok(await ToRetentionAsync(db, settings, cancellationToken));
+        return TypedResults.Ok(await ToRetentionAsync(db, settings, options.Value, cancellationToken));
     }
 
+    // A period under the deployment's floor (ScreenHire:Retention:MinimumMonths) is refused rather than quietly lengthened, so
+    // the setting says what the daily run does.
+    private static Dictionary<string, string[]>? BelowFloor(int months, RecordRetentionOptions options) =>
+        options.Allows(months)
+            ? null
+            : ValidationExtensions.Problem("months", $"Keep ended applications at least {options.MinimumMonths} months: decision records have to be kept that long, or turn deleting off.");
+
     private static async Task<OrganizationRetention> ToRetentionAsync(
-        ScreenHireDbContext db, RetentionSettings? settings, CancellationToken cancellationToken)
+        ScreenHireDbContext db, RetentionSettings? settings, RecordRetentionOptions options, CancellationToken cancellationToken)
     {
         var last = settings is null
             ? null
@@ -141,6 +161,7 @@ internal static class RetentionEndpoints
         // No row is ScreenHire's default (off), which nobody in the organization has changed.
         var lastUpdated = settings is null ? LastUpdate.ByScreenHire(null) : LastUpdate.FromChange(last, settings.UpdatedAt);
         return new OrganizationRetention(
-            settings?.EndedApplicationsMonths, lastUpdated, run is null ? null : new RetentionLastRun(run.OccurredAt, run.ItemCount ?? 0));
+            settings?.EndedApplicationsMonths, lastUpdated, run is null ? null : new RetentionLastRun(run.OccurredAt, run.ItemCount ?? 0),
+            options.MinimumMonths);
     }
 }

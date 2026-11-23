@@ -11,6 +11,7 @@ using ScreenHire.Application.TalentPool;
 using ScreenHire.Application.Automations;
 using ScreenHire.Application.Slack;
 using ScreenHire.Domain.Applications;
+using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Automations;
 using ScreenHire.Domain.Organizations;
 using ScreenHire.Infrastructure.Persistence;
@@ -63,10 +64,15 @@ internal static class ApplicationChanges
             return TypedResults.ValidationProblem(ValidationExtensions.Problem("toStageId", "The job's workflow has no stage with this id."));
         }
 
+        if (request.RejectionReason is not null && target.Kind != StageKind.Rejected)
+        {
+            return TypedResults.ValidationProblem(ValidationExtensions.Problem("rejectionReason", "A rejection reason goes with a move to a rejected stage only."));
+        }
+
         var from = application.CurrentStageId;
         var now = time.GetUtcNow();
         var wasKept = application.KeptInMindAt is not null;
-        if (application.MoveTo(target, now, tenant.UserId, request.Note, actorApiKeyId: user.ApiKeyId()) is { } moved)
+        if (application.MoveTo(target, now, tenant.UserId, request.Note, actorApiKeyId: user.ApiKeyId(), rejectionReason: request.RejectionReason) is { } moved)
         {
             db.ApplicationEvents.Add(moved);
             await outbox.PublishAsync(new ApplicationMoved(

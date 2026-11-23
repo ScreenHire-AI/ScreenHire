@@ -214,6 +214,7 @@ public sealed record ApplicationFileSummary(
 /// <c>templateVersionId</c>: For a <c>StageChanged</c> entry made when the job switched templates, the version it switched
 /// to; the entry says the pipeline changed rather than that someone moved the candidate, and <c>fromStageId</c> may equal
 /// <c>toStageId</c>. The job's <c>former</c> stages name a stage the new pipeline does not have.
+/// <c>rejectionReason</c>: For a <c>StageChanged</c> entry into a rejected stage, the principal reason, when one was given.
 /// </remarks>
 public sealed record ApplicationTimelineEntry(
     Guid Id,
@@ -244,7 +245,8 @@ public sealed record ApplicationTimelineEntry(
     Guid? InterviewId = null,
     DateTimeOffset? StartsAt = null,
     DateTimeOffset? EndsAt = null,
-    Guid? TemplateVersionId = null);
+    Guid? TemplateVersionId = null,
+    RejectionReason? RejectionReason = null);
 
 /// <summary>A note as it stands: its latest text, its author and when it was written and last edited.</summary>
 /// <remarks>
@@ -284,9 +286,10 @@ public sealed record CandidateInput(
 
 /// <summary>
 /// Moves an application to another stage of its job's workflow. Only people move applications here. The optional
-/// <c>note</c> is kept on the move's timeline entry.
+/// <c>note</c> is kept on the move's timeline entry, and so is <c>rejectionReason</c>, the principal reason for a move into
+/// a rejected stage (refused with any other stage). <c>KnockoutAnswer</c> is the automations' own and refused here.
 /// </summary>
-public sealed record MoveApplicationRequest(string ToStageId, string? Note = null);
+public sealed record MoveApplicationRequest(string ToStageId, string? Note = null, RejectionReason? RejectionReason = null);
 
 /// <summary>
 /// A note from the hiring team on an application, kept on its timeline with the author and the time. Mention a member
@@ -372,7 +375,8 @@ internal static class ApplicationMappings
             entry.Data.StageId, entry.Data.Recommendation, entry.Data.EmailTemplateId, entry.Data.EmailSubject, entry.Data.QuestionnaireId,
             entry.Data.QuestionnaireRequestId, entry.Data.NoteId, added ? note?.EditedAt : null, apiKeyName, entry.Data.EmailId, entry.Data.TaskId,
             Enum.TryParse<TalentPoolExit>(entry.Data.PoolExit, out var exit) ? exit : null, entry.Data.OtherJobId, entry.Data.OtherApplicationId,
-            entry.Data.InterviewId, entry.Data.StartsAt, entry.Data.EndsAt, entry.Data.TemplateVersionId);
+            entry.Data.InterviewId, entry.Data.StartsAt, entry.Data.EndsAt, entry.Data.TemplateVersionId,
+            Enum.TryParse<RejectionReason>(entry.Data.RejectionReason, out var reason) ? reason : null);
     }
 
     public static ApplicationNoteDetail ToDetail(this ApplicationNote note) =>
@@ -408,6 +412,8 @@ internal sealed class MoveApplicationRequestValidator : AbstractValidator<MoveAp
     {
         RuleFor(r => r.ToStageId).NotEmpty().MaximumLength(40);
         RuleFor(r => r.Note).MaximumLength(1000);
+        RuleFor(r => r.RejectionReason).IsInEnum()
+            .NotEqual(RejectionReason.KnockoutAnswer).WithMessage("A knockout answer is the reason an automation gives; choose another.");
     }
 }
 

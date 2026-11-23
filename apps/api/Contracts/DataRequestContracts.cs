@@ -55,9 +55,10 @@ internal sealed class DeclineDataRequestRequestValidator : AbstractValidator<Dec
 /// The organization's record retention. <c>months</c> is how long after it ended an application stays before it is deleted
 /// (1 to 120), or <c>null</c> for never, the default. <c>lastUpdated</c> is the last change ("by ScreenHire" while it is
 /// the default); its history is <c>/v1/organization/data-retention/history</c>. <c>lastRun</c> is the newest run that deleted
-/// something, or <c>null</c> when none has.
+/// something, or <c>null</c> when none has. <c>minimumMonths</c> is the deployment's floor for decision records
+/// (<c>ScreenHire:Retention:MinimumMonths</c>): a shorter period is refused. <c>null</c> when there is none.
 /// </summary>
-public sealed record OrganizationRetention(int? Months, LastUpdate LastUpdated, RetentionLastRun? LastRun);
+public sealed record OrganizationRetention(int? Months, LastUpdate LastUpdated, RetentionLastRun? LastRun, int? MinimumMonths = null);
 
 /// <summary>When a retention run last deleted applications, and how many (the latest batch, when a run took several).</summary>
 public sealed record RetentionLastRun(DateTimeOffset At, int ApplicationsRemoved);

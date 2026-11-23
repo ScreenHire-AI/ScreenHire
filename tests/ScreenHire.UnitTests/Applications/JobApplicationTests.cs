@@ -166,6 +166,18 @@ public sealed class JobApplicationTests
     }
 
     [Fact]
+    public void A_rejection_reason_is_kept_only_on_a_move_into_a_rejected_stage()
+    {
+        var (application, job) = Submitted();
+
+        var screened = application.MoveTo(job.Workflow.FindStage("screening")!, Monday.AddDays(1), Recruiter, null, rejectionReason: RejectionReason.Other);
+        var rejected = application.MoveTo(job.Workflow.FindStage("rejected")!, Monday.AddDays(2), Recruiter, null, rejectionReason: RejectionReason.PositionClosed);
+
+        screened!.Data.RejectionReason.Should().BeNull("a reason means nothing on a move that rejects nobody");
+        rejected!.Data.RejectionReason.Should().Be(nameof(RejectionReason.PositionClosed));
+    }
+
+    [Fact]
     public void Removing_a_tag_ignores_case_and_records_the_tag_as_it_was()
     {
         var (application, _) = Submitted();

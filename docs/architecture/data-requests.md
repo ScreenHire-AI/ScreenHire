@@ -198,7 +198,9 @@ off, the route is a 404. The setting waits on counsel ([the gap map](../research
 
 It answers a signed-in member who sees the application, the same reach as the verification and timeline reads, and never
 an API key: verification reaches a key only through the verification read routes, which log each read (ADR-0021).
-Another organization's application, or one outside the member's jobs, is a 404. It holds:
+Another organization's application, or one outside the member's jobs, is a 404. The application's Activity tab offers it as a
+download (`DecisionRecordDownload`, a JSON file named for the application) when `decisionRecordEnabled`, on the signed-in
+person's organization in `GET /v1/auth/me`, says the setting is on. It holds:
 
 - the job, the candidate's name, when they applied, the current stage, the privacy notice version they saw and whether
   they turned on the assistive technology switch;
@@ -222,8 +224,15 @@ null, upserts the row and records the change in the settings history; two first 
 with the same cutoff the run would use. `GET .../history` (`GetOrganizationRetentionHistory`) pages the settings history. All
 four need Erase candidates and a person who sees every job.
 
+A deployment can set a floor, `ScreenHire:Retention:MinimumMonths` (unset by default, 1 to 120, checked when the host starts),
+for the laws that keep automated-decision records 3 or 4 years ([the gap map](../research/compliance-gap-map.md), CO-8 and
+CA-7). The `GET` returns it as `minimumMonths`. `PUT` and the preview refuse a shorter period with a validation problem on
+`months`, the dashboard's field starts at it, and the daily run never deletes sooner than it even when an older, shorter period
+is saved (`RecordRetentionOptions.EffectiveMonths`). Off stays off. The floor holds the daily run only: a candidate's own
+erasure request still erases everything, which is a legal decision the gap map leaves open.
+
 `PurgeEndedApplications` runs daily at 04:12 UTC and fans out `PurgeOrganizationEndedApplications(OrganizationId, Now)`. Each
-handler reads its own setting and does nothing when it is off. Otherwise it runs `RetentionSelection.FindAsync` (the worker's
+handler reads its own setting, lengthened to the floor when there is one, and does nothing when it is off. Otherwise it runs `RetentionSelection.FindAsync` (the worker's
 tenant has no user, so it sees every job), takes up to `BatchSize` application ids, and calls
 `CandidateErasure.EraseApplicationsAsync` inside the handler's transaction. It returns the erasure's messages (files, calendar
 events, duplicate checks and one `CandidateErased` event per candidate left with nothing) and, while more are waiting, itself

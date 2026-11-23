@@ -357,6 +357,35 @@ public sealed partial class PublicPortalTests(AppHostFixture fixture)
         (await client.PostAsJsonAsync(path, Reply("One more"), Ct)).StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
     }
 
+    // A candidate whose application is not moving forward asks, from their page, for a person to look again (the test stack
+    // turns ScreenHire:Compliance:ReviewRequests:Enabled on; compliance gap map CO-6 and CA-2). The team gets one task while
+    // it waits, and an application still in play cannot ask.
+    [Fact]
+    public async Task A_rejected_candidate_asks_for_a_review_once_and_the_team_gets_one_task()
+    {
+        using var world = await fixture.NewWorldAsync();
+        using var client = NewClient();
+        var token = Signer().Issue(world.OrganizationId, world.CandidateId);
+        var ask = $"{Base(world.Slug)}/{token}/applications/{world.ApplicationId}/review-request";
+
+        (await ApplicationOfAsync(client, world, token)).GetProperty("canAskForReview").GetBoolean().Should().BeFalse("it is still in play");
+        (await client.PostAsync(ask, null, Ct)).StatusCode.Should().Be(HttpStatusCode.Conflict);
+        await MoveAsync(world, "rejected");
+        (await ApplicationOfAsync(client, world, token)).GetProperty("canAskForReview").GetBoolean().Should().BeTrue();
+
+        (await client.PostAsync(ask, null, Ct)).StatusCode.Should().Be(HttpStatusCode.Accepted);
+        (await client.PostAsync(ask, null, Ct)).StatusCode.Should().Be(HttpStatusCode.Accepted, "asking again while one waits changes nothing");
+
+        var shown = await ApplicationOfAsync(client, world, token);
+        shown.GetProperty("canAskForReview").GetBoolean().Should().BeFalse();
+        shown.GetProperty("reviewRequested").GetBoolean().Should().BeTrue();
+        var tasks = (await world.Owner.GetAsync($"/v1/applications/{world.ApplicationId}/tasks")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
+            .Where(t => t.GetProperty("kind").GetString() == "ReviewRequest").ToList();
+        tasks.Should().ContainSingle().Which.GetProperty("note").GetString().Should().Contain("asked for a person to review");
+        (await client.PostAsync($"{Base(world.Slug)}/{token}/applications/{Guid.NewGuid()}/review-request", null, Ct)).StatusCode
+            .Should().Be(HttpStatusCode.NotFound);
+    }
+
     [Fact]
     public async Task An_application_that_is_not_the_tokens_candidates_is_not_found()
     {

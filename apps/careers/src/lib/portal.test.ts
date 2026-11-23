@@ -7,8 +7,10 @@ import {
   looksLikeEmail,
   MAX_FILE_BYTES,
   newReplyKey,
+  askForReview,
   replyOutcome,
   replyProblem,
+  reviewOutcome,
   requestLink,
   sendReply,
   stepStates,
@@ -69,6 +71,26 @@ describe('linkOutcome and replyOutcome', () => {
     expect(replyOutcome(409)).toBe('nothing-to-reply-to');
     expect(replyOutcome(429)).toBe('too-many-today');
     expect(replyOutcome(500)).toBe('error');
+  });
+});
+
+describe('reviewOutcome and askForReview', () => {
+  it('map the API status to what the page says', () => {
+    expect(reviewOutcome(202)).toBe('asked');
+    expect(reviewOutcome(409)).toBe('not-possible');
+    expect(reviewOutcome(404)).toBe('expired');
+    expect(reviewOutcome(429)).toBe('busy');
+    expect(reviewOutcome(500)).toBe('error');
+  });
+
+  it('asks for the application in the hidden fields and never puts a malformed id into a path', async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await askForReview(form({ organization: 'brightwater', token, application }), undefined)).toEqual({ outcome: 'asked' });
+    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toContain(`/portal/${token}/applications/${application}/review-request`);
+    expect(await askForReview(form({ organization: 'brightwater', token, application: '../jobs' }), undefined)).toEqual({ outcome: 'expired' });
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
 

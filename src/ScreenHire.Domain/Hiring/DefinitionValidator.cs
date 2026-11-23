@@ -725,6 +725,7 @@ public static partial class DefinitionValidator
             ValidateConditions(automation.Conditions, Join(automationPath, "conditions"), quoted, named, automation.Trigger?.Type, questions, errors);
             ValidateActions(automation.Actions, Join(automationPath, "actions"), quoted, named, parts, errors);
             ValidateEqualityUse(automation, automationPath, quoted, parts, errors);
+            ValidateLocationProxyUse(automation, automationPath, quoted, parts, errors);
         }
 
         var signalDriven = DrivenAutomations(automations, DrivenBySignal);
@@ -763,6 +764,35 @@ public static partial class DefinitionValidator
             {
                 errors.Add(new(Join(path, $"conditions.rules[{i}].fact"),
                     $"Condition {i + 1} of {quoted} tests an answer on an equality monitoring form. Those answers are only counted in totals, so choose another question."));
+            }
+        }
+    }
+
+    // No condition reads the answer to a question that asks for a postal or zip code (docs/research/compliance-gap-map.md,
+    // IL-2): Illinois makes using a zip code as a proxy for a protected class a civil rights violation, and a postal code
+    // stands in for race and national origin often enough that sorting candidates on it is the risk whatever the intent.
+    // The form may still ask for one; only acting on it is refused. A commute or location requirement is a question about
+    // that ("Can you work from our Denver office?"), which a condition may read.
+    private static void ValidateLocationProxyUse(Automation automation, string path, string quoted, WorkflowParts parts, List<DefinitionError> errors)
+    {
+        var proxies = parts.Questions.Values
+            .Concat(parts.FollowUps.Values.SelectMany(f => f.Questions ?? []))
+            .Where(q => q is not null && (PostalCode().IsMatch(q.Label ?? "") || PostalCode().IsMatch(q.HelpText ?? "")))
+            .Select(q => q.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        if (proxies.Count == 0)
+        {
+            return;
+        }
+
+        var rules = automation.Conditions?.Rules ?? [];
+        for (var i = 0; i < rules.Count; i++)
+        {
+            if (rules[i]?.Fact is { } fact && fact.StartsWith(AnswersPrefix, StringComparison.Ordinal) && proxies.Contains(fact[AnswersPrefix.Length..]))
+            {
+                errors.Add(new(Join(path, $"conditions.rules[{i}].fact"),
+                    $"Condition {i + 1} of {quoted} tests the answer to a question that asks for a postal or zip code. A postal code can stand in for " +
+                    "race or national origin, so no automation acts on it. Ask about the requirement itself instead, such as whether the candidate can work from your office."));
             }
         }
     }
@@ -1753,6 +1783,10 @@ public static partial class DefinitionValidator
 
     [GeneratedRegex("^[A-Z]{3}$")]
     private static partial Regex CurrencyCode();
+
+    // A question that asks for a postal code, in the words a form uses: whole words, so "zipper" or "postal service" pass.
+    [GeneratedRegex(@"\b(zip|zip code|zipcode|zip\+4|postal code|postcode|post code|postal zone)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex PostalCode();
 
     // A backstop for scorecard questions that rate the person rather than the job (CLAUDE.md non-negotiable 3). Whole words only,
     // and not words with a fair job meaning: "data integrity", "energy sector knowledge", "character encoding" and

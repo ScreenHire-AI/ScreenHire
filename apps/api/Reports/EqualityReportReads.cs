@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ScreenHire.Api.Contracts;
 using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
+using ScreenHire.Domain.Verification;
 using ScreenHire.Infrastructure.Persistence;
 
 namespace ScreenHire.Api.Reports;
@@ -10,7 +11,10 @@ namespace ScreenHire.Api.Reports;
 /// Equality monitoring totals (docs/architecture/reports.md, Equality monitoring): for each library form of that kind, how
 /// many candidates who answered it in the range gave each answer, across every job that sends it. Reads through EF, so the
 /// tenant filter and the job access filter narrow it as row-level security does. Nothing names a candidate, and any count
-/// under <see cref="SmallCounts.Minimum"/> is hidden (<see cref="SmallCounts"/>).
+/// under <see cref="SmallCounts.Minimum"/> is hidden (<see cref="SmallCounts"/>). Beside each answer's count are the
+/// outcomes an impact-ratio bias audit divides (docs/compliance/bias-audit-method.md): how many of those candidates moved
+/// forward, were hired, and were assigned an authenticity level above the lowest. Each column hides its small counts the
+/// same way.
 /// </summary>
 internal static class EqualityReportReads
 {
@@ -26,7 +30,8 @@ internal static class EqualityReportReads
             query = query.Where(r => jobIds.Contains(r.JobId));
         }
 
-        var responses = await query.Select(r => new { FormId = r.FormTemplateId!.Value, r.Answers }).ToListAsync(cancellationToken);
+        var responses = await query.Select(r => new { FormId = r.FormTemplateId!.Value, r.ApplicationId, r.Answers }).ToListAsync(cancellationToken);
+        var outcomes = await OutcomesAsync(db, [.. responses.Select(r => r.ApplicationId).Distinct()], cancellationToken);
         var formIds = responses.Select(r => r.FormId).Distinct().ToList();
         var forms = await db.FormTemplates.AsNoTracking()
             .Where(t => formIds.Contains(t.Id) || t.Kind == FormKind.EqualityMonitoring)
@@ -34,7 +39,7 @@ internal static class EqualityReportReads
             .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
-        var byForm = responses.ToLookup(r => r.FormId, r => r.Answers);
+        var byForm = responses.ToLookup(r => r.FormId, r => new Response(r.Answers, outcomes.GetValueOrDefault(r.ApplicationId)));
         return new(
             [.. forms.Where(f => f.Kind == FormKind.EqualityMonitoring)
                 .OrderBy(f => f.Name, StringComparer.CurrentCulture)
@@ -42,8 +47,48 @@ internal static class EqualityReportReads
             SmallCounts.Minimum);
     }
 
+    private sealed record Response(IReadOnlyList<ApplicationAnswer> Answers, Outcome Outcome);
+
+    // What happened to one application, for the audit's rates. A default Outcome is none of the three.
+    private readonly record struct Outcome(bool Advanced, bool Hired, bool Flagged);
+
+    // Moved forward: entered a stage past the first that does not end the application (a template switch is not a move).
+    // Hired: in a hired stage now. Flagged: its newest authenticity assessment is above the lowest level, dismissed or not,
+    // because NYC counts being assigned a classification (6 RCNY 5-300).
+    private static async Task<Dictionary<Guid, Outcome>> OutcomesAsync(ScreenHireDbContext db, IReadOnlyList<Guid> applicationIds, CancellationToken cancellationToken)
+    {
+        var applications = await db.Applications.AsNoTracking()
+            .Where(a => applicationIds.Contains(a.Id))
+            .Select(a => new { a.Id, a.JobId, a.CurrentStageId })
+            .ToListAsync(cancellationToken);
+        var jobIds = applications.Select(a => a.JobId).Distinct().ToList();
+        var jobs = await db.Jobs.AsNoTracking().Where(j => jobIds.Contains(j.Id)).ToDictionaryAsync(j => j.Id, cancellationToken);
+        var moves = (await db.ApplicationEvents.AsNoTracking()
+                .Where(e => applicationIds.Contains(e.ApplicationId) && e.Type == ApplicationEventType.StageChanged)
+                .Select(e => new { e.ApplicationId, e.Data })
+                .ToListAsync(cancellationToken))
+            .Where(e => e.Data.TemplateVersionId is null)
+            .ToLookup(e => e.ApplicationId, e => e.Data.ToStageId);
+        var flagged = (await db.VerificationAssessments.AsNoTracking()
+                .Where(v => applicationIds.Contains(v.ApplicationId) && v.Kind == VerificationAssessmentKind.Authenticity)
+                .Select(v => new { v.ApplicationId, v.Level, v.AssessedAt })
+                .ToListAsync(cancellationToken))
+            .GroupBy(v => v.ApplicationId)
+            .Where(g => g.MaxBy(v => v.AssessedAt)!.Level != nameof(AuthenticityLevel.NoConcerns))
+            .Select(g => g.Key)
+            .ToHashSet();
+
+        return applications.ToDictionary(a => a.Id, a =>
+        {
+            var workflow = jobs[a.JobId].Workflow;
+            var forward = moves[a.Id].Any(stageId => workflow.FindStage(stageId ?? "")?.Kind is { } kind
+                && kind is not (StageKind.Applied or StageKind.Rejected or StageKind.Withdrawn));
+            return new Outcome(forward, workflow.FindStage(a.CurrentStageId)?.Kind == StageKind.Hired, flagged.Contains(a.Id));
+        });
+    }
+
     // One form's totals: a row per question its newest published version asks, a cell per option and one for no answer.
-    private static EqualityForm Form(FormTemplate form, IReadOnlyList<IReadOnlyList<ApplicationAnswer>> responses)
+    private static EqualityForm Form(FormTemplate form, IReadOnlyList<Response> responses)
     {
         var newest = form.LatestPublished ?? form.Versions.MaxBy(v => v.Version)!;
         if (responses.Count < SmallCounts.Minimum)
@@ -66,25 +111,30 @@ internal static class EqualityReportReads
 
         var questions = (newest.Content.Questions ?? []).Select(question =>
         {
-            var given = responses.Select(answers => answers.FirstOrDefault(a => a.QuestionId == question.Id)).ToList();
+            var given = responses.Select(r => (Answer: r.Answers.FirstOrDefault(a => a.QuestionId == question.Id), r.Outcome)).ToList();
             var values = Choices(question).Select(c => c.Value).ToList();
-            foreach (var other in given.OfType<ApplicationAnswer>().SelectMany(Values).Distinct(StringComparer.Ordinal).Where(v => !values.Contains(v, StringComparer.Ordinal)))
+            foreach (var other in given.Select(g => g.Answer).OfType<ApplicationAnswer>().SelectMany(Values).Distinct(StringComparer.Ordinal).Where(v => !values.Contains(v, StringComparer.Ordinal)))
             {
                 values.Add(other);
             }
 
             values.Add(NoAnswer);
-            var counts = values
-                .Select(value => value == NoAnswer
-                    ? given.Count(a => a is null || !Values(a).Any())
-                    : given.Count(a => a is not null && Values(a).Contains(value, StringComparer.Ordinal)))
+            var groups = values
+                .Select(value => given.Where(g => value == NoAnswer
+                    ? g.Answer is null || !Values(g.Answer).Any()
+                    : g.Answer is not null && Values(g.Answer).Contains(value, StringComparer.Ordinal)).Select(g => g.Outcome).ToList())
                 .ToList();
-            var shown = SmallCounts.Suppress(counts);
+            var shown = SmallCounts.Suppress([.. groups.Select(g => g.Count)]);
+            var advanced = SmallCounts.Suppress([.. groups.Select(g => g.Count(o => o.Advanced))]);
+            var hired = SmallCounts.Suppress([.. groups.Select(g => g.Count(o => o.Hired))]);
+            var flaggedCounts = SmallCounts.Suppress([.. groups.Select(g => g.Count(o => o.Flagged))]);
             return new EqualityQuestion(
                 question.Id,
                 question.Label,
                 [.. values.Select((value, i) => new EqualityAnswerCount(
-                    value, value == NoAnswer ? "No answer" : labels.GetValueOrDefault((question.Id, value), value), shown[i]))]);
+                    value, value == NoAnswer ? "No answer" : labels.GetValueOrDefault((question.Id, value), value), shown[i],
+                    // An outcome of a group whose own count is hidden stays hidden, or it would give the group's size away.
+                    shown[i] is null ? null : advanced[i], shown[i] is null ? null : hired[i], shown[i] is null ? null : flaggedCounts[i]))]);
         });
         return new(form.Id, newest.Content.Name, responses.Count, [.. questions]);
     }

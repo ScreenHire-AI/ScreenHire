@@ -3367,6 +3367,60 @@ return apiFetch<sendPublicPortalReplyResponse>(getSendPublicPortalReplyUrl(organ
 
 
 
+export type requestPublicPortalReviewResponse202 = {
+  data: void
+  status: 202
+}
+
+export type requestPublicPortalReviewResponse404 = {
+  data: void
+  status: 404
+}
+
+export type requestPublicPortalReviewResponse409 = {
+  data: ProblemDetails
+  status: 409
+}
+
+export type requestPublicPortalReviewResponse429 = {
+  data: void
+  status: 429
+}
+
+export type requestPublicPortalReviewResponseSuccess = (requestPublicPortalReviewResponse202) & {
+  headers: Headers;
+};
+export type requestPublicPortalReviewResponseError = (requestPublicPortalReviewResponse404 | requestPublicPortalReviewResponse409 | requestPublicPortalReviewResponse429) & {
+  headers: Headers;
+};
+
+export type requestPublicPortalReviewResponse = (requestPublicPortalReviewResponseSuccess | requestPublicPortalReviewResponseError)
+
+export const getRequestPublicPortalReviewUrl = (organizationSlug: string,
+    token: string,
+    applicationId: string,) => {
+
+
+
+
+  return `/v1/public/organizations/${organizationSlug}/portal/${token}/applications/${applicationId}/review-request`
+}
+
+export const requestPublicPortalReview = async (organizationSlug: string,
+    token: string,
+    applicationId: string, options?: Parameters<typeof apiFetch>[1]): Promise<requestPublicPortalReviewResponse> => {
+
+  return apiFetch<requestPublicPortalReviewResponse>(getRequestPublicPortalReviewUrl(organizationSlug,token,applicationId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
 export type listJobsResponse200 = {
   data: JobSummary[]
   status: 200

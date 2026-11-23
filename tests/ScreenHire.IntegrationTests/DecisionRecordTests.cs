@@ -31,6 +31,9 @@ public sealed class DecisionRecordTests(AppHostFixture fixture)
             .Expect(HttpStatusCode.OK);
 
         var record = (await owner.GetAsync($"/v1/applications/{applicationId}/decision-record")).Expect(HttpStatusCode.OK);
+        var me = (await owner.GetAsync("/v1/auth/me")).Expect(HttpStatusCode.OK);
+
+        me.At("organization.decisionRecordEnabled").GetBoolean().Should().BeTrue("the dashboard offers the download only when the route answers");
 
         record.Id("applicationId").Should().Be(applicationId);
         record.Id("jobId").Should().Be(jobId);
