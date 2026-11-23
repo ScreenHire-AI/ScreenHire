@@ -27,7 +27,9 @@ Two questions, each by group:
 
 For each, the **impact ratio** is the group's rate divided by the rate of the group with the highest rate (5-300). For
 flags, where being flagged is the worse outcome, compare the share of each group left unflagged, so the ratio still
-reads "lower is worse".
+reads "lower is worse". That inversion is ScreenHire's reading for an adverse classification, not the rule's text: 5-300
+divides by the rate of the most-classified group. Counsel and the auditor should choose which to publish, or publish
+both.
 
 There are no scores, so LL144's scoring rate does not apply.
 
