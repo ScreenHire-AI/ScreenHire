@@ -109,6 +109,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/choice-list.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-recipes.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-list.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/controls.ts
   - resource: apps/dashboard/src/lib/components/workflow/automations-panel.svelte
   - resource: apps/dashboard/src/lib/components/workflow/interview-fields.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-cards.svelte
@@ -391,7 +392,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     finish at any of them from any stage. Their automations hang under them like any stage's.
   - **Keyboard.** Nodes are listed in reading order, a band at a time, which is the Tab order. The arrow keys move along
     a column (Up, Down) and across to the nearest column (Left, Right), Home and End go to the first and last
-    (`neighbour`); whatever takes the focus is panned into view and out from under the toolbar. Closing a sheet returns
+    (`neighbour`); whatever takes the focus by key or Tab is panned into view and out from under the toolbar, but a node pressed with a pointer stays where it is, because panning it from under the pointer would lose the click. Closing a sheet returns
     the focus to the node that opened it (`focusGraphNode`), or to the row that opened it in the list.
   - **Links.** A "move to a stage" action also points at its stage by drawing a link from its right edge to a stage, a
     pointer shortcut for the form's Stage field (`connect`), never the only way (WCAG 2.5.7).
