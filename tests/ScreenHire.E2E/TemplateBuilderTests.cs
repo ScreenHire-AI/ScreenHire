@@ -29,7 +29,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(validation).Not.ToContainTextAsync("Needs fixes");
     }
 
-    // A settled check that found a problem: the Needs fixes badge, and the builder's "Problems to fix" panel says it.
+    // A settled check that found a problem: the Needs fixes badge, and the builder's lines of problems to fix say it.
     private async Task ExpectProblemAsync(string text)
     {
         var validation = Page.GetByRole(AriaRole.Region, new() { Name = "Validation" });
@@ -106,23 +106,29 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var drawer = Page.GetByRole(AriaRole.Dialog);
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("Route for review");
         await ChooseAsync(drawer, "Trigger: someone applies", "The checks finish");
-        await ChooseAsync(drawer, "Add a condition: and if", "Verification");
+        await ChooseAsync(drawer, "Add a condition: a condition", "Verification");
         await drawer.GetByRole(AriaRole.Button, new() { Name = "Condition 1: value: Clear" }).ClickAsync();
         await Page.GetByRole(AriaRole.Option, new() { Name = "Verify", Exact = true }).ClickAsync();
         await Page.GetByRole(AriaRole.Option, new() { Name = "Clear", Exact = true }).ClickAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer.GetByRole(AriaRole.Button, new() { Name = "Condition 1: value: Verify" })).ToBeVisibleAsync();
 
-        await drawer.GetByRole(AriaRole.Button, new() { Name = "Add another step: then also" }).ClickAsync();
+        await drawer.GetByRole(AriaRole.Button, new() { Name = "Add a step: an action" }).ClickAsync();
         var steps = Page.Locator("[data-slot=popover-content]");
         await Expect(steps.GetByRole(AriaRole.Option)).ToHaveTextAsync(["Move to a stage", "Add a tag", "Ask a teammate to review"]);
         await Expect(steps).ToContainTextAsync("A check can only ask for a closer look. A person decides.");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-automation-guardrail-light");
-        await Page.Keyboard.PressAsync("Escape");
+        await steps.GetByRole(AriaRole.Option, new() { Name = "Ask a teammate to review" }).ClickAsync();
         await Expect(steps).ToBeHiddenAsync();
 
+        // Rules ticks the same values by name, says the guardrail once, and adds no step the guardrail refuses.
         await drawer.GetByRole(AriaRole.Tab, new() { Name = "Rules" }).ClickAsync();
+        await Expect(drawer.GetByRole(AriaRole.Button, new() { Name = "Value for condition 1: Verify" })).ToBeVisibleAsync();
+        await Expect(drawer.GetByText("A verification signal can route a candidate for review, never reject them.")).ToHaveCountAsync(1);
+        await drawer.GetByRole(AriaRole.Button, new() { Name = "Add action" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Menuitem)).ToHaveTextAsync(["Move to a stage", "Add a tag", "Assign a reviewer"]);
+        await Page.Keyboard.PressAsync("Escape");
         var firstAction = drawer.GetByRole(AriaRole.Combobox, new() { NameRegex = new Regex("^Action 1") });
         await firstAction.SelectOptionAsync(new SelectOptionValue { Label = "Reject" });
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Reason", Exact = true }).FillAsync("The role needs a verified identity.");
@@ -299,10 +305,14 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var drawer = Page.GetByRole(AriaRole.Dialog);
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("Welcome tag");
         await ChooseAsync(drawer, "Trigger: someone moves into", "Someone applies");
-        // A new automation starts complete (it asks the team to review), so a blank tag is one the person chooses to add.
+        // A step left without its text goes as the sheet closes, and here the automation with it, so a blank tag is only a problem
+        // for someone who takes that back.
+        await ChooseAsync(drawer, "Add a step: an action", "Ask a teammate to review");
         await ChooseAsync(drawer, "Action 1: ask", "Add a tag");
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
+        await ExpectNoProblemsAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Undo" }).ClickAsync();
         await ExpectProblemAsync("The tag in \"Welcome tag\" has no name. Type one, or remove that step.");
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Fix 1 thing" })).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Publish", Exact = true })).ToBeDisabledAsync();
@@ -580,35 +590,50 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await TabUntilFocusedAsync(recipes.GetByRole(AriaRole.Button, new() { Name = "Write your own" }));
         await Page.Keyboard.PressAsync("Enter");
 
-        // The automation as a sentence, opened at its name, its trigger an arriving application.
+        // The automation as a sentence, opened at its trigger, an arriving application. Its name is the sheet's title.
         var sheet = Page.GetByRole(AriaRole.Dialog);
+        await Expect(sheet.GetByRole(AriaRole.Button, new() { Name = "Trigger: someone applies" })).ToBeFocusedAsync();
         var name = sheet.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true });
-        await Expect(name).ToBeFocusedAsync();
+        await Expect(name).ToHaveValueAsync("When someone applies");
+        await TabUntilFocusedAsync(name, backwards: true);
         await Page.Keyboard.PressAsync("Control+A");
         await Page.Keyboard.TypeAsync("Fast-track referrals");
-        await Expect(sheet.GetByRole(AriaRole.Button, new() { Name = "Trigger: someone applies" })).ToBeVisibleAsync();
+
+        // A step left without its text is not added. One that asks for none is complete.
+        var addStep = sheet.GetByRole(AriaRole.Button, new() { Name = "Add a step: an action" });
+        await TabUntilFocusedAsync(addStep);
+        await Page.Keyboard.PressAsync("Enter");
+        await PickByKeyboardAsync("Add a tag");
+        await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Action 1: tag name" })).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(addStep).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await PickByKeyboardAsync("Ask a teammate to review");
+        await Expect(sheet.GetByRole(AriaRole.Button, new() { Name = "Action 1: ask" })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(sheet).ToBeHiddenAsync();
+        await ExpectNoProblemsAsync();
 
-        // The focus is on the new automation. A plus on its line adds a condition, and opens the sentence at it.
+        // The focus is on the new automation. A plus on its line offers what a condition can check, and the one chosen opens the
+        // sentence at its value, a field that is ready to type in. Escape closes the field first, then the sheet.
         await Expect(Node("When Fast-track referrals")).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("ArrowDown");
         await Expect(Node("Add a condition to Fast-track referrals")).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Enter");
-        var fact = sheet.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Condition 1: what to check") });
-        await Expect(fact).ToBeFocusedAsync();
-        // The blank for its value opens a field, which the keyboard fills. Escape closes the field first, then the sheet.
-        var value = sheet.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Condition 1: value") });
-        await TabUntilFocusedAsync(value);
-        await Page.Keyboard.PressAsync("Enter");
+        await PickByKeyboardAsync("Tags");
         await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Condition 1: value" })).ToBeFocusedAsync();
         await Page.Keyboard.TypeAsync("referral");
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page.GetByRole(AriaRole.Textbox, new() { Name = "Condition 1: value" })).ToBeHiddenAsync();
-        // The action it starts with asks the team to review. Adding a tag instead leaves the tag blank.
+        // A step changed to one that asks for text and left without it goes with the sheet, and here the automation with it. Undo
+        // has the focus, and brings both back.
         await ChooseAsync(sheet, "Action 1: ask", "Add a tag");
         await Page.Keyboard.PressAsync("Escape");
         await Expect(sheet).ToBeHiddenAsync();
+        await Expect(Node("When Fast-track referrals")).ToHaveCountAsync(0);
+        await ExpectNoProblemsAsync();
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Undo" })).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Enter");
 
         // The focus is back on the automation, and the problem shows on the node it is about.
         await Expect(Node("When Fast-track referrals")).ToBeFocusedAsync();
@@ -648,6 +673,41 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-graph-edit-1440");
 
+        // The plus at the end opens a menu of the kinds and adds nothing until one is chosen, so it makes no problem to fix.
+        await Node("Add a step to Fast-track referrals").FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(Page.Locator("[data-slot=popover-content]").GetByRole(AriaRole.Option, new() { Name = "Tell the team" })).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Node("Add a step to Fast-track referrals")).ToBeFocusedAsync();
+        await ExpectNoProblemsAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await PickByKeyboardAsync("Ask a teammate to review");
+        await Expect(sheet.GetByRole(AriaRole.Button, new() { Name = "Action 2: ask" })).ToBeFocusedAsync();
+        await ExpectNoProblemsAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(sheet).ToBeHiddenAsync();
+
+        // Delete takes the focused step away. Undo has the focus, and puts the step and the focus back.
+        var second = Node("Then action 2 in Fast-track referrals");
+        await second.FocusAsync();
+        await Page.Keyboard.PressAsync("Delete");
+        await Expect(second).ToHaveCountAsync(0);
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Undo" })).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(second).ToBeFocusedAsync();
+
+        // Every node has its menu, the next tab stop after it, with a name of its own.
+        await Page.Keyboard.PressAsync("Tab");
+        await Expect(Node("More for step 2 of Fast-track referrals")).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(Page.GetByRole(AriaRole.Menuitem)).ToHaveTextAsync([new Regex("^Remove this step")]);
+        await ExpectNoAccessibilityViolationsAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Node("More for step 2 of Fast-track referrals")).ToBeFocusedAsync();
+        await Expect(Node("More for Fast-track referrals")).ToBeVisibleAsync();
+        await Expect(Node("More for the conditions of Fast-track referrals")).ToBeVisibleAsync();
+
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
@@ -655,13 +715,13 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Dialog, new() { Name = "1 automation at Applied" }).GetByRole(AriaRole.Link, new() { Name = "Fast-track referrals" })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
 
-        // The map at a laptop's and a tablet's width, and on a phone, which has the list in its place. The map opens at full size.
+        // The map from a wide desktop's width to a tablet's, and on a phone, which has the list in its place. The map opens at full size.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
         await Page.Mouse.MoveAsync(0, 0);
-        foreach (var (width, height) in new[] { (1024, 900), (768, 1024) })
+        foreach (var (width, height) in new[] { (2560, 1440), (1440, 900), (1024, 900), (768, 1024) })
         {
             await Page.SetViewportSizeAsync(width, height);
-            await Expect(Node("Add an automation to Screening")).ToBeVisibleAsync();
+            await Expect(Node("New automation at Screening")).ToBeVisibleAsync();
             await ExpectNoSidewaysScrollAsync();
             await SaveScreenshotAsync(Page, $"dashboard-workflow-graph-{width}");
         }
@@ -690,6 +750,21 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
     {
         await sheet.GetByRole(AriaRole.Button, new() { Name = blank }).ClickAsync();
         await Page.GetByRole(AriaRole.Option, new() { Name = choice, Exact = true }).ClickAsync();
+    }
+
+    // In an open list, arrows down to a choice and presses Enter, as a keyboard user would.
+    private async Task PickByKeyboardAsync(string choice)
+    {
+        var option = Page.GetByRole(AriaRole.Option, new() { Name = choice, Exact = true });
+        await Expect(option).ToBeVisibleAsync();
+        // The list takes the focus just after it shows. A key before then is the button's that opened it.
+        await Expect(Page.Locator("[data-slot=command-input]")).ToBeFocusedAsync();
+        for (var i = 0; i < 30 && await option.GetAttributeAsync("data-selected") is null; i++)
+        {
+            await Page.Keyboard.PressAsync("ArrowDown");
+        }
+        await Expect(option).ToHaveAttributeAsync("data-selected", "");
+        await Page.Keyboard.PressAsync("Enter");
     }
 
     // Presses Tab (or Shift+Tab) until `target` has the focus, as a keyboard user would, and fails if it never does.

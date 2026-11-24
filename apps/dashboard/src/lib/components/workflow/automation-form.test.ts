@@ -1,5 +1,5 @@
-// A step that asks for text and is left empty is dropped, with Undo, so a blank step is never a problem to fix. A new Add a
-// tag step starts with its tag field in focus.
+// A step that asks for text and is left empty is dropped, with Undo, so a blank step is never a problem to fix. A new step
+// is chosen from a menu, and one that asks for text starts with that field in focus.
 import type { Automation, HiringWorkflow } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,10 +37,12 @@ afterEach(() => {
 });
 
 describe('a new step', () => {
-  it('is an Add a tag step with its Tag name field in focus', async () => {
+  it('is the kind chosen from the menu, with the text it asks for in focus', async () => {
     renderForm([{ type: 'NotifyTeam' }]);
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Add action' }));
+    await fireEvent.pointerDown(screen.getByRole('button', { name: 'Add action' }), { button: 0, pointerType: 'mouse' });
+    expect(actions()).toEqual([{ type: 'NotifyTeam' }]);
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Add a tag' }));
 
     const tag = await screen.findByRole('textbox', { name: 'Tag name' });
     await waitFor(() => expect(tag).toHaveFocus());

@@ -306,6 +306,15 @@ default hiring team; Clear, Review and Verify stay, and To review holds Review o
 4. **Legal reads:** equality-monitoring forms kept off the candidate page and reported in totals only; a shorter, layered
    notice on the apply form; and "A person looks at anything the checks flag", which is the same promise as the footer.
 
+### The owner's sixth walk-through (2026-11-24)
+
+The owner reviewed the template editor, and this workflow built what came of it: the Automations tab (a calmer sheet,
+plain-name conditions, steps added without errors, removal wherever you can add), the Pipeline tab, the Forms tab, the
+must-have answers and the progress bar.
+
+**Not reviewed yet, the owner's:** Verification Checks, the Verification tabs, AI model, Billing, the settings frame and
+Your account.
+
 ## Later
 
 - **Job boards:** Indeed and ZipRecruiter (phase 2, with paying customers), LinkedIn, then European boards

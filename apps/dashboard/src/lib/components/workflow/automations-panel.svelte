@@ -21,6 +21,7 @@
     graphActions,
     onopen,
     onadd,
+    onremove,
   }: {
     workflow: HiringWorkflow;
     errors: readonly DefinitionError[];
@@ -30,6 +31,8 @@
     onopen?: (index: number) => void;
     /** Opens every recipe; absent where the pipeline only reads. */
     onadd?: () => void;
+    /** Removes the automation with this id; absent where the pipeline only reads. */
+    onremove?: (id: string) => void;
   } = $props();
 
   const phone = new IsMobile();
@@ -51,6 +54,6 @@
   {#if view === 'map'}
     <WorkflowGraph {workflow} {errors} actions={graphActions} />
   {:else}
-    <AutomationList {workflow} {onopen} />
+    <AutomationList {workflow} {onopen} {onremove} />
   {/if}
 </Panel>

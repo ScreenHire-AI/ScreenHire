@@ -18,7 +18,7 @@
   }: {
     /** The button's name, such as "More actions" or "Actions for Senior .NET Engineer". */
     label: string;
-    size?: Extract<ButtonSize, 'icon' | 'icon-sm' | 'icon-lg'>;
+    size?: Extract<ButtonSize, 'icon' | 'icon-xs' | 'icon-sm' | 'icon-lg'>;
     /** A row action: an icon with no edge (section 10). */
     quiet?: boolean;
     /**

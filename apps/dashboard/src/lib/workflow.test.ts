@@ -14,8 +14,12 @@ import {
   canRemindIn,
   hasReminder,
   idFrom,
+  insertAt,
   insertionIndex,
   insertStage,
+  isBlankStep,
+  isEmptyTextStep,
+  isUnfinished,
   kindFromName,
   laneOf,
   newAction,
@@ -196,8 +200,8 @@ describe('elements', () => {
     expect(placeOf(workflow, newAutomation(workflow, null, true))).toBe('any');
     expect(placeOf(workflow, newAutomation(workflow, null))).toBe(workflow.stages[0]!.id);
     expect(newAutomation(workflow, null).id).toBe('automation');
-    // Complete from the start, and valid under every trigger, so "Write your own" never opens as a problem.
-    expect(newAutomation(workflow, 'screening').actions).toEqual([{ type: 'AssignReviewer' }]);
+    // Its trigger only: a step nobody chose is a placeholder to undo.
+    expect(newAutomation(workflow, 'screening').actions).toEqual([]);
   });
 
   it('names the stage a trigger names, and none for the rest', () => {
@@ -618,5 +622,73 @@ describe('meetingNameOf', () => {
     expect(meetingNameOf({ id: 'talk', name: 'Interview', kind: 'Interview' })).toBe('interview');
     expect(meetingNameOf({ id: 'talk', name: 'Interview', kind: 'Interview', meetingName: '  ' })).toBe('interview');
     expect(meetingNameOf(undefined)).toBe('interview');
+  });
+});
+
+describe('work in progress', () => {
+  const draft: HiringWorkflow = {
+    ...workflow,
+    automations: [
+      {
+        id: 'a',
+        name: 'A',
+        trigger: { type: 'StageEntered', stageId: 'screening' },
+        conditions: { match: 'All', rules: [{ fact: 'application.tags', operator: 'Contains', value: '' }, { fact: 'application.tags', operator: 'In', values: [] }, { fact: 'application.rating', operator: 'Exists' }] },
+        actions: [{ type: 'AddTag', tag: ' ' }, { type: 'CallWebhook', url: 'http' }, { type: 'ScheduleInterview', interviewerUserIds: [], interviewMinutes: 30, interviewWindowDays: 14, interviewTimeZone: 'Europe/London' }, { type: 'SendEmail', emailTemplate: 'x' }, { type: 'MoveToStage', stageId: 'gone' }],
+      },
+      { id: 'b', name: ' ', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [] },
+      { id: 'c', name: 'C', trigger: { type: 'QuestionnaireCompleted', questionnaireId: 'monitoring' }, conditions: null, actions: [{ type: 'AssignReviewer' }] },
+    ],
+  };
+  const unfinished = (path: string) => isUnfinished(draft, { path, message: 'm' });
+
+  it('is a blank, text half typed, or an automation with no step', () => {
+    for (const path of [
+      'automations[0].actions[0].tag',
+      'automations[0].actions[1].url',
+      'automations[0].actions[2].interviewerUserIds',
+      'automations[0].conditions.rules[0].value',
+      'automations[0].conditions.rules[1].values',
+      'automations[1].name',
+      'automations[1].actions',
+    ]) {
+      expect(unfinished(path), path).toBe(true);
+    }
+  });
+
+  // A refusal is said as it is made: the guardrails' messages name the step, the fact or the opt-in, which are not blank.
+  it('is never a refusal: a step, a fact or an email the validator will not have', () => {
+    for (const path of [
+      'automations[0].actions[3]',
+      'automations[0].actions[3].emailTemplate',
+      'automations[0].actions[4].stageId',
+      'automations[0].conditions.rules[2].fact',
+      'automations[0].trigger.stageId',
+      // A time limit on no stage, and an equality monitoring form, which nothing may act on.
+      'automations[0].trigger.type',
+      'automations[2].trigger.questionnaireId',
+    ]) {
+      expect(unfinished(path), path).toBe(false);
+    }
+    // The opt-in to reject without a person has no value until it is ticked, and its message always shows.
+    expect(unfinished('automations[0].allowAutoReject')).toBe(false);
+  });
+
+  it('is only an automation: a stage or a question with no name is a problem at once', () => {
+    expect(isUnfinished({ ...draft, stages: [{ id: 'x', name: '', kind: 'Custom' }] }, { path: 'stages[0].name', message: 'm' })).toBe(false);
+  });
+
+  it('knows a step with nothing in it, and which of those ask for text', () => {
+    expect(isBlankStep({ type: 'AddTag', tag: ' ' })).toBe(true);
+    expect(isBlankStep({ type: 'MoveToStage', stageId: '' })).toBe(true);
+    expect(isBlankStep({ type: 'AssignReviewer' })).toBe(false);
+    expect(isBlankStep({ type: 'AddTag', tag: 'x' })).toBe(false);
+    expect(isEmptyTextStep({ type: 'CallWebhook', url: '' })).toBe(true);
+    expect(isEmptyTextStep({ type: 'MoveToStage', stageId: '' })).toBe(false);
+  });
+
+  it('puts an item back where it was, or at the end of a list that is shorter by now', () => {
+    expect(insertAt(['a', 'c'], 1, 'b')).toEqual(['a', 'b', 'c']);
+    expect(insertAt(['a'], 4, 'b')).toEqual(['a', 'b']);
   });
 });

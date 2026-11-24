@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { HiringWorkflow } from '@screenhire/api-client';
   import { QueryClient, setQueryClientContext } from '@tanstack/svelte-query';
+  import { addConditionBlank, addStepBlank } from '#lib/automation-sentence.js';
   import WorkflowGraph from '#lib/components/workflow/workflow-graph.svelte';
   import type { GraphActions } from '#lib/components/workflow/step-node.svelte';
 
-  // The workflow graph on its own sample workflow, with the actions of a builder that change nothing: the nodes press, the
-  // plus buttons are drawn, and hovering or focusing a node lights its path. The graph reads the organization's email
+  // The workflow graph on its own sample workflow, with the actions of a builder that change nothing: the nodes press,
+  // New automation, the pluses and each node's menu are drawn, and hovering or focusing a node lights its path. The graph reads the organization's email
   // template names through a query, so it brings its own cache, as the signed-in shell does for the real one.
   setQueryClientContext(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
 
@@ -33,7 +34,18 @@
   };
 
   const nothing = () => {};
-  const actions: GraphActions = { edit: nothing, openLane: nothing, add: nothing, addCondition: nothing, addAction: nothing, connect: nothing };
+  const actions: GraphActions = {
+    edit: nothing,
+    openLane: nothing,
+    add: nothing,
+    offers: (part, automationId) => {
+      const index = workflow.automations.findIndex((automation) => automation.id === automationId);
+      return part === 'condition' ? addConditionBlank(workflow, index) : addStepBlank(workflow, index);
+    },
+    addPart: nothing,
+    remove: nothing,
+    connect: nothing,
+  };
 </script>
 
 <WorkflowGraph {workflow} errors={[]} {actions} />

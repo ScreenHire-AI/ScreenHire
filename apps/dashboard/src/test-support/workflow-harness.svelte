@@ -1,10 +1,13 @@
 <script lang="ts">
   import type { AiUsePolicy, DefinitionError, HiringWorkflow } from '@screenhire/api-client';
   import { untrack } from 'svelte';
+  import UndoNotice from '#lib/components/undo-notice.svelte';
   import * as Tabs from '#lib/components/ui/tabs/index.js';
   import WorkflowEditor from '#lib/components/workflow/workflow-editor.svelte';
   import WorkflowSummary from '#lib/components/workflow/workflow-summary.svelte';
   import WorkflowTabs from '#lib/components/workflow/workflow-tabs.svelte';
+  import { setUndo } from '#lib/undo-context.js';
+  import { UndoOffer } from '#lib/undo.svelte.js';
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
 
   // A workflow's tabs and panes as a page lays them out, for component tests: the tabs list (on the header band in the
@@ -23,6 +26,10 @@
     aiUse?: { policy?: AiUsePolicy; href?: string };
   } = $props();
 
+  // The app shell's undo offer, and the notice it draws it in.
+  const undo = new UndoOffer(60_000);
+  setUndo(undo);
+
   // Copies the harness owns, as the page owns its draft and tab, so edits and tab switches in a test work like the page.
   let current = $state<WorkflowTab>(untrack(() => tab));
   let edited = $state(untrack(() => workflow));
@@ -38,5 +45,6 @@
     {/if}
   </Tabs.Root>
 </main>
+<UndoNotice offer={undo} />
 <!-- What the page would save, for a test to read. -->
 <pre data-testid="draft" hidden>{JSON.stringify(edited)}</pre>

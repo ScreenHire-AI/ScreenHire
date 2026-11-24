@@ -4,21 +4,24 @@
   import { groupedRecipes, withRecipe, type Recipe } from '#lib/automation-recipes.js';
 
   // Add an automation (design system section 11, Recipe list): ready-made automations for this template's own questions
-  // and stages, in groups, one line each. Adding one hides it, and says so once with a way to open it. Write your own opens
-  // an empty sentence. `lane` narrows the list to the recipes that hang under one stage. No recipe turns anyone down on a
+  // and stages, in groups, one line each. Adding one hides it, and says so once with a way to open it and one to remove it (A18). Write
+  // your own opens an automation with only its trigger. `lane` narrows the list to the recipes that hang under one stage. No recipe turns anyone down on a
   // check, so there is nothing here to explain.
   let {
     workflow = $bindable(),
     lane,
     onwrite,
     onedit,
+    onremove,
   }: {
     workflow: HiringWorkflow;
     lane?: string | null;
-    /** Adds an empty automation in this lane and opens it. */
+    /** Adds an automation with only its trigger in this lane and opens it. */
     onwrite: () => void;
     /** Opens an automation, by id. */
     onedit: (id: string) => void;
+    /** Removes the automation just added, by id. */
+    onremove?: (id: string) => void;
   } = $props();
 
   const uid = $props.id();
@@ -35,9 +38,10 @@
   <div class="flex flex-wrap items-center justify-between gap-3">
     <Button variant="outline" size="lg" onclick={onwrite}>Write your own</Button>
     <div role="status" class="flex min-w-0 flex-wrap items-center gap-2 text-muted-foreground">
-      {#if added}
+      {#if added && workflow.automations.some((automation) => automation.id === added!.id)}
         <span class="min-w-0 break-words">Added "{added.title}".</span>
         <Button variant="outline" size="sm" onclick={() => onedit(added!.id)}>Edit{' '}<span class="sr-only">{added.title}</span></Button>
+        {#if onremove}<Button variant="outline" size="sm" onclick={() => onremove(added!.id)}>Remove{' '}<span class="sr-only">{added.title}</span></Button>{/if}
       {/if}
     </div>
   </div>

@@ -2,20 +2,19 @@
   import type { Automation } from '@screenhire/api-client';
   import ChevronDownIcon from '~icons/lucide/chevron-down';
   import PlusIcon from '~icons/lucide/plus';
-  import * as Command from '#lib/components/ui/command/index.js';
   import * as Popover from '#lib/components/ui/popover/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import type { Blank } from '#lib/automation-sentence.js';
   import { cn } from '#lib/utils.js';
+  import ChoiceList from './choice-list.svelte';
   import { addChipClass } from './controls.js';
 
   // One blank of an automation's sentence (design system section 11, Automation sentence): a bordered chip with a chevron
-  // that opens a short list of plain choices, grouped where the choices are many. A choice closes the list and fills the
-  // blank; a multi blank ticks values and stays open; a text blank is a field that fills as it is typed. The list ends with
-  // one quiet line where choices were left out, and with Remove where the blank is a whole condition or step. The chip's
-  // name is "Name: what it says", so what is seen is in what is heard (WCAG 2.5.3). It marks a problem with `data-invalid`,
-  // because a button takes no `aria-invalid`.
+  // that opens a short list of plain choices (`ChoiceList`). A choice closes the list and fills the blank; a multi blank
+  // ticks values and stays open; a text blank is a field that fills as it is typed. The chip's name is "Name: what it says",
+  // so what is seen is in what is heard (WCAG 2.5.3). It marks a problem with `data-invalid`, because a button takes no
+  // `aria-invalid`, and a text blank with nothing in it with `data-empty`, so whoever sends the focus here can open it.
   let {
     blank,
     invalid = false,
@@ -35,14 +34,6 @@
   } = $props();
 
   const uid = $props.id();
-  let query = $state('');
-  // A search only past about ten choices (S9): a short list reads faster than it filters.
-  const searchable = $derived(blank.kind !== 'text' && blank.choices.length > 10);
-  const words = $derived(query.toLocaleLowerCase().split(/\s+/).filter(Boolean));
-  const shown = $derived(
-    blank.kind === 'text' ? [] : words.length === 0 ? blank.choices : blank.choices.filter((choice) => words.every((word) => choice.label.toLocaleLowerCase().includes(word))),
-  );
-  const headings = $derived([...new Set(shown.map((choice) => choice.group ?? ''))]);
   const shownText = $derived(blank.text || blank.placeholder || '');
   const chip = $derived(
     blank.adds
@@ -66,23 +57,25 @@
     }
   }
 
-  const selected = (id: string) => (blank.kind === 'choice' ? blank.selected === id : blank.kind === 'multi' ? blank.selected.includes(id) : false);
-
-  function remove() {
-    open = false;
-    if (blank.remove) onapply(blank.remove.apply());
-  }
+  const selected = $derived(blank.kind === 'multi' ? blank.selected : blank.kind === 'choice' && blank.selected !== null ? [blank.selected] : []);
 </script>
 
 <Popover.Root
   bind:open
   onOpenChange={(next) => {
-    if (next) return;
-    query = '';
-    onclose?.(blank);
+    if (!next) onclose?.(blank);
   }}
 >
-  <Popover.Trigger class={chip} aria-label={`${blank.name}: ${blank.adds ? blank.text : shownText}`} aria-describedby={describedby} data-invalid={invalid || undefined} data-focus={blank.focusPath} data-blank={blank.id} data-adds={blank.adds || undefined}>
+  <Popover.Trigger
+    class={chip}
+    aria-label={blank.adds ? `${blank.name}: ${blank.text}` : `${blank.name}: ${shownText}`}
+    aria-describedby={describedby}
+    data-invalid={invalid || undefined}
+    data-focus={blank.focusPath}
+    data-blank={blank.id}
+    data-adds={blank.adds || undefined}
+    data-empty={(blank.kind === 'text' && blank.text.trim() === '') || undefined}
+  >
     {#if blank.adds}<PlusIcon aria-hidden="true" class="size-3.5 shrink-0" />{/if}<span class="min-w-0 break-words">{shownText}</span>{#if !blank.adds}<ChevronDownIcon aria-hidden="true" class={cn('size-3.5 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none', open && 'rotate-180')} />{/if}
   </Popover.Trigger>
   <Popover.Content
@@ -90,8 +83,7 @@
     collisionPadding={16}
     class="w-72 max-w-[calc(100vw-2rem)] gap-1 p-1"
     onOpenAutoFocus={(event) => {
-      // A text blank starts in its field: the text is the one thing it asks for.
-      if (blank.kind !== 'text') return;
+      // A text blank starts in its field, the one thing it asks for, and a list in the field that takes its keys.
       event.preventDefault();
       document.getElementById(`${uid}-input`)?.focus();
     }}
@@ -119,33 +111,9 @@
         {#if blank.hint}<p class="text-caption text-muted-foreground">{blank.hint}</p>{/if}
         <div class="flex justify-end"><Button variant="outline" size="sm" onclick={() => (open = false)}>Done</Button></div>
       </div>
+      {#if blank.note}<p class="px-2 py-1.5 text-caption text-muted-foreground">{blank.note}</p>{/if}
     {:else}
-      <Command.Root shouldFilter={false} class="bg-transparent">
-        {#if searchable}<Command.Input bind:value={query} placeholder="Search" aria-label={`Search ${blank.name.toLowerCase()}`} />{/if}
-        <Command.List class="max-h-72">
-          <Command.Empty>Nothing matches.</Command.Empty>
-          {#each headings as heading (heading)}
-            {#snippet items()}
-              {#each shown.filter((choice) => (choice.group ?? '') === heading) as choice (choice.id)}
-                <Command.Item value={choice.id} data-checked={selected(choice.id) ? 'true' : undefined} aria-selected={selected(choice.id)} onSelect={() => choose(choice.id)}>
-                  <span class="min-w-0 break-words">{choice.label}</span>
-                </Command.Item>
-              {/each}
-            {/snippet}
-            {#if heading}
-              <Command.Group heading={heading}>{@render items()}</Command.Group>
-            {:else}
-              <Command.Group>{@render items()}</Command.Group>
-            {/if}
-          {/each}
-        </Command.List>
-      </Command.Root>
-    {/if}
-    {#if blank.note}<p class="px-2 py-1.5 text-caption text-muted-foreground">{blank.note}</p>{/if}
-    {#if blank.remove}
-      <div class="border-t border-border-subtle p-1 pt-1.5">
-        <Button variant="outline" size="sm" class="w-full justify-start" onclick={remove}>{blank.remove.label}</Button>
-      </div>
+      <ChoiceList id={`${uid}-input`} name={blank.name} choices={blank.choices} {selected} note={blank.note} onchoose={choose} />
     {/if}
   </Popover.Content>
 </Popover.Root>
