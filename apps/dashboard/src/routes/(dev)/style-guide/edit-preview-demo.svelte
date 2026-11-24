@@ -13,6 +13,7 @@
   import EditPreviewLayout from '#lib/components/edit-preview-layout.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PreviewFrame from '#lib/components/preview-frame.svelte';
+  import PreviewPanel from '#lib/components/preview-panel.svelte';
   import QuestionnairePreview from '#lib/components/workflow/questionnaire-preview.svelte';
   import * as Field from '#lib/components/ui/field/index.js';
   import { Button } from '#lib/components/ui/button/index.js';
@@ -20,7 +21,7 @@
   import { createPreviewSource } from '#lib/preview-window.svelte.js';
 
   // An editor whose result a candidate sees (A8): one at a time, with Edit and Preview swap in place; the
-  // window icon opens the preview in a second window that follows each edit. Nothing is saved.
+  // Preview panel's Open in a new window opens it in a second window that follows each edit. Nothing is saved.
   let mode = $state<'edit' | 'preview'>('edit');
   let wideMode = $state<'edit' | 'preview'>('edit');
   let questions = $state(demoQuestions.map((question) => ({ ...question })));
@@ -28,7 +29,7 @@
 </script>
 
 <div class="flex min-w-0 flex-col gap-6">
-  <EditPreviewLayout bind:mode onpopout={() => source.open('/style-guide/preview')}>
+  <EditPreviewLayout bind:mode>
     {#snippet editor()}
       <Panel title="Questions">
         <div class="flex flex-col gap-4">
@@ -42,11 +43,11 @@
       </Panel>
     {/snippet}
     {#snippet preview()}
-      <Panel title="Preview">
+      <PreviewPanel onpopout={() => source.open('/style-guide/preview')}>
         <PreviewFrame>
           <QuestionnairePreview {questions} followUp />
         </PreviewFrame>
-      </Panel>
+      </PreviewPanel>
     {/snippet}
   </EditPreviewLayout>
 

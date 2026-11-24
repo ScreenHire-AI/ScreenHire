@@ -444,8 +444,9 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
 - **Forms:** the Form cards across the top (`form-cards.svelte`, design system section 11) have a card for the
   application form and one for each other form, each two rows: its name with its question count as a badge, then when
   it is sent as a chip with its icon (`whenShort` and `moment` from `timelineOf`: "When they apply", "Entering Screening",
-  "3 days after Offer", "By hand only"), with New form last. When a form is sent is the form's
-  own choice (`form-send-moment.svelte`): When they apply, When they enter a stage, Some days after they enter a stage, or
+  "3 days after Offer", "By hand only"), with New form last, and on every card but the application form's a menu with Replace
+  with another form and Remove form. Every form has the same panel under the cards: its name and when it is sent, which for
+  the application form is fixed and says so. When any other form is sent is the form's own choice (`form-send-moment.svelte`): When they apply, When they enter a stage, Some days after they enter a stage, or
   Only when sent by hand. Choosing one rewrites the automation behind it (`setSendMoment` in `#lib/forms-timeline.ts`: the
   automations that only send this form go, and one `ApplicationSubmitted`, `StageEntered` or `TimeElapsed` automation
   with `SendQuestionnaire` takes their place, named after the moment), and "Only when sent by hand" removes it, which is
@@ -454,15 +455,21 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   `add-form-sheet.svelte`: the library's published forms the workflow does not use, each with its question count; one
   whose question ids another form here already uses is disabled and says which question (`questionClashes`), and Build a
   new form opens the library's new form sheet, whose editor offers Use it in the template once it is published (the
-  template page then adds it from `?addForm=`). A library form's questions read here (`question-list.svelte`) with
-  Edit in the library, and Use version N when the library has a newer version (`useLibraryVersion`, which keeps the
+  template page then adds it from `?addForm=`). Replace with another form opens the same sheet (`replacing`): `replaceForm`
+  puts a copy of the chosen form under the replaced form's id, so when it is sent and what runs once it is answered stay. An
+  automation whose condition reads an answer the new form does not ask for goes with the old questions, named in a
+  confirmation first: only the same id with the same kind, words and choices counts as the same question, because two library
+  forms can both hold a made-up id such as `question`, and a rule left behind would read the other one. An equality monitoring
+  form in its place takes along every automation that reads the form or runs once it is answered, because nothing may act on one. A library form's title
+  says "Library form, version N", and its questions read here (`question-list.svelte`) with Edit, which opens it in the
+  library, and Use version N when the library has a newer version (`useLibraryVersion`, which keeps the
   form's id, so what sends it and what reads its answers still do). `removeForm` takes a form with the automations that
   exist to send it, those that run when it is answered, and the answer rules that read it, and the dashboard lists them
   before it removes the form; an automation that does more than send it keeps its other steps. The application form
   edits in the form builder (`#lib/components/form-builder.svelte`) below, as does a job's own older form that copies no
-  library form: a row per question that opens to edit, and closes from Done, its chevron, a click
-  on its header or Escape, with its answer kind from the answer
-  menu, Required (a badge on a required row, none on an optional one), a row menu holding Duplicate and Delete, and a grip to
+  library form: a row per question, with one header strip that is the same open or closed and opens and closes it (Escape
+  closes it too). Several rows may be open at once, with Expand all and Collapse all in the panel's header. An open row is
+  a labelled form, with its answer kind from the answer menu, Required (a badge on a required row, none on an optional one), a row menu holding Duplicate and Delete, and a grip to
   reorder. The application form ends in a locked AI-use row (`ai-use-row.svelte`): "AI use. Asked by ScreenHire. Policy: Allowed
   with disclosure." with a Change policy link, because the policy is not the template's. The kinds a question takes
   (`applyFormKinds`, `followUpKinds` in `#lib/form-builder.ts`) are every `QuestionType`; any other form offers all but
@@ -473,11 +480,11 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   questionnaire named sections, each a page for the candidate (apply-flow.md §7): the first press makes "Section 1"
   with every question and an empty "Section 2", whose name takes the focus. A section is a row in the same list, with
   its grip, its name field, its question count and Delete section, so dragging a question past it, or the grip's Move up
-  and Move down, moves the question into that section, and the list stays one panel with one open question. Deleting a
+  and Move down, moves the question into that section, and the list stays one panel. Deleting a
   section gives its questions to the one before (the first's to the one after), and deleting the last goes back to
   automatic pages; nothing changes until Save. `#lib/form-sections.ts` keeps the flat question list rebuilt from the
   sections, in order. A scorecard has no sections. The preview, behind the one Edit / Preview switch, shows the candidate's form at phone, tablet or desktop width, rendered by the shared components in
-  `packages/ui/src/questions` that the careers pages render, and its window icon opens it at `/preview/form`, a window
+  `packages/ui/src/questions` that the careers pages render, and Open in a new window in the Preview panel's header opens it at `/preview/form`, a window
   that follows each edit. The apply form's preview starts with the candidate's details and the resume and ends with the
   AI-use question; a follow-up's is its questions alone, as its page shows them. The preview pages as the candidate does (each named section, or
   pages of the organization's questions per page), one step at a time with Back and Next, each opening with the progress bar the

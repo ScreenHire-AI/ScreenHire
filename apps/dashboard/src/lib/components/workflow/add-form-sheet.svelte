@@ -1,6 +1,7 @@
 <script lang="ts">
   import LibraryIcon from '~icons/lucide/library';
   import PlusIcon from '~icons/lucide/plus';
+  import ReplaceIcon from '~icons/lucide/replace';
   import type { FormTemplateVersionDetail, HiringWorkflow } from '@screenhire/api-client';
   import { createListFormTemplates, getGetFormTemplateVersionQueryOptions } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
@@ -19,15 +20,20 @@
   // use yet, each with how many questions it asks. A form whose question ids another form here already uses cannot be
   // added, and says why, because a question id names one question across a hiring process. "Build a new form" makes one in
   // the library, which the template takes when it is published: in the footer's menu (A19), or, with nothing left to add, the
-  // empty state's one action (E1).
+  // empty state's one action (E1). With `replacing`, "Replace with another form" on a form's card, the same list offers the
+  // form to put in its place, which keeps when it is sent; a new form is added rather than swapped in, so Build a new form is
+  // not offered there.
   let {
     open = $bindable(false),
     workflow,
+    replacing,
     onadd,
     onbuild,
   }: {
     open?: boolean;
     workflow: HiringWorkflow;
+    /** The form on the workflow that the chosen one takes the place of; left out to add one. */
+    replacing?: { id: string; name: string; when: string };
     onadd: (version: LibraryVersion) => void;
     /** Starts a new library form; left out where there is nowhere to come back to. */
     onbuild?: () => void;
@@ -71,8 +77,13 @@
 <Sheet.Root bind:open>
   <Sheet.Content side="right" class="w-full overflow-y-auto">
     <Sheet.Header>
-      <Sheet.Title>Add a form</Sheet.Title>
-      <Sheet.Description>From your library. It is sent only by hand until you choose when it goes.</Sheet.Description>
+      {#if replacing}
+        <Sheet.Title>Replace {replacing.name}</Sheet.Title>
+        <Sheet.Description>From your library. It keeps when the form is sent: {replacing.when}.</Sheet.Description>
+      {:else}
+        <Sheet.Title>Add a form</Sheet.Title>
+        <Sheet.Description>From your library. It is sent only by hand until you choose when it goes.</Sheet.Description>
+      {/if}
     </Sheet.Header>
     <div class="flex flex-col gap-4 px-4 pb-4">
       {#if library.isPending}
@@ -83,7 +94,7 @@
       {:else if empty}
         <p>Every published form in your library is here already.</p>
         <div>
-          {#if onbuild}
+          {#if onbuild && !replacing}
             <Button variant="outline" size="lg" onclick={build}>Build a new form</Button>
           {:else}
             <a href="/templates?tab=forms" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Open the form library</a>
@@ -93,7 +104,7 @@
         <ul class="flex flex-col divide-y divide-border rounded-lg border border-border">
           {#each offered as form (form.id)}
             {@const version = versions[form.id]}
-            {@const clashes = version ? questionClashes(workflow, version.content) : []}
+            {@const clashes = version ? questionClashes(workflow, version.content, replacing?.id) : []}
             <li class="flex items-center justify-between gap-3 px-3 py-2">
               <div class="flex min-w-0 flex-col">
                 <span class="font-semibold">{form.name}</span>
@@ -106,8 +117,8 @@
                   </span>
                 {/if}
               </div>
-              <Button variant="outline" disabled={!version || clashes.length > 0} onclick={() => add(form.id)} aria-label={`Add ${form.name}`}>
-                <PlusIcon aria-hidden="true" />Add
+              <Button variant="outline" disabled={!version || clashes.length > 0} onclick={() => add(form.id)} aria-label={`${replacing ? 'Use' : 'Add'} ${form.name}`}>
+                {#if replacing}<ReplaceIcon aria-hidden="true" />Use{:else}<PlusIcon aria-hidden="true" />Add{/if}
               </Button>
             </li>
           {/each}
@@ -115,7 +126,7 @@
       {/if}
       <FailureText message={failure} />
     </div>
-    {#if !empty}
+    {#if !empty && !replacing}
       <!-- Each row's Add is the action, so there is no primary one here, only the menu (A19). -->
       <Sheet.Footer>
         <MoreMenu label="More ways to add a form" class="mr-auto">

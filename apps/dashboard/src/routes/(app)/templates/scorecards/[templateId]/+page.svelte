@@ -33,6 +33,7 @@
   import LeaveDialog from '#lib/components/leave-dialog.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import PreviewPanel from '#lib/components/preview-panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import ScorecardBuilder from '#lib/components/scorecard-builder.svelte';
   import ScorecardPreview from '#lib/components/scorecard-preview.svelte';
@@ -327,7 +328,7 @@
     {/if}
 
     <div class="flex w-full flex-col px-4 py-6 md:px-6">
-      <EditPreviewLayout bind:mode readOnly={!editable} onpopout={() => source.open('/preview/scorecard')}>
+      <EditPreviewLayout bind:mode readOnly={!editable}>
         {#snippet editor()}
           {#if editable}
             <Panel title="Details">
@@ -353,9 +354,9 @@
         {/snippet}
         {#snippet preview()}
           <!-- The scorecard as a reviewer fills it in, at the sheet's width, in an inset like a candidate page's preview. -->
-          <Panel title="Preview">
+          <PreviewPanel onpopout={() => source.open('/preview/scorecard')}>
             <div class="flex justify-center rounded-lg bg-secondary p-4"><ScorecardPreview {questions} /></div>
-          </Panel>
+          </PreviewPanel>
         {/snippet}
       </EditPreviewLayout>
     </div>

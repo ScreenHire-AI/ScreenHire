@@ -271,8 +271,8 @@ Owner decision (2026-10-18): build cross-tenant detection **if it can be de-iden
   needs a look and is not dismissed, its state is the candidate's status beside their name and the tab's grey
   count is the signals behind it. The tab is organised by the six groups of checks the engine runs (`CheckGroup`:
   Network, Contact details, Documents, Answers, Duplicates, Form activity), not by the two assessments. It opens with the
-  suggested next step (a callout in the level's colour with the summary under it when the level needs a look, one quiet
-  line otherwise) and Dismiss, then AI help as information (its badge, the job's policy as a pill, and for Some and
+  suggested next step (a callout with a soft fill and a full border, the summary under it, when the level needs a look, one quiet
+  line otherwise; the level's icon and label stay in the page header) and Dismiss, then AI help as information (its badge, the job's policy as a pill, and for Some and
   Strong signs its summary and next step), then a map of the six groups, each tile with one state: `Found` (counts toward
   the level), `InformationOnly` (AI help and context that never counts), `NothingFound`, `NotChecked`, `TurnedOff` or `Paused` (the AI check paused because the organization's AI credits ran out, or at the cap it had before credits, with nothing else found; [ai-usage.md](ai-usage.md)). Below
   it is a panel for each group that has findings, each finding expanding to its evidence drawn by kind (§10.1) and

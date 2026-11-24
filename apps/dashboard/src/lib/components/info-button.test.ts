@@ -5,7 +5,7 @@ import InfoButton from './info-button.svelte';
 
 afterEach(() => cleanup());
 
-// Design system section 11, Info button: an explanation one press away, on a click or keyboard focus.
+// Design system section 11, Info button, and W14: an explanation one press away, on hover, a click or keyboard focus.
 describe('InfoButton', () => {
   it('opens its words on a click, and closes on Escape', async () => {
     render(InfoButton, { props: { label: 'About Email', text: 'Sends a message to each reviewer.' } });
@@ -19,6 +19,18 @@ describe('InfoButton', () => {
     await fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
     await fireEvent.keyDown(document.body, { key: 'Escape' });
     await expect.poll(() => screen.queryByText('Sends a message to each reviewer.')).toBeNull();
+  });
+
+  it('opens on hover, and a click then keeps it open once the pointer has left', async () => {
+    render(InfoButton, { props: { label: 'About Email', text: 'Sends a message to each reviewer.' } });
+    const button = screen.getByRole('button', { name: 'About Email' });
+
+    await fireEvent.pointerEnter(button, { pointerType: 'mouse' });
+    expect(await screen.findByText('Sends a message to each reviewer.')).toBeInTheDocument();
+
+    await fireEvent.click(button);
+    await fireEvent.pointerLeave(button, { pointerType: 'mouse' });
+    expect(screen.getByText('Sends a message to each reviewer.')).toBeInTheDocument();
   });
 
   it('opens on keyboard focus, leaves focus on the button, and closes when focus moves on', async () => {

@@ -1,6 +1,7 @@
 // The Forms tab's cards (design system section 11, Form cards): two rows each, the name with its question count, then
-// when it is sent as a chip with its own icon; the chosen card pressed with the accent fill and edge; New form last.
-import { fireEvent, render, screen, within } from '@testing-library/svelte';
+// when it is sent as a chip with its own icon; the chosen card pressed with the accent fill and its
+// full border; a form's menu beside its card's button; New form last.
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../../test-support/axe.js';
 import WithQueryClient from '../../../test-support/with-query-client.svelte';
@@ -15,7 +16,8 @@ const forms: TimelineForm[] = [
 ];
 
 // The panel's header uses the tooltip provider that the query client wrapper brings.
-const renderCards = (props: { forms: TimelineForm[]; selected: string; onadd?: () => void }) => render(WithQueryClient, { props: { component: FormCards, props } });
+type Props = { forms: TimelineForm[]; selected: string; onadd?: () => void; onreplace?: (id: string) => void; onremove?: (id: string) => void };
+const renderCards = (props: Props) => render(WithQueryClient, { props: { component: FormCards, props } });
 const group = () => screen.getByRole('group', { name: 'Forms' });
 const cardOf = (name: RegExp) => within(group()).getByRole('button', { name });
 
@@ -34,11 +36,12 @@ describe('form cards', () => {
     await expectNoAxeViolations(container);
   });
 
-  it('presses the chosen card, with the accent fill and its edge, and moves the choice on a click', async () => {
+  it('presses the chosen card, with the accent fill and its full border, and moves the choice on a click', async () => {
     renderCards({ forms, selected: 'apply' });
 
     expect(cardOf(/Application form/)).toHaveAttribute('aria-pressed', 'true');
-    expect(cardOf(/Application form/)).toHaveClass('bg-accent', 'border-primary', 'before:bg-primary');
+    expect(cardOf(/Application form/)).toHaveClass('bg-accent', 'border', 'border-primary');
+    expect(cardOf(/Application form/).className).not.toMatch(/before:|border-[lrse]-/);
     expect(cardOf(/Availability/)).toHaveAttribute('aria-pressed', 'false');
     expect(cardOf(/Availability/)).not.toHaveClass('bg-accent');
 
@@ -46,6 +49,36 @@ describe('form cards', () => {
 
     expect(cardOf(/Availability/)).toHaveAttribute('aria-pressed', 'true');
     expect(cardOf(/Application form/)).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it("has each form's menu beside its card's button, never inside it, and none on the application form", async () => {
+    const onreplace = vi.fn();
+    const onremove = vi.fn();
+    const { container } = renderCards({ forms, selected: 'apply', onreplace, onremove });
+
+    const menus = within(group()).getAllByRole('button', { name: /^Actions for / });
+    expect(menus.map((menu) => menu.getAttribute('aria-label'))).toEqual(['Actions for Equality monitoring', 'Actions for Screening questionnaire', 'Actions for Availability']);
+    for (const menu of menus) expect(menu.parentElement!.closest('button')).toBeNull();
+    expect(container.querySelector('[data-form-card="apply"] [aria-haspopup]')).toBeNull();
+    await expectNoAxeViolations(container);
+
+    async function choose(item: string) {
+      await fireEvent.pointerDown(within(group()).getByRole('button', { name: 'Actions for Screening questionnaire' }), { button: 0, pointerType: 'mouse' });
+      const list = await screen.findByRole('menu');
+      expect(within(list).getAllByRole('menuitem').map((each) => each.textContent?.trim())).toEqual(['Replace with another form', 'Remove form']);
+      await fireEvent.click(within(list).getByRole('menuitem', { name: item }));
+    }
+    await choose('Replace with another form');
+    await waitFor(() => expect(onreplace).toHaveBeenCalledExactlyOnceWith('screening'));
+    await choose('Remove form');
+    await waitFor(() => expect(onremove).toHaveBeenCalledExactlyOnceWith('screening'));
+    // Neither chooses the card.
+    expect(cardOf(/^Application form/)).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('has no menus where the workflow only reads', () => {
+    renderCards({ forms, selected: 'apply' });
+    expect(within(group()).queryByRole('button', { name: /^Actions for / })).toBeNull();
   });
 
   it('ends with New form, a dashed card, only where forms can be added', async () => {

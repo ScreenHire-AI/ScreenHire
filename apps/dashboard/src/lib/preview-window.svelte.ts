@@ -3,7 +3,7 @@
  * windows share an origin, so the editor posts each change over a `BroadcastChannel` with no server round trip. Each
  * editor has its own channel, named in the window's address, so two editors open at once never cross.
  *
- * In the editor: `const source = createPreviewSource(() => draft)`, and `source.open(url)` from the window icon, where
+ * In the editor: `const source = createPreviewSource(() => draft)`, and `source.open(url)` from Open in a new window, where
  * `url` is the editor's preview page. In that page: `const sink = createPreviewSink<Draft>(page.url)`, then draw
  * `sink.value`.
  */

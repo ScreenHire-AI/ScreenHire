@@ -106,7 +106,10 @@ describe('verification tab', () => {
     const callout = summary.querySelector('[data-summary]')!;
     expect(callout.querySelector('[data-next-step]')).toHaveTextContent(/^Confirm the candidate is who they say they are/);
     expect(callout).toHaveTextContent('3 observations from network and form use checks back each other up.');
-    expect(callout).toHaveClass('border-status-verify-mark');
+    // Its whole border, never one thick side (S11), and no status colour: the level's icon and label are the header's (T1).
+    expect(callout).toHaveClass('border', 'border-border', 'bg-secondary/60');
+    expect(callout.className).not.toMatch(/border-[lrse]-|status-/);
+    expect(callout.querySelector('svg')).toBeInTheDocument();
     // A panel for each group that has findings, in the groups' order, titled by the group and nothing else.
     expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent?.trim())).toEqual(['Verification', 'Network', 'Documents', 'Answers', 'Form activity']);
     expect(group('Network').querySelectorAll('svg[data-icon="globe"]')).toHaveLength(0);
@@ -388,7 +391,7 @@ describe('verification tab', () => {
     expect(within(summary).queryByRole('button', { name: /Dismiss/ })).not.toBeInTheDocument();
     // The evidence stays on record, and the level is not the tab's to change.
     expect(finding('NET_DATACENTER_IP')).toBeInTheDocument();
-    expect(document.querySelector('[data-summary]')).not.toHaveClass('border-status-verify-mark');
+    expect(document.querySelector('[data-summary]')!.tagName).toBe('P');
   });
 
   it('marks a finding explained, which closes it with its badge and decides nothing', async () => {
@@ -416,8 +419,8 @@ describe('verification tab', () => {
     // The note sits under the finding it concerns.
     expect(explained.querySelector('[data-explanation] p')).toHaveTextContent(/^You, .+: Expected for this role\. "Remote role\."$/);
     expect(within(explained).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
-    // The next step, the callout's colour and the one button stay as they were: other findings are still unexplained.
-    expect(summaryPanel().querySelector('[data-summary]')).toHaveClass('border-status-verify-mark');
+    // The next step's callout and the one button stay as they were: other findings are still unexplained.
+    expect(summaryPanel().querySelector('[data-summary]')).toHaveClass('border', 'bg-secondary/60');
     expect(within(summaryPanel()).getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
     expect(within(summaryPanel()).queryByRole('button', { name: 'Dismiss all' })).not.toBeInTheDocument();
   });

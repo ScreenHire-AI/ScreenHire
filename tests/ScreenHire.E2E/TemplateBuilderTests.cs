@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace ScreenHire.E2E;
@@ -500,6 +501,132 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(HeaderBand).ToContainTextAsync("Published");
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" })).ToContainTextAsync("Paid trial shift");
+    }
+
+    [Fact]
+    public async Task Replacing_a_form_from_its_card_swaps_its_questions_and_keeps_when_it_is_sent()
+    {
+        var email = await OnboardAsync();
+        using var session = new ApiSession(Fixture);
+        await session.SignInWithDevSsoAsync(email, Ct);
+        var template = await ReadAsync(await session.PostAsync("/v1/templates", new { name = "Line cook" }, Ct), HttpStatusCode.Created);
+        var templateId = template.GetProperty("id").GetGuid();
+        // Two library forms whose one question shares an id, as forms built in the dashboard often do.
+        foreach (var (name, label) in new[] { ("Screening questionnaire", "Which shifts can you work?"), ("References", "Who can we ask?") })
+        {
+            var form = await ReadAsync(
+                await session.PostAsync("/v1/form-templates", new { content = new { name, questions = new[] { new { id = "question", type = "ShortText", label, required = false } } } }, Ct),
+                HttpStatusCode.Created);
+            await ReadAsync(await session.PostAsync($"/v1/form-templates/{form.GetProperty("id").GetGuid()}/versions/1/publish", new { }, Ct), HttpStatusCode.OK);
+        }
+
+        await Page.SetViewportSizeAsync(1440, 1000);
+        await SignInAsync(email);
+        await Page.GotoAsync(DashboardUrl($"/templates/{templateId}?tab=forms"));
+        var forms = Page.GetByRole(AriaRole.Group, new() { Name = "Forms", Exact = true });
+        var pane = Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Forms" });
+        // The application form has the same panel, with a moment that is fixed, and nothing to replace or remove.
+        var application = pane.GetByRole(AriaRole.Region, new() { Name = "Application form" });
+        await Expect(application).ToContainTextAsync("When they apply");
+        await Expect(application).ToContainTextAsync("Fixed for the application form.");
+        await Expect(forms.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Actions for ") })).ToHaveCountAsync(0);
+
+        await forms.GetByRole(AriaRole.Button, new() { Name = "New form" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Dialog, new() { Name = "Add a form" }).GetByRole(AriaRole.Button, new() { Name = "Add Screening questionnaire" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Combobox, new() { Name = "When it's sent", Exact = true }).SelectOptionAsync("stage");
+        await Page.GetByRole(AriaRole.Combobox, new() { Name = "Stage", Exact = true }).SelectOptionAsync(new SelectOptionValue { Label = "Screening" });
+        // Hovering the Info button says what the choice does (W14).
+        await Page.GetByRole(AriaRole.Button, new() { Name = "About when it's sent" }).HoverAsync();
+        await Expect(Page.GetByText("We add the email automation for you.")).ToBeVisibleAsync();
+        await Page.Mouse.MoveAsync(0, 0);
+        await Expect(Page.GetByText("We add the email automation for you.")).ToBeHiddenAsync();
+
+        var menu = forms.GetByRole(AriaRole.Button, new() { Name = "Actions for Screening questionnaire" });
+        await Expect(menu).ToBeVisibleAsync();
+        await menu.ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Replace with another form" }).ClickAsync();
+        var replace = Page.GetByRole(AriaRole.Dialog, new() { Name = "Replace Screening questionnaire" });
+        await Expect(replace).ToContainTextAsync("It keeps when the form is sent: Entering Screening.");
+        await ExpectNoAccessibilityViolationsAsync();
+        await replace.GetByRole(AriaRole.Button, new() { Name = "Use References" }).ClickAsync();
+        await Expect(replace).ToBeHiddenAsync();
+
+        var card = forms.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^References") });
+        await Expect(card).ToHaveAttributeAsync("aria-pressed", "true");
+        await Expect(card).ToContainTextAsync("Entering Screening");
+        await Expect(pane.GetByRole(AriaRole.Region, new() { Name = "References" })).ToContainTextAsync("Library form, version 1");
+        await Expect(pane.GetByRole(AriaRole.Region, new() { Name = "Questions" })).ToContainTextAsync("Who can we ask?");
+        await ExpectNoProblemsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-forms-replaced");
+
+        // Saved, the form is the other one, and the same automation sends it at the same moment.
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
+        var savedDefinition = (await ReadAsync(await session.Client.GetAsync($"/v1/templates/{templateId}/versions/1", Ct), HttpStatusCode.OK)).GetProperty("definition");
+        var workflow = savedDefinition.GetProperty("workflow");
+        var saved = workflow.GetProperty("followUpQuestionnaires").EnumerateArray().Should().ContainSingle().Subject;
+        saved.GetProperty("name").GetString().Should().Be("References");
+        saved.GetProperty("questions")[0].GetProperty("label").GetString().Should().Be("Who can we ask?");
+        var screening = workflow.GetProperty("stages").EnumerateArray().Single(stage => stage.GetProperty("name").GetString() == "Screening").GetProperty("id").GetString();
+        var sender = workflow.GetProperty("automations").EnumerateArray().Single(automation => automation.GetProperty("actions").EnumerateArray()
+            .Any(action => action.GetProperty("type").GetString() == "SendQuestionnaire" && action.GetProperty("questionnaireId").GetString() == saved.GetProperty("id").GetString()));
+        sender.GetProperty("trigger").GetProperty("type").GetString().Should().Be("StageEntered");
+        sender.GetProperty("trigger").GetProperty("stageId").GetString().Should().Be(screening);
+
+        // An automation that reads the form's answer goes with its questions, though the next form's question has the same id. The
+        // sheet hands over to a confirmation that names it and takes the focus; Cancel changes nothing.
+        var withRule = JsonNode.Parse(savedDefinition.GetRawText())!.AsObject();
+        withRule["workflow"]!["automations"]!.AsArray().Add(new JsonObject
+        {
+            ["id"] = "tag_by_answer",
+            ["name"] = "Tag by answer",
+            ["trigger"] = new JsonObject { ["type"] = "QuestionnaireCompleted", ["questionnaireId"] = saved.GetProperty("id").GetString() },
+            ["conditions"] = new JsonObject
+            {
+                ["match"] = "All",
+                ["rules"] = new JsonArray(new JsonObject { ["fact"] = "answers.question", ["operator"] = "Contains", ["value"] = "manager" }),
+            },
+            ["actions"] = new JsonArray(new JsonObject { ["type"] = "AddTag", ["tag"] = "asked" }),
+            ["enabled"] = true,
+            ["allowAutoReject"] = false,
+        });
+        await ReadAsync(await session.PutAsync($"/v1/templates/{templateId}/versions/1", new JsonObject { ["definition"] = withRule }, Ct), HttpStatusCode.OK);
+        await Page.ReloadAsync();
+        var confirmReplace = Page.GetByRole(AriaRole.Dialog, new() { Name = "Replace References with Screening questionnaire?" });
+        foreach (var answer in new[] { "Cancel", "Replace form" })
+        {
+            await forms.GetByRole(AriaRole.Button, new() { Name = "Actions for References" }).ClickAsync();
+            await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Replace with another form" }).ClickAsync();
+            await Page.GetByRole(AriaRole.Dialog, new() { Name = "Replace References", Exact = true }).GetByRole(AriaRole.Button, new() { Name = "Use Screening questionnaire" }).ClickAsync();
+            await Expect(confirmReplace).ToContainTextAsync("This also removes Tag by answer, because the new form does not ask what it reads.");
+            await Expect(Page.GetByRole(AriaRole.Dialog)).ToHaveCountAsync(1);
+            await Expect(confirmReplace.Locator(":focus")).ToHaveCountAsync(1);
+            await confirmReplace.GetByRole(AriaRole.Button, new() { Name = answer }).ClickAsync();
+            await Expect(confirmReplace).ToBeHiddenAsync();
+        }
+        var screeningCard = forms.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Screening questionnaire") });
+        await Expect(screeningCard).ToContainTextAsync("Entering Screening");
+        // Where it was pressed, under the form's new name.
+        await Expect(forms.GetByRole(AriaRole.Button, new() { Name = "Actions for Screening questionnaire" })).ToBeFocusedAsync();
+        await ExpectNoProblemsAsync();
+
+        // Removing it confirms, because its automation goes too, and the focus goes to the card that is left. On a phone the same
+        // menu is on the card, and nothing scrolls sideways but the strip of cards.
+        foreach (var (width, height) in new[] { (2560, 1300), (390, 844) })
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            await ExpectNoSidewaysScrollAsync();
+            (await pane.GetByRole(AriaRole.Heading, new() { Name = "Screening questionnaire", Exact = true }).Locator("span").First.EvaluateAsync<bool>("title => title.scrollWidth <= title.clientWidth"))
+                .Should().BeTrue("the form's title is whole beside its library version at {0}px", width);
+            await SaveScreenshotAsync(Page, $"dashboard-forms-{width}");
+        }
+        await forms.GetByRole(AriaRole.Button, new() { Name = "Actions for Screening questionnaire" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Remove form" }).ClickAsync();
+        var confirm = Page.GetByRole(AriaRole.Dialog, new() { Name = "Remove Screening questionnaire?" });
+        await Expect(confirm).ToContainTextAsync("This also removes Email the form when they enter Screening.");
+        await confirm.GetByRole(AriaRole.Button, new() { Name = "Remove form" }).ClickAsync();
+        await Expect(screeningCard).ToHaveCountAsync(0);
+        await Expect(forms.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Application form") })).ToBeFocusedAsync();
     }
 
     [Fact]

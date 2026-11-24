@@ -37,6 +37,9 @@ function setup(errors: Record<string, string[]> = {}) {
 const panel = () => screen.getByRole('region', { name: 'Screening questions' });
 const edit = (name: RegExp) => within(panel()).getByRole('button', { name });
 const openRow = () => panel().querySelector<HTMLElement>('[data-open]');
+const openRows = () => [...panel().querySelectorAll('[data-open]')].map((row) => row.getAttribute('data-question-row'));
+const rowOf = (id: string) => panel().querySelector<HTMLElement>(`[data-question-row="${id}"]`)!;
+const headerOf = (id: string) => rowOf(id).querySelector<HTMLElement>('[data-question-header]')!;
 const press = (element: HTMLElement) => fireEvent.pointerDown(element, { button: 0, pointerType: 'mouse' });
 
 // Duplicate and Delete are in each row's menu (L3), open or closed.
@@ -46,51 +49,119 @@ async function chooseRowAction(question: string, action: string) {
 }
 
 describe('form builder', () => {
-  it('reads every question as text, its kind top right and a Required badge only on a required one, with none open', async () => {
+  it('reads every question as text, with Required and the answer kind as badges, and none open', async () => {
     const { container } = setup();
 
     expect(openRow()).toBeNull();
     const first = edit(/^Edit question 1: /);
     expect(first).toHaveAccessibleName('Edit question 1: Do you have the right to work here? Required Yes or no');
     expect(first).toHaveAttribute('aria-expanded', 'false');
-    // A row that opens in place has a chevron saying so (A9), where the open row's Done stands.
-    expect(first.closest('[data-question-row]')!.querySelector('[data-question-chevron]')).toBeInTheDocument();
-    expect(first).toHaveTextContent('Do you have the right to work here? Required');
+    // A row that opens in place has a chevron saying so (A9).
+    expect(headerOf('right_to_work').querySelector('[data-question-chevron]')).toBeInTheDocument();
     expect(within(first).getByText('Required')).toHaveAttribute('data-slot', 'badge');
-    expect(first).toHaveTextContent('Yes or no');
-    // A choice question reads its options on one line, after the mark the candidate sees, and its help line.
-    const second = edit(/^Edit question 2: /);
-    expect(second).toHaveTextContent('Paid work only.');
-    expect(second.querySelector('[data-question-choices]')).toHaveTextContent('2 choices: Less than 3, 3 or more');
-    expect(second.querySelectorAll('.rounded-full')).toHaveLength(1);
+    expect(within(first).getByText('Yes or no')).toHaveAttribute('data-slot', 'badge');
     expect(edit(/^Edit question 3: /)).not.toHaveTextContent('Required');
+    // Under its strip, a closed row reads its help line and its options on one line, after the mark the candidate sees.
+    expect(headerOf('years')).not.toHaveTextContent('Paid work only.');
+    const summary = rowOf('years').querySelector('[data-question-summary]')!;
+    expect(summary).toHaveTextContent('Paid work only.');
+    expect(summary.querySelector('[data-question-choices]')).toHaveTextContent('2 choices: Less than 3, 3 or more');
+    expect(summary.querySelectorAll('.rounded-full')).toHaveLength(1);
     await expectNoAxeViolations(container);
   });
 
-  it('opens one question at a time, with the accent bar, and focuses its text', async () => {
+  it('has one header strip, open or closed: the same words and controls in the same order, and no Done', async () => {
     const { container } = setup();
+    // What the strip holds, in order, but for the open state itself.
+    const strip = () => [...headerOf('years').querySelectorAll('button, [role="button"], [data-slot="badge"], [data-question-chevron]')].map(
+      (element) => element.getAttribute('aria-label') ?? element.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+    const closed = strip();
+    expect(closed).toEqual([
+      'Reorder How many years have you worked in support?',
+      'Edit question 2: How many years have you worked in support? Choice',
+      'Choice',
+      'Actions for How many years have you worked in support?',
+      '',
+    ]);
+
+    await fireEvent.click(edit(/^Edit question 2: /));
+
+    expect(openRow()).not.toBeNull();
+    expect(strip()).toEqual(closed);
+    expect(headerOf('years').querySelector('input, textarea, select')).toBeNull();
+    expect(within(panel()).queryByRole('button', { name: 'Done' })).toBeNull();
+    await expectNoAxeViolations(container);
+  });
+
+  it('opens a row to a labelled form, with its full border and the strip filled, never one thick side (S11)', async () => {
+    setup();
 
     await fireEvent.click(edit(/^Edit question 3: /));
 
     const row = openRow()!;
-    expect(row.querySelector('.bg-primary')).not.toBeNull();
-    const text = within(row).getByRole('textbox', { name: 'Question 3' });
-    await waitFor(() => expect(text).toHaveFocus());
-    expect(text).toHaveValue('What is your notice period?');
-    expect(within(row).getByRole('button', { name: 'Answer: Short text' })).toBeInTheDocument();
-    expect(within(row).getByRole('switch', { name: 'Required' })).toHaveAttribute('aria-checked', 'false');
-    await expectNoAxeViolations(container);
+    expect(row).toHaveClass('border', 'border-primary');
+    expect(headerOf('notice')).toHaveClass('bg-accent');
+    expect(row.querySelector('.bg-primary')).toBeNull();
+    expect(edit(/^Edit question 3: /)).toHaveAttribute('aria-expanded', 'true');
+    const body = within(row).getByRole('group', { name: 'What is your notice period?' });
+    expect(edit(/^Edit question 3: /)).toHaveAttribute('aria-controls', body.id);
+    expect(within(body).getByRole('textbox', { name: 'Question 3' })).toHaveValue('What is your notice period?');
+    expect(within(body).getByRole('button', { name: 'Answer type: Short text' })).toBeInTheDocument();
+    expect(within(body).getByRole('textbox', { name: 'Help text' })).toBeInTheDocument();
+    expect(within(body).getByRole('switch', { name: 'Required' })).toHaveAttribute('aria-checked', 'false');
+    for (const label of ['Question', 'Answer type', 'Help text', 'Required']) expect(within(body).getByText(label)).toBeVisible();
+    // Every label names one field on the page.
+    const ids = [...panel().querySelectorAll('[id]')].map((element) => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('keeps several rows open, each a group of its own, and edits the one it is in', async () => {
+    const { container, list } = setup();
 
     await fireEvent.click(edit(/^Edit question 1: /));
-    expect(panel().querySelectorAll('[data-open]')).toHaveLength(1);
-    expect(within(openRow()!).getByRole('textbox', { name: 'Question 1' })).toBeInTheDocument();
+    await fireEvent.click(edit(/^Edit question 3: /));
+
+    expect(openRows()).toEqual(['right_to_work', 'notice']);
+    const first = within(panel()).getByRole('group', { name: 'Do you have the right to work here?' });
+    const third = within(panel()).getByRole('group', { name: 'What is your notice period?' });
+    expect(within(first).getByRole('switch', { name: 'Required' })).toHaveAttribute('aria-checked', 'true');
+    await fireEvent.click(within(third).getByRole('switch', { name: 'Required' }));
+    expect(list().map((question) => question.required ?? false)).toEqual([true, false, true]);
+    await fireEvent.input(within(third).getByRole('textbox', { name: 'Question 3' }), { target: { value: 'How much notice?' } });
+    expect(list().map((question) => question.label)).toEqual(['Do you have the right to work here?', 'How many years have you worked in support?', 'How much notice?']);
+    await expectNoAxeViolations(container);
+
+    // Closing one leaves the other open.
+    await fireEvent.click(edit(/^Edit question 1: /));
+    expect(openRows()).toEqual(['notice']);
+  });
+
+  it('opens and closes every row with Expand all and Collapse all, and keeps the focus on the one that is left', async () => {
+    setup();
+    const button = (name: string) => within(panel()).queryByRole('button', { name });
+    expect(button('Collapse all')).toBeNull();
+
+    await fireEvent.click(button('Expand all')!);
+    expect(openRows()).toEqual(['right_to_work', 'years', 'notice']);
+    expect(button('Expand all')).toBeNull();
+    await waitFor(() => expect(button('Collapse all')).toHaveFocus());
+
+    // With one closed, both are offered.
+    await fireEvent.click(edit(/^Edit question 2: /));
+    expect(button('Expand all')).not.toBeNull();
+
+    await fireEvent.click(button('Collapse all')!);
+    expect(openRows()).toEqual([]);
+    expect(button('Collapse all')).toBeNull();
+    await waitFor(() => expect(button('Expand all')).toHaveFocus());
   });
 
   it('keeps the focus in the text while typing, a space included, and saves each edit', async () => {
     const { list } = setup();
     await fireEvent.click(edit(/^Edit question 3: /));
     const text = within(openRow()!).getByRole('textbox', { name: 'Question 3' });
-    await waitFor(() => expect(text).toHaveFocus());
+    text.focus();
 
     await fireEvent.keyDown(text, { key: ' ' });
     await fireEvent.input(text, { target: { value: 'When could you start?' } });
@@ -113,11 +184,10 @@ describe('form builder', () => {
     expect(list()[1]).toMatchObject({ label: 'How many years in support?', helpText: 'Paid work only.' });
   });
 
-  it('closes the open question on Escape and gives its row the focus back', async () => {
+  it('closes the open question on Escape and gives its header the focus back', async () => {
     setup();
     await fireEvent.click(edit(/^Edit question 3: /));
     const text = within(openRow()!).getByRole('textbox', { name: 'Question 3' });
-    await waitFor(() => expect(text).toHaveFocus());
 
     await fireEvent.keyDown(text, { key: 'Escape' });
 
@@ -125,20 +195,32 @@ describe('form builder', () => {
     await waitFor(() => expect(edit(/^Edit question 3: /)).toHaveFocus());
   });
 
-  it('closes the open question from Done on its own header line, the one Done it has', async () => {
-    const { container } = setup();
-    await fireEvent.click(edit(/^Edit question 2: /));
+  it('leaves Escape to a word being composed in a field, which it cancels', async () => {
+    setup();
+    await fireEvent.click(edit(/^Edit question 3: /));
 
-    const header = openRow()!.querySelector<HTMLElement>('[data-question-header]')!;
-    const done = within(header).getByRole('button', { name: 'Done' });
-    expect(within(openRow()!).getAllByRole('button', { name: 'Done' })).toEqual([done]);
-    await expectNoAxeViolations(container);
-    await fireEvent.click(done);
-    expect(openRow()).toBeNull();
-    await waitFor(() => expect(edit(/^Edit question 2: /)).toHaveFocus());
+    await fireEvent.keyDown(within(openRow()!).getByRole('textbox', { name: 'Question 3' }), { key: 'Escape', isComposing: true });
+
+    expect(openRow()).not.toBeNull();
   });
 
-  it("closes the open question on a click on its header outside a control, and keeps it open for a click in a field", async () => {
+  it('leaves Escape to a popover open inside the row, such as an Info button', async () => {
+    setup();
+    await fireEvent.click(edit(/^Edit question 3: /));
+    const info = document.createElement('button');
+    info.setAttribute('aria-haspopup', 'dialog');
+    info.setAttribute('aria-expanded', 'true');
+    within(openRow()!).getByRole('group', { name: 'What is your notice period?' }).append(info);
+
+    await fireEvent.keyDown(info, { key: 'Escape' });
+    expect(openRow()).not.toBeNull();
+
+    info.setAttribute('aria-expanded', 'false');
+    await fireEvent.keyDown(info, { key: 'Escape' });
+    expect(openRow()).toBeNull();
+  });
+
+  it('closes the open question on its header, and keeps it open for a click in a field', async () => {
     setup();
     await fireEvent.click(edit(/^Edit question 3: /));
     const row = openRow()!;
@@ -147,38 +229,16 @@ describe('form builder', () => {
     await fireEvent.click(within(row).getByRole('textbox', { name: 'Help text' }));
     expect(openRow()).not.toBeNull();
 
-    // Selecting the question's text and letting go past the field fires the click on the header: the row stays open.
-    const header = row.querySelector('[data-question-header]')!;
-    await fireEvent.pointerDown(within(row).getByRole('textbox', { name: 'Question 3' }));
-    await fireEvent.click(header);
-    expect(openRow()).not.toBeNull();
-
-    await fireEvent.pointerDown(header);
-    await fireEvent.click(header);
-    expect(openRow()).toBeNull();
-  });
-
-  it('keeps the answer kind and the row menu in one cluster on the right, open or closed', async () => {
-    setup();
-    const cluster = () => panel().querySelector('[data-question-row="notice"] [data-question-cluster]')!;
-    const menu = () => within(cluster() as HTMLElement).getByRole('button', { name: 'Actions for What is your notice period?' });
-    expect(cluster()).toHaveTextContent('Short text');
-    expect(menu()).toBeInTheDocument();
-
     await fireEvent.click(edit(/^Edit question 3: /));
-
-    expect(within(cluster() as HTMLElement).getByRole('button', { name: 'Answer: Short text' })).toBeInTheDocument();
-    expect(menu()).toBeInTheDocument();
-    // The order stays: the kind, the row menu, then Done where the closed row's chevron stands.
-    const order = [...cluster().querySelectorAll('button, [data-question-chevron]')].map((element) => element.getAttribute('aria-label') ?? element.textContent);
-    expect(order).toEqual(['Answer: Short text', 'Actions for What is your notice period?', 'Done']);
+    expect(openRow()).toBeNull();
+    await waitFor(() => expect(edit(/^Edit question 3: /)).toHaveFocus());
   });
 
   it('changes the answer kind from the answer menu, ticking the current one and keeping the text', async () => {
     const { list } = setup();
     await fireEvent.click(edit(/^Edit question 3: /));
 
-    await press(within(openRow()!).getByRole('button', { name: 'Answer: Short text' }));
+    await press(within(openRow()!).getByRole('button', { name: 'Answer type: Short text' }));
 
     const menu = await screen.findByRole('menu');
     expect(within(menu).getByText('General')).toBeInTheDocument();
@@ -200,6 +260,7 @@ describe('form builder', () => {
     expect(list()[2]).toMatchObject({ type: 'MultiChoice', label: 'What is your notice period?' });
     // A new choice question starts with options, each with a square: pick any.
     const row = openRow()!;
+    expect(within(headerOf('notice')).getByText('Multi-choice')).toHaveAttribute('data-slot', 'badge');
     expect(within(row).getByRole('list', { name: /^Options for / })).toBeInTheDocument();
     expect(row.querySelectorAll('.rounded-sm').length).toBeGreaterThan(0);
   });
@@ -230,7 +291,7 @@ describe('form builder', () => {
     expect(within(choices).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Yes', 'No']);
   });
 
-  it('duplicates a question straight after the original, with its own id, and opens the copy', async () => {
+  it('duplicates a question straight after the original, with its own id, and opens the copy at its text', async () => {
     const { list } = setup();
     await fireEvent.click(edit(/^Edit question 1: /));
 
@@ -238,8 +299,8 @@ describe('form builder', () => {
 
     expect(list().map((question) => question.id)).toEqual(['right_to_work', 'right_to_work_copy', 'years', 'notice']);
     expect(list()[1]).toMatchObject({ type: 'YesNo', label: 'Do you have the right to work here?', required: true });
-    const text = within(openRow()!).getByRole('textbox', { name: 'Question 2' });
-    await waitFor(() => expect(text).toHaveFocus());
+    expect(openRows()).toEqual(['right_to_work', 'right_to_work_copy']);
+    await waitFor(() => expect(within(rowOf('right_to_work_copy')).getByRole('textbox', { name: 'Question 2' })).toHaveFocus());
   });
 
   it('switches Required on and off', async () => {

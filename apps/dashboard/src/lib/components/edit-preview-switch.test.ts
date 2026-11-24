@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import PreviewHarness from '../../test-support/preview-harness.svelte';
@@ -15,6 +15,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// The window opens from the Preview panel's header, so each editor is on Preview to open it.
+async function popOut(index = 0) {
+  await fireEvent.click(screen.getAllByRole('button', { name: 'Preview' })[index]!);
+  await fireEvent.click(screen.getAllByRole('button', { name: 'Open in a new window' }).at(-1)!);
+}
 const windowUrl = () => open.mock.calls.at(-1)![0] as URL;
 
 describe('edit / preview switch', () => {
@@ -33,10 +38,22 @@ describe('edit / preview switch', () => {
     await expectNoAxeViolations(document.body);
   });
 
+  it('holds exactly two choices, and the Preview panel opens the preview in its own window, in words', async () => {
+    render(PreviewHarness);
+    expect(within(screen.getByRole('group', { name: 'View' })).getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Edit', 'Preview']);
+    expect(screen.queryByRole('button', { name: 'Open in a new window' })).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+    const panel = screen.getByRole('region', { name: 'Preview' });
+    expect(within(panel).getByText('Open in a new window')).toBeVisible();
+    expect(within(screen.getByRole('group', { name: 'View' })).getAllByRole('button')).toHaveLength(2);
+  });
+
   it('opens the preview in a named second window, carrying its own channel', async () => {
     render(PreviewHarness);
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Open in a new window' }));
+    await popOut();
 
     expect(open).toHaveBeenCalledOnce();
     const [url, name, features] = open.mock.calls[0]!;
@@ -49,7 +66,8 @@ describe('edit / preview switch', () => {
 
   it('keeps the preview window in step with each edit', async () => {
     render(PreviewHarness);
-    await fireEvent.click(screen.getByRole('button', { name: 'Open in a new window' }));
+    await popOut();
+    await fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
 
     // The window starts after the editor: it asks for the current value and gets it.
     render(PreviewSinkHarness, { props: { url: windowUrl() } });
@@ -62,7 +80,7 @@ describe('edit / preview switch', () => {
 
   it('tells the window when the editor goes away', async () => {
     const editor = render(PreviewHarness);
-    await fireEvent.click(screen.getByRole('button', { name: 'Open in a new window' }));
+    await popOut();
     render(PreviewSinkHarness, { props: { url: windowUrl() } });
     await waitFor(() => expect(screen.getByTestId('window')).toHaveTextContent('What is your notice period?'));
 
@@ -74,10 +92,10 @@ describe('edit / preview switch', () => {
   it('never crosses two editors: each window follows only its own', async () => {
     render(PreviewHarness);
     render(PreviewHarness);
-    const [first, second] = screen.getAllByRole('button', { name: 'Open in a new window' });
-    await fireEvent.click(first!);
+    await popOut(0);
     const firstUrl = windowUrl();
-    await fireEvent.click(second!);
+    await popOut(1);
+    for (const edit of screen.getAllByRole('button', { name: 'Edit' })) await fireEvent.click(edit);
     render(PreviewSinkHarness, { props: { url: firstUrl } });
     await waitFor(() => expect(screen.getByTestId('window')).toHaveTextContent('What is your notice period?'));
 

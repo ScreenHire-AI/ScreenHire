@@ -11,7 +11,6 @@
   // scrolls, for an editor whose Save is not in a header band (Branding).
   let {
     mode = $bindable('edit'),
-    onpopout,
     wide = false,
     readOnly = false,
     readLabel,
@@ -22,8 +21,6 @@
     class: className,
   }: {
     mode?: 'edit' | 'preview';
-    /** Opens the preview in a second window that follows the edits (#lib/preview-window.svelte.ts). */
-    onpopout?: () => void;
     /** Nobody can edit what the editor pane shows (a built-in, a published version): the switch names it, not Edit (E3). */
     readOnly?: boolean;
     /** What the read-only pane is, for the switch's first choice (default Questions). */
@@ -49,7 +46,7 @@
     data-edit-preview-row
   >
     {#if toolbar}<div class="flex min-w-0 flex-wrap items-center gap-2 @[40rem]/editor:flex-1 @[40rem]/editor:flex-nowrap">{@render toolbar()}</div>{/if}
-    <EditPreviewSwitch bind:mode {onpopout} {readOnly} {readLabel} class="shrink-0" />
+    <EditPreviewSwitch bind:mode {readOnly} {readLabel} class="shrink-0" />
     {#if actions}<div class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-3 gap-y-1">{@render actions()}</div>{/if}
   </div>
   <!-- A row that stays in view must not cover what takes focus under it (WCAG 2.4.11): the margin keeps focus clear of the row. -->

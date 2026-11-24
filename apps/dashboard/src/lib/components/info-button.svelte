@@ -5,10 +5,10 @@
   import * as Popover from '#lib/components/ui/popover/index.js';
   import { cn } from '#lib/utils.js';
 
-  // An explanation one press away (design system section 11, Info button; W12): a quiet `info` icon beside what it explains,
-  // whose words open on a click, a tap or keyboard focus, and close on Escape, a click elsewhere or moving focus on. It holds
-  // words only, never a control, so focus stays on the button and nothing is trapped. Use it for the long sentence a setting
-  // used to carry under its label; a short label keeps its one-line description instead (W4).
+  // An explanation one press away (design system section 11, Info button; W14): a quiet `info` icon beside what it explains,
+  // whose words open on hover, a click, a tap or keyboard focus, and close on Escape, a click elsewhere or moving on. A click
+  // while it is open from a hover keeps it open. It holds words only, never a control, so focus stays on the button and
+  // nothing is trapped. What people must know before they act, and anything they agree to, stays on the page (W14).
   let {
     label,
     text,
@@ -35,6 +35,8 @@
 <Popover.Root bind:open>
   <Popover.Trigger
     aria-label={label}
+    openOnHover
+    openDelay={150}
     onfocus={focused}
     onblur={() => (open = false)}
     class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'size-7 shrink-0 text-muted-foreground pointer-coarse:size-11', className)}

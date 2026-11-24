@@ -16,7 +16,9 @@
   import Trash2Icon from '~icons/lucide/trash-2';
   import XIcon from '~icons/lucide/x';
   import { tick, type Snippet } from 'svelte';
+  import { cubicInOut } from 'svelte/easing';
   import { prefersReducedMotion } from 'svelte/motion';
+  import { SvelteSet } from 'svelte/reactivity';
   import { slide } from 'svelte/transition';
   import AnswerMenu from '#lib/components/answer-menu.svelte';
   import IconButton from '#lib/components/icon-button.svelte';
@@ -30,20 +32,21 @@
   import { Label } from '#lib/components/ui/label/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
+  import { labelClass } from '#lib/components/workflow/controls.js';
   import FieldErrors from '#lib/components/workflow/field-errors.svelte';
   import { choicesSummary, kindIn, type AnswerKind, type AnswerKindGroup, type AnswerOption } from '#lib/form-builder.js';
   import { addSection, fromRows, removeSection, rowsOf, syncSections, type BuilderRow, type SectionDraft } from '#lib/form-sections.js';
   import { idFrom, insertAt } from '#lib/workflow.js';
 
-  // The form builder (design system section 11), modelled on Google Forms: one panel of questions, each a row that reads
-  // as text until it is opened. Only one question is open at a time, marked by an accent bar; it edits its text, its
-  // answer kind (the answer menu, top right), its help line (beside the Required switch where the pane is wide) and its options. A row's
-  // Duplicate and Delete are in its row menu (L3), open or closed. Open and closed rows share one header row, so the answer
-  // kind and the row menu stand in the same place either way; the open row closes from Done (a small filled button where
-  // the closed row's chevron stands, the same width so nothing moves), a click on its header outside a control, or Escape,
-  // and slides open and shut (none under reduced motion). Every control on the header line is the standard 36px high. A closed choice question reads its options on one line, "4 choices: ...". A required question wears a Required badge and an
-  // optional one nothing (W6). Questions and options reorder with a grip (A7). Removing a question changes nothing until the editor saves,
-  // so it is not destructive (section 10).
+  // The form builder (design system section 11), modelled on Google Forms: one panel of questions, each a row with one
+  // header strip, the same open or closed: the grip, the question, Required and the answer kind as badges, the row menu
+  // (Duplicate and Delete, L3) and a chevron. The strip is one button that opens and closes the row, so it never moves or
+  // changes height, and a closed row adds its help line and its options ("4 choices: ...") under it. An open row has its full
+  // border and the strip's accent fill (S11), and its body is a labelled form. Several rows may be open at once, so each
+  // body is a group named after its question; Expand all and Collapse all are in the panel's header. A row closes from its
+  // strip or Escape, and slides open and shut (none under reduced motion). A required question wears a Required badge and an
+  // optional one nothing (W6). Questions and options reorder with a grip (A7). Removing a question changes nothing until the
+  // editor saves, so it is not destructive (section 10).
   //
   // The builder knows nothing of what it edits: application questions, a follow-up questionnaire or a scorecard. The
   // editor that mounts it reads and writes each question through the callbacks below, offers its own answer menu
@@ -116,7 +119,7 @@
   } = $props();
 
   const uid = $props.id();
-  let openId = $state<string | null>(null);
+  const openIds = new SvelteSet<string>();
   let root = $state<HTMLElement | null>(null);
 
   // A kind the menu does not offer (a question saved before its kind left this menu) shows by its stored name.
@@ -128,6 +131,7 @@
   const sectionName = (section: SectionDraft) => section.name.trim() || 'Untitled section';
   const sectioned = $derived(withSections && (sections?.length ?? 0) > 0);
   const rows = $derived<BuilderRow<T>[]>(withSections ? rowsOf(items, sections, key) : items.map((item) => ({ kind: 'question', item })));
+  const openCount = $derived(items.filter((item) => openIds.has(key(item))).length);
   const rowKey = (row: BuilderRow<T>) => (row.kind === 'section' ? `section:${row.section.id}` : key(row.item));
 
   // Every change to the list goes through here, so the sections keep holding exactly the questions there are.
@@ -172,22 +176,39 @@
   const find = (selector: string) => root?.querySelector<HTMLElement>(selector) ?? null;
   const attr = (id: string) => CSS.escape(id);
 
-  async function open(id: string) {
-    openId = id;
+  // A new question opens at its text, which is what to write next. A row opened from its strip keeps the focus there, as a
+  // disclosure does, so opening several to read them never moves the person.
+  async function openAtText(id: string) {
+    openIds.add(id);
     await tick();
     find(`[data-question-text="${attr(id)}"]`)?.focus();
   }
 
   async function close(id: string) {
-    openId = null;
+    openIds.delete(id);
     await tick();
     find(`[data-question-edit="${attr(id)}"]`)?.focus();
+  }
+
+  function toggle(id: string) {
+    if (openIds.has(id)) void close(id);
+    else openIds.add(id);
+  }
+
+  // The button pressed always goes, because it has nothing left to do, so the focus moves to the other one.
+  async function setAll(open: boolean) {
+    for (const item of items) {
+      if (open) openIds.add(key(item));
+      else openIds.delete(key(item));
+    }
+    await tick();
+    find(open ? '[data-collapse-all]' : '[data-expand-all]')?.focus();
   }
 
   function add(kind: K) {
     const item = newItem(kind);
     setItems([...items, item]);
-    void open(key(item));
+    void openAtText(key(item));
   }
 
   function copy(index: number) {
@@ -195,13 +216,14 @@
     if (original === undefined) return;
     const item = duplicate(original);
     setItems(insertAt(items, index + 1, item));
-    void open(key(item));
+    void openAtText(key(item));
   }
 
   async function remove(index: number) {
+    const gone = items[index];
     const next = items[index + 1];
     setItems(items.filter((_, i) => i !== index));
-    openId = null;
+    if (gone !== undefined) openIds.delete(key(gone));
     await tick();
     (next === undefined ? find('[data-question-add]') : find(`[data-question-edit="${attr(key(next))}"]`))?.focus();
   }
@@ -225,8 +247,8 @@
   }
 
   // The fields slide open and shut. While they slide shut they are already closed: inert and hidden from assistive
-  // technology, so a question being closed never shows a second Required switch beside the one that just opened.
-  const motion = () => ({ duration: prefersReducedMotion.current ? 0 : 180 });
+  // technology, so a closing question's fields are never reached or read.
+  const motion = () => ({ duration: prefersReducedMotion.current ? 0 : 180, easing: cubicInOut });
   // Opening again while it still slides shut reuses the same fields, so opening gives them back.
   function slideOpen(node: HTMLElement) {
     node.inert = false;
@@ -239,30 +261,19 @@
     return slide(node, motion());
   }
 
-  // A click on the open row's header closes it, unless it lands in a field or on a control (the text, the answer menu,
-  // the row menu, the grip), which keep their own clicks. A press that began in one counts too: selecting the question's
-  // text and letting go past the field's edge fires the click on the header, and must not close the row.
-  const keepsItsClick = 'input, textarea, select, button, a, [role="switch"], [role="menuitem"]';
-  let pressedOn: Element | null = null;
-  function onheaderclick(event: MouseEvent, id: string) {
-    const pressed = pressedOn;
-    pressedOn = null;
-    if ((event.target as Element | null)?.closest(keepsItsClick) || pressed?.closest(keepsItsClick)) return;
-    void close(id);
-  }
-
+  // Escape closes the open row it is pressed in. A menu sits in a portal, outside the row. Three things inside the row
+  // keep their own Escape: a word being composed in a field (an IME), a popover open from a button here (an Info button), and
+  // an option picked up with the keyboard, whose list item has the focus.
   function onrowkeydown(event: KeyboardEvent, id: string) {
-    // Escape closes the open question. The answer menu and a picked-up item take their own Escape: the menu sits in a
-    // portal and a keyboard drag focuses the list item, both outside this row.
-    if (event.key === 'Escape' && !event.defaultPrevented) {
-      event.preventDefault();
-      void close(id);
-    }
+    if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
+    if ((event.target as Element | null)?.matches('[data-reorder-id], [aria-haspopup="dialog"][aria-expanded="true"]')) return;
+    event.preventDefault();
+    void close(id);
   }
 </script>
 
 <div bind:this={root} class="@container min-w-0">
-  <Panel {title} count={items.length} flush>
+  <Panel {title} count={items.length} flush actions={items.length > 1 ? expandAll : undefined}>
     {#if problems.length > 0}
       <div class="px-4.5 pt-4 max-md:px-4"><FieldErrors id={`${uid}-problems`} messages={problems} /></div>
     {/if}
@@ -275,7 +286,7 @@
       label={title}
       itemLabel={(row) => (row.kind === 'section' ? `section ${sectionName(row.section)}` : nameOf(row.item))}
       onreorder={reorder}
-      class="divide-y divide-border-subtle [&>li:last-child>div]:rounded-b-panel"
+      class="[&>li]:-mt-px [&>li:last-child]:-mb-px"
     >
       {#snippet item(row, grip)}
         {#if row.kind === 'section'}
@@ -283,7 +294,7 @@
           {@const sectionIndex = (sections ?? []).findIndex((each) => each.id === section.id)}
           {@const problems = sectionErrors?.(sectionIndex) ?? []}
           {@const problemsId = `${uid}-section-errors-${sectionIndex}`}
-          <div data-section-row={section.id} class="flex min-w-0 flex-col gap-1 bg-muted py-2 pr-2 pl-2.5">
+          <div data-section-row={section.id} class="flex min-w-0 flex-col gap-1 border border-x-transparent border-y-border-subtle bg-muted py-2 pr-2 pl-2.5">
             <div class="flex min-w-0 items-center gap-2">
               {@render grip()}
               <Input
@@ -310,160 +321,166 @@
         {@const kind = kindOfItem(question)}
         {@const errors = errorsFor?.(question, index) ?? []}
         {@const errorsId = `${uid}-errors-${index}`}
-        {@const isOpen = openId === id}
-        <!-- One header row, open or closed: the grip, the question, then the answer kind, the row menu and the chevron in
-             one cluster on the right, so the kind and the menu never move when the row opens or closes. -->
+        {@const isOpen = openIds.has(id)}
+        {@const helpLine = help?.get(question)}
+        <!-- Neighbours share one hairline (each item overlaps the one before by 1px), and an open row's border is drawn over it. -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           data-question-row={id}
           data-open={isOpen || undefined}
-          class="relative flex min-w-0 flex-col bg-card py-2 pr-2 pl-2.5"
+          class={['relative flex min-w-0 flex-col border bg-card', isOpen ? 'z-1 border-primary' : 'border-x-transparent border-y-border-subtle has-[[data-question-edit]:hover]:bg-muted/40']}
           onkeydown={isOpen ? (event) => onrowkeydown(event, id) : undefined}
         >
-          {#if isOpen}<span aria-hidden="true" class="absolute inset-y-0 left-0 w-1 bg-primary"></span>{/if}
-          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-          <div data-question-header class="relative flex min-w-0 items-start gap-2 rounded-lg has-[[data-question-edit]:hover]:bg-muted/40" onpointerdown={isOpen ? (event) => (pressedOn = event.target as Element | null) : undefined} onclick={isOpen ? (event) => onheaderclick(event, id) : undefined}>
-            <span class="relative z-10 pt-1">{@render grip()}</span>
-            {#if isOpen}
-              <div class="flex min-w-0 flex-1">
-                <Textarea
-                  data-question-text={id}
-                  aria-label={`Question ${index + 1}`}
-                  rows={1}
-                  value={labelOf(question)}
-                  onkeydown={oneLine}
-                  oninput={(event) => setLabel(question, flatten(event.currentTarget.value))}
-                  maxlength={300}
-                  aria-invalid={errors.length > 0 || undefined}
-                  aria-describedby={errors.length > 0 ? errorsId : undefined}
-                  class={[lineClass, 'font-semibold']}
-                />
-              </div>
-            {:else}
-              <!-- The row is one button that opens it: its box stretches over the header, under the cluster's controls (A9). -->
-              <button
-                type="button"
-                data-question-edit={id}
-                aria-expanded="false"
-                aria-describedby={errors.length > 0 ? errorsId : undefined}
-                onclick={() => open(id)}
-                class="flex min-w-0 flex-1 flex-col gap-1 px-2 py-2 text-left after:absolute after:inset-0 after:rounded-lg pointer-coarse:min-h-11 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-ring"
-              >
-                <span class="min-w-0 font-semibold break-words">
-                  <span class="sr-only">Edit question {index + 1}:</span>{' '}{nameOf(question)}{#if requiredOf(question)}{' '}<Badge variant="muted" class="align-middle">Required</Badge>{/if}{' '}<span class="sr-only">{kind.label}</span>
-                </span>
-                {#if help?.get(question)}<span class="block text-muted-foreground">{help.get(question)}</span>{/if}
-                {#if kind.options}
-                  <span data-question-choices class="flex min-w-0 items-center gap-2 text-muted-foreground">
-                    {@render markOf(kind.options)}<span class="min-w-0 truncate">{choicesSummary(optionsOf(question))}</span>
-                  </span>
-                {/if}
-              </button>
-            {/if}
-            <span data-question-cluster class="flex shrink-0 items-center gap-1">
-              {#if isOpen}
-                <span class="relative z-10">
-                  <AnswerMenu {groups} value={kind.value} onselect={(next) => changeKind(index, next)}>
-                    {#snippet trigger(props)}
-                      {@const Icon = kind.icon}
-                      <Button {...props} variant="outline" size="lg" aria-label={`Answer: ${kind.label}`} class="shrink-0">
-                        {#if Icon}<Icon aria-hidden="true" />{/if}<span class="hidden @md:inline">{kind.label}</span><ChevronDownIcon aria-hidden="true" />
-                      </Button>
-                    {/snippet}
-                  </AnswerMenu>
-                </span>
-              {:else}
-                <!-- The kind in the box the open row's answer menu takes, so nothing moves. The name gives way to its icon
-                     in a narrow list, open or closed, so the question keeps the room (F5). -->
-                <span aria-hidden="true" class="inline-flex h-9 items-center gap-2 border border-transparent px-3 text-muted-foreground">
-                  {#if kind.icon}{@const Icon = kind.icon}<Icon />{/if}<span class="hidden @md:inline">{kind.label}</span>
-                </span>
-              {/if}
-              <span class="relative z-10">{@render rowMenu(nameOf(question), index)}</span>
-              <!-- Done and the closed row's chevron share one slot as wide as Done, so opening a row moves nothing. -->
-              {#if isOpen}
-                <span class="relative z-10 flex w-16 justify-end">
-                  <Button size="lg" data-question-done onclick={() => close(id)}>Done</Button>
-                </span>
-              {:else}
-                <!-- The row opens in place and says so (A9), where the open row's Done stands. -->
-                <span aria-hidden="true" data-question-chevron class="flex h-9 w-16 items-center justify-end pr-2.5 text-muted-foreground pointer-coarse:h-11"><ChevronDownIcon /></span>
-              {/if}
+          <!-- The strip is the same open or closed, so it never moves. Its button's box stretches over the strip, and over the
+               whole row while it is closed, under the grip and the row menu (A9). What is under it starts where its words do. -->
+          <div data-question-header class={['flex min-w-0 items-start gap-2 py-2 pr-2 pl-2.5', isOpen && 'relative bg-accent text-accent-foreground']}>
+            <span class="relative z-10 pt-0.5 pointer-coarse:pt-0">{@render grip()}</span>
+            <button
+              type="button"
+              data-question-edit={id}
+              aria-expanded={isOpen}
+              aria-controls={isOpen ? `${uid}-body-${index}` : undefined}
+              aria-describedby={errors.length > 0 ? errorsId : undefined}
+              onclick={() => toggle(id)}
+              class="flex min-h-9 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5 px-2 py-2 text-left after:absolute after:inset-0 pointer-coarse:min-h-11 pointer-coarse:py-3 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring"
+            >
+              <span class="min-w-0 flex-[1_1_14rem] font-semibold break-words">
+                <span class="sr-only">Edit question {index + 1}:</span>{' '}<span id={`${uid}-name-${index}`}>{nameOf(question)}</span>
+              </span>{' '}
+              <span data-question-badges class="flex min-w-0 flex-wrap items-center gap-1.5">
+                <!-- On the open strip's accent fill a badge turns white, as a count does on a pressed toggle (T4). -->
+                {#if requiredOf(question)}<Badge variant="muted" class={isOpen ? 'bg-card' : undefined}>Required</Badge>{' '}{/if}
+                <Badge variant="muted" class={isOpen ? 'bg-card' : undefined}>{#if kind.icon}{@const Icon = kind.icon}<Icon aria-hidden="true" />{/if}{kind.label}</Badge>
+              </span>
+            </button>
+            <span class="relative z-10 shrink-0">{@render rowMenu(nameOf(question), index)}</span>
+            <!-- The chevron takes no press of its own: it is part of the strip's button. -->
+            <span aria-hidden="true" data-question-chevron class="pointer-events-none flex size-9 shrink-0 items-center justify-center text-muted-foreground pointer-coarse:size-11">
+              <ChevronDownIcon class={['size-4 transition-transform duration-180 ease-in-out motion-reduce:transition-none', isOpen && 'rotate-180']} />
             </span>
           </div>
-          {#if isOpen}
-            <div class="flex min-w-0 flex-col gap-3 pt-3 pr-2 pl-10 pointer-coarse:pl-13" in:slideOpen out:slideShut>
-              <!-- The help line and the Required switch share a row where the pane is wide, and stack where it is not. -->
-              <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-                {#if help}
-                  <Textarea
-                    aria-label={help.label}
-                    placeholder={help.label}
-                    rows={1}
-                    value={help.get(question) ?? ''}
-                    onkeydown={oneLine}
-                    oninput={(event) => help?.set(question, flatten(event.currentTarget.value) || null)}
-                    maxlength={500}
-                    class={[lineClass, 'flex-[1_1_18rem]']}
-                  />
-                {/if}
-                <span class="flex items-center gap-2 pointer-coarse:min-h-11">
-                  <Switch
-                    id={`${uid}-required-${index}`}
-                    checked={requiredOf(question)}
-                    onCheckedChange={(value) => setRequired(question, value)}
-                  />
-                  <Label for={`${uid}-required-${index}`} class="font-semibold">Required</Label>
-                </span>
-              </div>
+          {#if errors.length > 0}
+            <div class={['pr-4 pb-3 pl-14.5 pointer-coarse:pl-17.5', isOpen && 'pt-3']}><FieldErrors id={errorsId} messages={errors} /></div>
+          {/if}
+          {#if !isOpen && (helpLine || kind.options)}
+            <div data-question-summary class="flex min-w-0 flex-col gap-1 pr-4 pb-3 pl-14.5 text-muted-foreground pointer-coarse:pl-17.5" transition:slide={motion()}>
+              {#if helpLine}<span class="break-words">{helpLine}</span>{/if}
               {#if kind.options}
-                {@const mark = kind.options}
-                {@const options = optionsOf(question)}
-                <div class="flex flex-col gap-1">
-                  <ReorderList
-                    items={options}
-                    key={(option) => option.id}
-                    label={`Options for ${nameOf(question)}`}
-                    itemLabel={(option) => option.label || 'Untitled option'}
-                    onreorder={(next) => setOptions(question, next)}
-                    class="gap-1"
-                  >
-                    {#snippet item(option, optionGrip)}
-                      {@const optionIndex = options.indexOf(option)}
-                      <div class="flex min-w-0 items-center gap-2 bg-card">
-                        {@render optionGrip()}
-                        {@render markOf(mark)}
-                        <Input
-                          aria-label={`Option ${optionIndex + 1}`}
-                          value={option.label}
-                          oninput={(event) => {
-                            const label = event.currentTarget.value;
-                            setOptions(question, options.map((existing) => (existing.id === option.id ? { ...existing, label } : existing)));
-                          }}
-                          maxlength={200}
-                        />
-                        <IconButton
-                          label={`Remove option ${option.label || optionIndex + 1}`}
-                          onclick={() => setOptions(question, options.filter((existing) => existing.id !== option.id))}><XIcon /></IconButton
-                        >
-                      </div>
-                    {/snippet}
-                  </ReorderList>
-                  <div class="flex items-center gap-2 pl-10 pointer-coarse:pl-13">
-                    {@render markOf(mark)}
-                    <Button variant="outline" size="sm" onclick={() => addOption(question)}><PlusIcon aria-hidden="true" />Add option</Button>
-                  </div>
-                </div>
-              {:else if kind.fixed}
-                <ul class="flex flex-col gap-1.5" aria-label="Choices">
-                  {#each kind.fixed as choice (choice)}<li class="flex items-center gap-2">{@render markOf('circle')}{choice}</li>{/each}
-                </ul>
+                <span data-question-choices class="flex min-w-0 items-center gap-2">
+                  {@render markOf(kind.options)}<span class="min-w-0 truncate">{choicesSummary(optionsOf(question))}</span>
+                </span>
               {/if}
-              {@render settings?.(question, index)}
-              <FieldErrors id={errorsId} messages={errors} />
             </div>
-          {:else if errors.length > 0}
-            <div class="pl-10"><FieldErrors id={errorsId} messages={errors} /></div>
+          {/if}
+          {#if isOpen}
+            <div
+              id={`${uid}-body-${index}`}
+              role="group"
+              aria-labelledby={`${uid}-name-${index}`}
+              data-question-body
+              class="border-t border-border-subtle px-4 py-4 @md:pl-14.5 pointer-coarse:@md:pl-17.5"
+              in:slideOpen
+              out:slideShut
+            >
+              <!-- The form keeps its 688px in a wide row (S6), while the strip runs the row's whole width. -->
+              <div class="flex max-w-form min-w-0 flex-col gap-4">
+                <!-- Where the pane is wide, Answer type and Required sit beside the fields they follow; they stack where it is not. -->
+                <div class="grid min-w-0 gap-x-4 gap-y-3 @2xl:grid-cols-[minmax(0,1fr)_14rem]">
+                  <div class={labelClass}>
+                    <label for={`${uid}-text-${index}`}>Question{' '}<span class="sr-only">{index + 1}</span></label>
+                    <Textarea
+                      id={`${uid}-text-${index}`}
+                      data-question-text={id}
+                      rows={1}
+                      value={labelOf(question)}
+                      onkeydown={oneLine}
+                      oninput={(event) => setLabel(question, flatten(event.currentTarget.value))}
+                      maxlength={300}
+                      aria-invalid={errors.length > 0 || undefined}
+                      aria-describedby={errors.length > 0 ? errorsId : undefined}
+                      class={lineClass}
+                    />
+                  </div>
+                  <div class={labelClass}>
+                    <span aria-hidden="true">Answer type</span>
+                    <AnswerMenu {groups} value={kind.value} onselect={(next) => changeKind(index, next)}>
+                      {#snippet trigger(props)}
+                        {@const Icon = kind.icon}
+                        <Button {...props} variant="outline" size="lg" aria-label={`Answer type: ${kind.label}`} class="justify-start">
+                          {#if Icon}<Icon aria-hidden="true" />{/if}<span class="min-w-0 flex-1 truncate text-left">{kind.label}</span><ChevronDownIcon aria-hidden="true" />
+                        </Button>
+                      {/snippet}
+                    </AnswerMenu>
+                  </div>
+                  {#if help}
+                    <div class={labelClass}>
+                      <label for={`${uid}-help-${index}`}>{help.label}</label>
+                      <Textarea
+                        id={`${uid}-help-${index}`}
+                        rows={1}
+                        value={help.get(question) ?? ''}
+                        onkeydown={oneLine}
+                        oninput={(event) => help?.set(question, flatten(event.currentTarget.value) || null)}
+                        maxlength={500}
+                        class={lineClass}
+                      />
+                    </div>
+                  {/if}
+                  <span class="flex min-h-9 items-center gap-2 self-end pointer-coarse:min-h-11">
+                    <Switch
+                      id={`${uid}-required-${index}`}
+                      checked={requiredOf(question)}
+                      onCheckedChange={(value) => setRequired(question, value)}
+                    />
+                    <Label for={`${uid}-required-${index}`} class="font-semibold">Required</Label>
+                  </span>
+                </div>
+                {#if kind.options}
+                  {@const mark = kind.options}
+                  {@const options = optionsOf(question)}
+                  <div class="flex flex-col gap-1">
+                    <ReorderList
+                      items={options}
+                      key={(option) => option.id}
+                      label={`Options for ${nameOf(question)}`}
+                      itemLabel={(option) => option.label || 'Untitled option'}
+                      onreorder={(next) => setOptions(question, next)}
+                      class="gap-1"
+                    >
+                      {#snippet item(option, optionGrip)}
+                        {@const optionIndex = options.indexOf(option)}
+                        <div class="flex min-w-0 items-center gap-2 bg-card">
+                          {@render optionGrip()}
+                          {@render markOf(mark)}
+                          <Input
+                            aria-label={`Option ${optionIndex + 1}`}
+                            value={option.label}
+                            oninput={(event) => {
+                              const label = event.currentTarget.value;
+                              setOptions(question, options.map((existing) => (existing.id === option.id ? { ...existing, label } : existing)));
+                            }}
+                            maxlength={200}
+                          />
+                          <IconButton
+                            label={`Remove option ${option.label || optionIndex + 1}`}
+                            onclick={() => setOptions(question, options.filter((existing) => existing.id !== option.id))}><XIcon /></IconButton
+                          >
+                        </div>
+                      {/snippet}
+                    </ReorderList>
+                    <div class="flex items-center gap-2 pl-10 pointer-coarse:pl-13">
+                      {@render markOf(mark)}
+                      <Button variant="outline" size="sm" onclick={() => addOption(question)}><PlusIcon aria-hidden="true" />Add option</Button>
+                    </div>
+                  </div>
+                {:else if kind.fixed}
+                  <ul class="flex flex-col gap-1.5" aria-label="Choices">
+                    {#each kind.fixed as choice (choice)}<li class="flex items-center gap-2">{@render markOf('circle')}{choice}</li>{/each}
+                  </ul>
+                {/if}
+                {@render settings?.(question, index)}
+              </div>
+            </div>
           {/if}
         </div>
         {/if}
@@ -486,6 +503,14 @@
     {/snippet}
   </Panel>
 </div>
+
+<!-- Both show while some rows are open and some are not; a narrow header has room for one, Collapse all while any is open. -->
+{#snippet expandAll()}
+  {#if openCount > 0}<Button variant="outline" data-collapse-all onclick={() => setAll(false)}>Collapse all</Button>{/if}
+  {#if openCount < items.length}
+    <Button variant="outline" data-expand-all class={openCount > 0 ? '@max-sm/panel:hidden' : undefined} onclick={() => setAll(true)}>Expand all</Button>
+  {/if}
+{/snippet}
 
 {#snippet rowMenu(name: string, index: number)}
   <MoreMenu label={`Actions for ${name}`} quiet>
