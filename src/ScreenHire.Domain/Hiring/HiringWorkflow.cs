@@ -374,13 +374,11 @@ public enum QuestionType
 public sealed record QuestionOption(string Id, string Label);
 
 /// <summary>
-/// Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer
-/// <see cref="DisqualifyingAnswer"/> makes the candidate ineligible. It never rejects anyone by itself: an automation
-/// decides, and by default it only queues the application for a person to review (workflow-engine.md §2).
+/// A yes/no question's must-have answer: an objective requirement only, such as the right to work or a licence, never AI
+/// use or an accommodation. <c>disqualifyingAnswer</c> is the answer that fails it. It never rejects anyone by itself: an
+/// automation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).
+/// <c>reason</c> is a team note that is never sent to a candidate.
 /// </summary>
-/// <remarks>
-/// <c>reason</c>: Shown to the candidate if a rejection follows from this answer.
-/// </remarks>
 public sealed record Knockout(bool DisqualifyingAnswer, string? Reason = null);
 
 /// <summary>What the employer allows candidates to do with AI tools while applying.</summary>
@@ -428,7 +426,7 @@ public sealed record PostingDefaults(
 /// signal (ADR-0004).
 /// </summary>
 /// <remarks>
-/// <c>allowAutoReject</c> is the explicit per-rule opt-in a knockout automation needs before it may reject without a
+/// <c>allowAutoReject</c> is the explicit per-rule opt-in an automation on a must-have answer needs before it may reject without a
 /// person (workflow-engine.md §2, guardrail 2). Without it, the automation can only queue for rejection review.
 /// </remarks>
 public sealed record Automation(

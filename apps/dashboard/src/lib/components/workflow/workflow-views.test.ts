@@ -168,7 +168,9 @@ describe('read-only workflow', () => {
     const questions = within(pane).getByRole('region', { name: 'Application form' });
     expect(controls(questions)).toHaveLength(0);
     expect(questions).toHaveTextContent('Do you have the right to work here?');
-    expect(within(questions).getByText('Knockout if no')).toHaveAttribute('data-slot', 'badge');
+    // The answer the candidate must give, not the one that fails; the team's old note never shows.
+    expect(within(questions).getByText('Must-have: Yes')).toHaveAttribute('data-slot', 'badge');
+    expect(within(questions).queryByText('The role needs the right to work.')).toBeNull();
     expect(within(questions).getByText('Required')).toHaveAttribute('data-slot', 'badge');
     await expectNoAxeViolations(container);
 

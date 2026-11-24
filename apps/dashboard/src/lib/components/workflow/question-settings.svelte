@@ -1,59 +1,124 @@
 <script lang="ts">
-  import type { Question } from '@screenhire/api-client';
+  import type { Automation, Knockout, Question } from '@screenhire/api-client';
+  import InfoButton from '#lib/components/info-button.svelte';
+  import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
-  import { checkboxClass, insetClass, labelClass, selectClass } from './controls.js';
+  import { Label } from '#lib/components/ui/label/index.js';
+  import { Switch } from '#lib/components/ui/switch/index.js';
+  import type { MustHaveState } from '#lib/must-have.js';
+  import { cn } from '#lib/utils.js';
+  import { answerLengthLimit } from '#lib/workflow.js';
+  import { insetClass, labelClass, selectClass } from './controls.js';
 
   // What an open screening question asks beyond its text, help and options, by its answer kind (the form builder's
-  // `settings`): a yes-or-no question's knockout, a number's range, a text answer's longest length and a file's types.
-  // A knockout marks an answer and does nothing by itself: what happens to it is an automation. `unhandled` says no
-  // automation reads this question's answer yet, so the knockout says so and where to add one (A11).
+  // `settings`): a yes-or-no question's must-have answer, a number's range, a text answer's maximum length and a file's
+  // types. A must-have is an objective requirement only, which its Info button says (workflow-engine.md section 7). What
+  // happens to the answer that fails it is an automation: `mustHave` says which, and the line links to it (A11). The editor
+  // that mounts this sets the must-have through `onmusthave`, so it can keep that automation in step.
   let {
     question,
-    unhandled = false,
+    mustHave,
+    left = [],
     automationsHref = '?tab=automations',
-  }: { question: Question; unhandled?: boolean; automationsHref?: string } = $props();
+    automationHref,
+    onshow,
+    onmusthave = (knockout) => (question.knockout = knockout),
+  }: {
+    question: Question;
+    /** What happens to the answer that fails the must-have; left out where no automation can read it (a library form). */
+    mustHave?: MustHaveState;
+    /** The automations that still act on the answer of a question that is not a must-have (`leftReading`). */
+    left?: readonly Automation[];
+    automationsHref?: string;
+    /** Where one automation opens on the Automations tab. */
+    automationHref?: (automationId: string) => string;
+    /** Opens an automation in place, for a plain click on its link. */
+    onshow?: (automationId: string) => void;
+    onmusthave?: (knockout: Knockout | null) => void;
+  } = $props();
 
   const uid = $props.id();
   const numberOrNull = (value: string) => (value.trim() === '' ? null : Number(value));
+  const lengthLimit = $derived(answerLengthLimit(question.type));
+  const linkClass = 'underline underline-offset-2 hover:text-primary';
+
+  // Escape closes the Info button's words first; the open question takes the next one (`FormBuilder`'s row).
+  function keepOpen(event: KeyboardEvent) {
+    if (event.key === 'Escape' && (event.target as Element | null)?.closest('[data-state="open"]')) event.preventDefault();
+  }
+
+  // The button goes with the length it removes, so the focus returns to the open question's text.
+  function removeLength(event: MouseEvent) {
+    const text = (event.currentTarget as Element).closest('[data-question-row]')?.querySelector<HTMLElement>('[data-question-text]');
+    question.maxLength = null;
+    text?.focus();
+  }
+
+  function show(event: MouseEvent, automation: Automation) {
+    if (!onshow || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    event.preventDefault();
+    onshow(automation.id);
+  }
 </script>
 
+{#snippet link(automation: Automation, words: string)}<a
+    href={automationHref?.(automation.id) ?? automationsHref}
+    class={[linkClass, 'break-words']}
+    onclick={(event) => show(event, automation)}>{words}</a
+  >{/snippet}
+
+{#snippet names(automations: readonly Automation[])}{automations.length === 1 ? 'The automation' : 'The automations'}{' '}{#each automations as automation, index (automation.id)}{index > 0
+      ? ', '
+      : ''}{@render link(automation, automation.name || 'Untitled automation')}{/each}{/snippet}
+
 <!-- A choice question has nothing more to set; no empty box, so the open question's gaps stay even. -->
-{#if question.type !== 'SingleChoice' && question.type !== 'MultiChoice'}
+{#if question.type !== 'SingleChoice' && question.type !== 'MultiChoice' && (question.type !== 'Url' || question.maxLength != null)}
   <div class="@container flex flex-col gap-3">
     {#if question.type === 'YesNo'}
       <div class={insetClass}>
-        <label class="flex items-center gap-2 font-semibold pointer-coarse:min-h-11">
-          <input
-            type="checkbox"
-            class={checkboxClass}
-            bind:checked={() => !!question.knockout, (on) => (question.knockout = on ? { disqualifyingAnswer: false, reason: null } : null)}
+        <div class="flex items-center gap-2 pointer-coarse:min-h-11">
+          <Switch
+            id={`${uid}-must-have`}
+            checked={!!question.knockout}
+            onCheckedChange={(on) => onmusthave(on ? { disqualifyingAnswer: false, reason: null } : null)}
           />
-          Knockout question
-        </label>
-        <p class="text-muted-foreground">A knockout is an objective eligibility check only, such as the right to work, never AI use or an accommodation.</p>
-        {#if question.knockout && unhandled}
-          <p>
-            Nothing happens to this answer yet. <a href={automationsHref} class="underline underline-offset-2 hover:text-primary">Add a step in Automations</a>.
-          </p>
-        {/if}
+          <Label for={`${uid}-must-have`} class="font-semibold">Must-have answer</Label>
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <span class="contents" onkeydown={keepOpen}>
+            <InfoButton
+              label="About must-have answers"
+              text="A must-have answer is an objective requirement only, such as the right to work or a licence. Never AI use or an accommodation."
+            />
+          </span>
+        </div>
         {#if question.knockout}
-          <div class="grid gap-2 @md:grid-cols-[minmax(8rem,12rem)_minmax(0,1fr)]">
-            <label class={labelClass}>
-              Ineligible answer
-              <select
-                class={selectClass}
-                value={question.knockout.disqualifyingAnswer ? 'yes' : 'no'}
-                onchange={(event) => (question.knockout!.disqualifyingAnswer = event.currentTarget.value === 'yes')}
-              >
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-              </select>
-            </label>
-            <label class={labelClass}>
-              Reason the candidate sees
-              <Input bind:value={() => question.knockout?.reason ?? '', (value) => (question.knockout!.reason = value || null)} maxlength={500} />
-            </label>
-          </div>
+          <p data-must-have-line>
+            Candidates who answer
+            <select
+              class={cn(selectClass, 'mx-0.5 my-0.5 inline-block w-auto align-middle')}
+              aria-label="Answer that fails the must-have"
+              value={question.knockout.disqualifyingAnswer ? 'yes' : 'no'}
+              onchange={(event) => onmusthave({ ...question.knockout, disqualifyingAnswer: event.currentTarget.value === 'yes' })}
+            >
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+            {#if mustHave?.kind === 'review'}
+              go to Rejection review, where a person decides.
+              {#if mustHave.untouched}{@render link(mustHave.automation, 'Change what happens')}{:else}{@render names([mustHave.automation])} does this.{/if}
+            {:else}
+              do not meet this must-have.
+              {#if mustHave?.kind === 'read'}
+                {@render names(mustHave.automations)} {mustHave.automations.length === 1 ? 'reads' : 'read'} the answer.
+              {:else if mustHave?.kind === 'off'}
+                Nothing happens to this answer yet. {@render names(mustHave.automations)} {mustHave.automations.length === 1 ? 'is' : 'are'} off.
+              {:else if mustHave?.kind === 'nothing'}
+                Nothing happens to this answer yet. <a href={automationsHref} class={linkClass}>Add a step in Automations</a>.
+              {/if}
+            {/if}
+          </p>
+        {:else if left.length > 0}
+          <p data-must-have-line>{@render names(left)} still {left.length === 1 ? 'reads' : 'read'} this answer.</p>
         {/if}
       </div>
     {:else if question.type === 'Number'}
@@ -82,11 +147,28 @@
         />
         <p id={`${uid}-file-types-hint`} class="text-muted-foreground">Separated by commas, such as .pdf, .docx.</p>
       </div>
-    {:else if question.type === 'ShortText' || question.type === 'LongText' || question.type === 'Url'}
-      <label class={[labelClass, 'max-w-48']}>
-        Longest answer (optional)
-        <Input type="number" min={1} value={question.maxLength ?? ''} onchange={(event) => (question.maxLength = numberOrNull(event.currentTarget.value))} />
-      </label>
+    {:else if lengthLimit}
+      <div class="flex flex-col gap-1">
+        <label class={labelClass} for={`${uid}-length`}>Maximum length</label>
+        <span class="flex items-center gap-2">
+          <Input
+            id={`${uid}-length`}
+            type="number"
+            min={1}
+            max={lengthLimit}
+            step={1}
+            placeholder={lengthLimit.toLocaleString('en')}
+            aria-describedby={`${uid}-length-unit`}
+            value={question.maxLength ?? ''}
+            onchange={(event) => (question.maxLength = numberOrNull(event.currentTarget.value))}
+            class="w-28"
+          />
+          <span id={`${uid}-length-unit`} class="text-muted-foreground">characters</span>
+        </span>
+      </div>
+    {:else if question.type === 'Url'}
+      <!-- A link takes no maximum length; one saved with one (by an earlier version, or the API) can only drop it. -->
+      <Button variant="outline" size="sm" class="self-start" onclick={removeLength}>Remove maximum length</Button>
     {/if}
   </div>
 {/if}

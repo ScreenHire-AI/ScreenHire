@@ -199,7 +199,7 @@ public sealed class ScorecardTests
 
         DefinitionValidator.Validate(Workflow(With(ActionType.QueueForRejectionReview))).Should().BeEmpty();
         DefinitionValidator.Validate(Workflow(With(ActionType.Reject, optIn: true))).Should().ContainSingle()
-            .Which.Message.Should().Contain("only a knockout automation may do").And.Contain("\"No\"");
+            .Which.Message.Should().Contain("only an automation on a must-have answer may do").And.Contain("\"No\"");
     }
 
     [Fact]

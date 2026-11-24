@@ -42,11 +42,12 @@
   import { applyFormKinds, duplicateId, followUpKinds, type AnswerKindGroup } from '#lib/form-builder.js';
   import type { SectionDraft } from '#lib/form-sections.js';
   import { addLibraryForm, APPLY_FORM_ID, questionClashes, removeForm, timelineOf, useLibraryVersion, type LibraryVersion } from '#lib/forms-timeline.js';
+  import { leftReading, mustHaveState, syncMustHaves } from '#lib/must-have.js';
   import { can } from '#lib/permissions.js';
   import { createPreviewSource } from '#lib/preview-window.svelte.js';
   import { describeError } from '#lib/query.js';
   import { templateHref } from '#lib/templates.js';
-  import { allQuestions, answerIsRead, errorsAt, errorsUnder, followUpsOf, newQuestion, withQuestionType } from '#lib/workflow.js';
+  import { allQuestions, errorsAt, errorsUnder, followUpsOf, newQuestion, withQuestionType } from '#lib/workflow.js';
   import AddFormSheet from './add-form-sheet.svelte';
   import AiUseRow from './ai-use-row.svelte';
   import { labelClass } from './controls.js';
@@ -64,13 +65,15 @@
   // the organization's. Every other form is a copy of a library form: it says when it is sent, which writes the automation
   // behind it, and its questions read here and change in the library, where publishing a new version offers to update the
   // templates that use it. Removing a form takes the automations that exist to send it along. A job's own older forms,
-  // which copy no library form, still edit here.
+  // which copy no library form, still edit here. Marking an application question as a must-have writes the automation that
+  // sends whoever fails it to Rejection review, and that automation follows the question (#lib/must-have.ts).
   let {
     workflow = $bindable(),
     errors,
     aiUse,
     automationsHref,
     automationHref,
+    onshow,
     templateId,
     selected = $bindable(page.url.searchParams.get('form') ?? APPLY_FORM_ID),
   }: {
@@ -78,10 +81,12 @@
     errors: readonly DefinitionError[];
     /** The AI-use policy in force and where to change it (left out for someone who may not). Undefined while it loads. */
     aiUse?: { policy?: AiUsePolicy; href?: string };
-    /** The address of the Automations tab, keeping the rest of the page's address (the version), for a knockout nobody reads (A11). */
+    /** The address of the Automations tab, keeping the rest of the page's address (the version), for a must-have nobody reads (A11). */
     automationsHref: string;
     /** Where one automation opens on the Automations tab. */
     automationHref: (automationId: string) => string;
+    /** Opens an automation on the Automations tab without loading its address. */
+    onshow?: (automationId: string) => void;
     /** The hiring template being edited, so a new library form comes back to it. */
     templateId?: string;
     /** `apply`, or the id of the form on show; the address's `?form=` when the tab opens, and a stage's form item after. */
@@ -149,9 +154,21 @@
 
   const source = createPreviewSource<FormPreview>(() => ({ form: current ? 'follow-up' : 'apply', questions, sections, questionsPerPage, aiUse: current ? undefined : aiUse?.policy }));
 
+  // Every change to the questions that can touch a must-have goes through here: its own automation is kept in step. Only the
+  // application form has one to keep; a follow-up's answers are read by whatever the team writes.
+  function edit(change: () => void) {
+    if (current) return change();
+    const before = $state.snapshot(workflow.questionnaire.questions) as Question[];
+    change();
+    const automations = syncMustHaves(workflow, before);
+    if (automations !== workflow.automations) workflow.automations = automations;
+  }
+
   function setQuestions(next: Question[]) {
-    if (current) current.questions = next;
-    else workflow.questionnaire.questions = next;
+    edit(() => {
+      if (current) current.questions = next;
+      else workflow.questionnaire.questions = next;
+    });
   }
 
   function setSections(next: SectionDraft[] | null | undefined) {
@@ -285,7 +302,7 @@
             kindOf={(question) => question.type}
             withKind={withQuestionType}
             labelOf={(question) => question.label}
-            setLabel={(question, value) => (question.label = value)}
+            setLabel={(question, value) => edit(() => (question.label = value))}
             requiredOf={(question) => question.required ?? false}
             setRequired={(question, value) => (question.required = value)}
             help={{ label: 'Help text', get: (question) => question.helpText, set: (question, value) => (question.helpText = value) }}
@@ -296,7 +313,17 @@
             errorsFor={(_, questionIndex) => errorsUnder(errors, `${path}.questions[${questionIndex}]`).map((error) => error.message)}
             problems={[...(current ? [] : errorsAt(errors, path)), ...errorsAt(errors, `${path}.questions`), ...errorsAt(errors, `${path}.sections`)]}
           >
-            {#snippet settings(question)}<QuestionSettings {question} unhandled={!answerIsRead(workflow, question.id)} {automationsHref} />{/snippet}
+            {#snippet settings(question)}
+              <QuestionSettings
+                {question}
+                mustHave={mustHaveState(workflow, question)}
+                left={current ? [] : leftReading(workflow, question)}
+                {automationsHref}
+                {automationHref}
+                {onshow}
+                onmusthave={(knockout) => edit(() => (question.knockout = knockout))}
+              />
+            {/snippet}
             {#snippet note()}{#if !current}<AiUseRow policy={aiUse?.policy} href={aiUse?.href} />{/if}{/snippet}
           </FormBuilder>
         {/key}
