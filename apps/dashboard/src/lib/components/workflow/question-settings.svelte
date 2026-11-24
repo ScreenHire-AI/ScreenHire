@@ -161,7 +161,7 @@
             aria-describedby={`${uid}-length-unit`}
             value={question.maxLength ?? ''}
             onchange={(event) => (question.maxLength = numberOrNull(event.currentTarget.value))}
-            class="w-28"
+            class="max-w-28"
           />
           <span id={`${uid}-length-unit`} class="text-muted-foreground">characters</span>
         </span>
