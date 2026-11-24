@@ -105,7 +105,7 @@ const CHAIN_GAP = 36;
 /** An add button's height, and a plus's width, at full size: a target for a finger (F4) around the small plus it draws. */
 export const PLUS = 44;
 /** The circle a plus draws in the middle of its target. */
-export const PLUS_MARK = 24;
+const PLUS_MARK = 24;
 const PLUS_PAD = 16;
 /** The room between a plus's target and the nodes above and below it. Its circle stands further off. */
 const STEP_PAD = 4;
@@ -773,7 +773,7 @@ export function removeStep(workflow: HiringWorkflow, id: string, step: number, m
 }
 
 /** The workflow without an automation's conditions, which the map draws as one If. */
-export function removeConditions(workflow: HiringWorkflow, id: string): Removal | null {
+function removeConditions(workflow: HiringWorkflow, id: string): Removal | null {
   const conditions = workflow.automations.find((candidate) => candidate.id === id)?.conditions;
   if (!conditions) return null;
   return {

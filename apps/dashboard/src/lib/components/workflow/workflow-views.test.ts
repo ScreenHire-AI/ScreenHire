@@ -845,6 +845,27 @@ describe('workflow graph in the builder', () => {
     expect(draft()).toEqual(workflow);
   });
 
+  it('pans to a node the keyboard focuses out of view, and leaves one a press focuses where it is, so its click lands', async () => {
+    renderViews('editor', 'automations');
+    const viewport = document.querySelector<HTMLElement>('.svelte-flow__viewport')!;
+    const step = node('Then action 1 in Tag screened');
+    // jsdom lays nothing out: the node is half past the canvas's edge.
+    const box = (left: number, right: number) => ({ left, right, top: 0, bottom: 40, width: right - left, height: 40, x: left, y: 0 }) as DOMRect;
+    document.querySelector<HTMLElement>('.svelte-flow')!.getBoundingClientRect = () => box(0, 800);
+    step.closest<HTMLElement>('.svelte-flow__node')!.getBoundingClientRect = () => box(720, 880);
+    const before = viewport.style.transform;
+
+    await fireEvent.pointerDown(step);
+    step.focus();
+    await fireEvent.pointerUp(step);
+    await new Promise(requestAnimationFrame);
+    expect(viewport.style.transform).toBe(before);
+
+    step.blur();
+    step.focus();
+    await waitFor(() => expect(viewport.style.transform).not.toBe(before));
+  });
+
   it('moves between nodes with the arrow keys, down an automation and across to the next column', async () => {
     renderViews('editor', 'automations');
     const first = node('Stage Applied');
