@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using ScreenHire.Domain.Applications;
 using ScreenHire.Domain.Hiring;
 using ScreenHire.Domain.Jobs;
 using ScreenHire.Infrastructure.Persistence;
@@ -166,6 +167,54 @@ public sealed class DefinitionValidatorTests
             "questionnaire.questions[3].maxLength",
             "questionnaire.questions[4].knockout",
             "questionnaire.questions[5].acceptedFileTypes");
+    }
+
+    // The longest an answer can be is one number: what the form takes is what the question may ask for.
+    [Theory]
+    [InlineData(QuestionType.ShortText, ApplicationForm.ShortTextMaxLength)]
+    [InlineData(QuestionType.LongText, ApplicationForm.LongTextMaxLength)]
+    public void A_maximum_length_goes_up_to_what_the_form_takes(QuestionType type, int limit)
+    {
+        var question = new Question("about", type, "About you");
+        ApplicationForm.MaxLengthOf(question).Should().Be(limit);
+
+        foreach (var allowed in (int[])[1, limit])
+        {
+            DefinitionValidator.Validate(Workflow(questions: [question with { MaxLength = allowed }])).Should().BeEmpty();
+            ApplicationForm.MaxLengthOf(question with { MaxLength = allowed }).Should().Be(allowed);
+        }
+
+        foreach (var refused in (int[])[0, limit + 1])
+        {
+            DefinitionValidator.Validate(Workflow(questions: [question with { MaxLength = refused }])).Should()
+                .ContainSingle(e => e.Path == "questionnaire.questions[0].maxLength")
+                .Which.Message.Should().Contain($"between 1 and {limit} characters");
+        }
+    }
+
+    [Theory]
+    [InlineData(QuestionType.Url, "asks for a link, which has no maximum length")]
+    [InlineData(QuestionType.YesNo, "is not a text question, so it has no maximum length")]
+    [InlineData(QuestionType.Number, "is not a text question, so it has no maximum length")]
+    public void A_question_that_is_not_typed_text_takes_no_maximum_length(QuestionType type, string why)
+    {
+        DefinitionValidator.Validate(Workflow(questions: [new("about", type, "About you", MaxLength: 100)])).Should()
+            .ContainSingle(e => e.Path == "questionnaire.questions[0].maxLength")
+            .Which.Message.Should().Contain(why);
+    }
+
+    // People read these in the editor's problems, so they say what the switch says.
+    [Fact]
+    public void Problems_with_a_must_have_call_it_a_must_have_answer()
+    {
+        var long500 = new string('n', 501);
+        var errors = DefinitionValidator.Validate(Workflow(
+            questions: [Portfolio with { Knockout = new Knockout(true) }, WorkAuthorization with { Knockout = new Knockout(false, long500) }],
+            automations: [Automation(null, new AutomationAction(ActionType.Reject, Reason: "Everyone"), allowAutoReject: true)]));
+
+        errors.Select(e => e.Path).Should().Equal(
+            "questionnaire.questions[0].knockout", "questionnaire.questions[1].knockout.reason", "automations[0].actions[0]");
+        errors.Should().OnlyContain(e => e.Message.Contains("must-have answer") && !e.Message.Contains("knockout", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

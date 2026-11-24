@@ -567,11 +567,11 @@ export function withQuestionType(question: Question, type: QuestionType): Questi
   return next;
 }
 
-/** Whether an automation that is on has a condition that reads the answer to the question `questionId` (the fact `answers.{id}`). */
-export const answerIsRead = (workflow: HiringWorkflow, questionId: string): boolean =>
-  workflow.automations.some(
-    (automation) => automation.enabled !== false && automation.conditions?.rules.some((rule) => rule.fact === `answers.${questionId}`),
-  );
+/**
+ * The most characters an answer of this kind holds, and so the most its maximum length can be: `ApplicationForm`'s
+ * ShortTextMaxLength and LongTextMaxLength. None for a kind that takes no maximum length, a link included.
+ */
+export const answerLengthLimit = (type: QuestionType): number | undefined => (type === 'ShortText' ? 300 : type === 'LongText' ? 5000 : undefined);
 
 /**
  * A new automation for a stage: its entry trigger, and nothing else. For none, "an application arrives" (under Applied),

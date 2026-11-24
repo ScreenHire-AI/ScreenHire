@@ -6,7 +6,7 @@ import { withQuestionType } from '#lib/workflow.js';
 
 /**
  * An equality monitoring form's menu: only choices, because its answers are only ever counted (the API refuses any other
- * kind, any required question and any knockout).
+ * kind, any required question and any must-have answer).
  */
 export const equalityKinds: readonly AnswerKindGroup<QuestionType>[] = [
   { label: 'Choices', kinds: generalKinds.filter((kind) => kind.value === 'YesNo' || kind.value === 'SingleChoice' || kind.value === 'MultiChoice') },

@@ -1,10 +1,12 @@
 import type { HiringWorkflow } from '@screenhire/api-client';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   actionLabels,
   actionTypes,
   actionsFor,
-  answerIsRead,
+  answerLengthLimit,
   describeAction,
   describePath,
   errorsUnder,
@@ -77,14 +79,14 @@ const workflow: HiringWorkflow = {
   ],
 };
 
-describe('an answer an automation reads', () => {
-  it('is one a condition names, so a knockout nobody reacts to can be told apart', () => {
-    expect(answerIsRead(workflow, 'work_authorization')).toBe(true);
-    expect(answerIsRead(workflow, 'shift')).toBe(false);
-    expect(answerIsRead({ ...workflow, automations: [] }, 'work_authorization')).toBe(false);
-    // An automation that is switched off does nothing with the answer, so the knockout still says nothing happens.
-    const off = { ...workflow, automations: workflow.automations.map((automation) => ({ ...automation, enabled: false })) };
-    expect(answerIsRead(off, 'work_authorization')).toBe(false);
+describe('the longest answer', () => {
+  it("is the API's own limit for each kind of text, and none for a link or anything else", () => {
+    const form = readFileSync(resolve(process.cwd(), '../../src/ScreenHire.Domain/Applications/ApplicationForm.cs'), 'utf8');
+    const limit = (name: string) => Number(new RegExp(`const int ${name} = ([0-9]+);`).exec(form)?.[1]);
+
+    expect(answerLengthLimit('ShortText')).toBe(limit('ShortTextMaxLength'));
+    expect(answerLengthLimit('LongText')).toBe(limit('LongTextMaxLength'));
+    for (const type of ['Url', 'YesNo', 'Number', 'SingleChoice', 'MultiChoice', 'File'] as const) expect(answerLengthLimit(type), type).toBeUndefined();
   });
 });
 
@@ -191,6 +193,12 @@ describe('elements', () => {
     expect(asText).toEqual({ id: 'work_authorization', type: 'ShortText', label: 'Right to work?', required: true, helpText: null });
     expect(asChoice.options).toHaveLength(2);
     expect(asChoice.knockout).toBeUndefined();
+
+    // A maximum length too: a link takes none, and a short answer takes less than a long one.
+    const long = { ...withQuestionType(yesNo, 'LongText'), maxLength: 2000 };
+    expect(withQuestionType(long, 'Url').maxLength).toBeUndefined();
+    expect(withQuestionType(long, 'YesNo').maxLength).toBeUndefined();
+    expect(withQuestionType(long, 'ShortText').maxLength).toBeUndefined();
   });
 
   it('starts an automation on its lane: a stage entry, an arriving application, or a run by hand from Any stage', () => {

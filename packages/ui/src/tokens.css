@@ -105,6 +105,8 @@
   --candidate-chip-foreground: #5a4630;
   --candidate-cta: #c2462f;
   --candidate-cta-foreground: #ffffff;
+  /* The light that crosses the progress bar's fill once when a step opens (section 4.3). */
+  --candidate-sheen: rgb(255 255 255 / 45%);
   /* Brand-coloured text on the page (4.5:1) and brand borders and focus rings (3:1). */
   --candidate-brand-text: #c2462f;
   --candidate-brand-ui: #c2462f;

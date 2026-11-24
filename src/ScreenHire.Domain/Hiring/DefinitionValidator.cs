@@ -425,7 +425,7 @@ public static partial class DefinitionValidator
     }
 
     // Equality monitoring answers are only ever counted (workflow-engine.md §7, Forms): every question is a choice, so the
-    // totals have categories, and optional, so nobody has to answer one. A knockout would act on an answer.
+    // totals have categories, and optional, so nobody has to answer one. A must-have would act on an answer.
     private static void ValidateEqualityQuestions(IReadOnlyList<Question> questions, string path, string owner, List<DefinitionError> errors)
     {
         for (var i = 0; i < questions.Count; i++)
@@ -452,7 +452,7 @@ public static partial class DefinitionValidator
             if (question.Knockout is not null)
             {
                 errors.Add(new(Join(questionPath, "knockout"),
-                    $"{Cap(described)} is a knockout. Nothing may act on an equality monitoring answer, so remove the knockout."));
+                    $"{Cap(described)} has a must-have answer. Nothing may act on an equality monitoring answer, so turn the must-have answer off."));
             }
         }
     }
@@ -606,10 +606,10 @@ public static partial class DefinitionValidator
             if (question.Type != QuestionType.YesNo)
             {
                 errors.Add(new(Join(path, "knockout"),
-                    $"{Cap(described)} is a knockout question, but only yes or no questions can be. Turn knockout off, or change the question type to yes or no."));
+                    $"{Cap(described)} has a must-have answer, but only yes or no questions can have one. Turn the must-have answer off, or change the question type to yes or no."));
             }
 
-            ValidateText(question.Knockout.Reason, Join(path, "knockout.reason"), 500, required: false, $"The knockout reason for {described}", errors);
+            ValidateText(question.Knockout.Reason, Join(path, "knockout.reason"), 500, required: false, $"The team note on the must-have answer of {described}", errors);
         }
 
         if (question.Type == QuestionType.Number)
@@ -625,17 +625,19 @@ public static partial class DefinitionValidator
                 $"{Cap(described)} is not a number question, so it cannot have a minimum or maximum. Remove them."));
         }
 
-        var textLimit = question.Type switch
+        if (question.MaxLength is { } maxLength)
         {
-            QuestionType.ShortText => 500,
-            QuestionType.LongText => 10_000,
-            _ => 0,
-        };
-        if (question.MaxLength is { } maxLength && (textLimit == 0 || maxLength < 1 || maxLength > textLimit))
-        {
-            errors.Add(new(Join(path, "maxLength"), textLimit == 0
-                ? $"{Cap(described)} is not a text question, so it has no maximum length. Remove it."
-                : $"The maximum length for {described} must be between 1 and {textLimit.ToString(CultureInfo.InvariantCulture)} characters. Change the number."));
+            if (Applications.ApplicationForm.MaxLengthLimit(question.Type) is not { } limit)
+            {
+                errors.Add(new(Join(path, "maxLength"), question.Type == QuestionType.Url
+                    ? $"{Cap(described)} asks for a link, which has no maximum length. Remove it."
+                    : $"{Cap(described)} is not a text question, so it has no maximum length. Remove it."));
+            }
+            else if (maxLength < 1 || maxLength > limit)
+            {
+                errors.Add(new(Join(path, "maxLength"),
+                    $"The maximum length for {described} must be between 1 and {limit.ToString(CultureInfo.InvariantCulture)} characters. Change the number."));
+            }
         }
 
         if (question.AcceptedFileTypes is { Count: > 0 } fileTypes)
@@ -1290,7 +1292,7 @@ public static partial class DefinitionValidator
 
     /// <summary>
     /// The non-negotiables (ADR-0004, workflow-engine.md §2): an automation driven by a verification signal
-    /// may only route or step up, and only an opted-in knockout automation may reject without a person.
+    /// may only route or step up, and only an opted-in automation on a must-have answer may reject without a person.
     /// </summary>
     private static void ValidateGuardrails(
         Automation automation,
@@ -1373,8 +1375,8 @@ public static partial class DefinitionValidator
             if (!onlyKnockouts)
             {
                 errors.Add(new(actionPath,
-                    $"{Cap(step.Phrase)} rejects candidates, which only a knockout automation may do: every condition must be a knockout question " +
-                    $"answered with its disqualifying answer. Use \"{StepName(ActionType.QueueForRejectionReview)}\" so a person decides."));
+                    $"{Cap(step.Phrase)} rejects candidates, which only an automation on a must-have answer may do: every condition must be a question " +
+                    $"with a must-have answer, answered with the one that fails it. Use \"{StepName(ActionType.QueueForRejectionReview)}\" so a person decides."));
             }
             else if (!automation.AllowAutoReject)
             {

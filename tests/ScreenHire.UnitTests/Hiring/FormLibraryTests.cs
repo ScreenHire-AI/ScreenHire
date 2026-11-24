@@ -50,6 +50,7 @@ public sealed class FormLibraryTests
             FormKind.EqualityMonitoring);
 
         errors.Select(e => e.Path).Should().Equal("questions[0].type", "questions[1].required", "questions[2].knockout");
+        errors[2].Message.Should().Contain("turn the must-have answer off");
     }
 
     [Fact]

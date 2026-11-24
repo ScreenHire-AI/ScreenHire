@@ -72,8 +72,19 @@ public sealed class DefinitionChangesTests
         Sentences(lines).Should().Equal("changed Years of experience");
         lines[0].Details.Should().BeEquivalentTo([
             new ChangeDetail("Help text", null, "Count paid work only."),
-            new ChangeDetail("Longest answer", null, "20 characters"),
+            new ChangeDetail("Maximum length", null, "20 characters"),
         ]);
+    }
+
+    [Fact]
+    public void A_must_have_answer_says_the_answer_the_candidate_must_give()
+    {
+        var mustHave = Exercise with { Knockout = new Knockout(DisqualifyingAnswer: false) };
+
+        DefinitionChanges.Describe(Workflow(Exercise), Workflow(mustHave))[0].Details
+            .Should().Equal(new ChangeDetail("Must-have answer", null, "Yes"));
+        DefinitionChanges.Describe(Workflow(mustHave), Workflow(Exercise with { Knockout = new Knockout(true, "Only for nights") }))[0].Details
+            .Should().BeEquivalentTo([new ChangeDetail("Must-have answer", "Yes", "No"), new ChangeDetail("Must-have note", null, "Only for nights")]);
     }
 
     [Fact]

@@ -7,8 +7,8 @@ namespace ScreenHire.E2E;
 
 /// <summary>
 /// The workflow builder in a real browser (docs/architecture/workflow-engine.md §4): building a hiring template with a
-/// knockout question and an automation, the guardrail that refuses a verification-driven rejection, publishing, creating a
-/// job from the template and simulating an application through it; and a job taking a template update. Each test signs
+/// must-have answer and an automation, the guardrail that refuses a verification-driven rejection, publishing, creating a
+/// job from the template and simulating an application through it; a must-have answered No, which a person decides; and a job taking a template update. Each test signs
 /// in as a new person with a new organization.
 /// </summary>
 public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
@@ -63,14 +63,37 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(HeaderBand).ToContainTextAsync("Draft");
         await ExpectNoProblemsAsync();
 
-        // A knockout question in the form builder, which the preview shows as the careers page would.
+        // A must-have answer in the form builder, whose question the preview shows as the careers page would.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Forms" }).ClickAsync();
         var questions = Page.GetByRole(AriaRole.Region, new() { Name = "Questions", Exact = true });
         await questions.GetByRole(AriaRole.Button, new() { Name = "Add a question" }).ClickAsync();
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Yes or no", Exact = true }).ClickAsync();
         await questions.GetByRole(AriaRole.Textbox, new() { Name = "Question 1", Exact = true }).FillAsync(RightToWork);
-        await questions.GetByRole(AriaRole.Checkbox, new() { Name = "Knockout question" }).CheckAsync();
-        await Expect(Page.GetByText("A knockout is an objective eligibility check only")).ToBeVisibleAsync();
+        var mustHave = questions.GetByRole(AriaRole.Switch, new() { Name = "Must-have answer" });
+        await questions.GetByRole(AriaRole.Button, new() { Name = "About must-have answers" }).ClickAsync();
+        await Expect(Page.GetByText("an objective requirement only")).ToBeVisibleAsync();
+        // Escape closes the words, and the question stays open.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Page.GetByText("an objective requirement only")).ToBeHiddenAsync();
+        await mustHave.ClickAsync();
+        await Expect(mustHave).ToBeCheckedAsync();
+        await Expect(questions).ToContainTextAsync("go to Rejection review, where a person decides.");
+        await ExpectNoProblemsAsync();
+
+        // The line's link opens the automation the switch wrote, on the Automations tab; turning the switch off takes it away.
+        await questions.GetByRole(AriaRole.Link, new() { Name = "Change what happens" }).ClickAsync();
+        var review = Page.GetByRole(AriaRole.Dialog, new() { Name = $"Review anyone who fails \"{RightToWork}\"" });
+        await Expect(review).ToContainTextAsync("is No");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(review).ToBeHiddenAsync();
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Forms" }).ClickAsync();
+        await mustHave.ClickAsync();
+        await Expect(questions.GetByRole(AriaRole.Link, new() { Name = "Change what happens" })).ToHaveCountAsync(0);
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" })).Not.ToContainTextAsync("Review anyone who fails");
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Forms" }).ClickAsync();
+        await mustHave.ClickAsync();
+        await Expect(mustHave).ToBeCheckedAsync();
 
         // The forms are cards, each saying when it is sent, and the AI-use question is ScreenHire's: a locked row with the
         // organization's policy and a link to change it, not a setting of the template.
@@ -99,7 +122,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         // An automation on the verification checks, written as a sentence. Once it reads a check, the choices never offer a
         // rejection or an email; the Rules tab is where the API's guardrail refuses one.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" }).GetByRole(AriaRole.Button, new() { Name = "Add an automation", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" }).GetByRole(AriaRole.Button, new() { Name = "Add automation", Exact = true }).ClickAsync();
         var recipes = Page.GetByRole(AriaRole.Dialog, new() { Name = "Add an automation" });
         await Expect(recipes).ToContainTextAsync("Look closer when the checks suggest it");
         await recipes.GetByRole(AriaRole.Button, new() { Name = "Write your own" }).ClickAsync();
@@ -250,6 +273,74 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(tryIt).Not.ToContainTextAsync("Verify");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-workflow-simulate-light");
+    }
+
+    [Fact]
+    public async Task A_must_have_turned_on_in_the_builder_sends_a_candidate_who_answers_no_to_rejection_review_and_rejects_nobody()
+    {
+        var email = await OnboardAsync();
+        using var session = new ApiSession(Fixture);
+        await session.SignInWithDevSsoAsync(email, Ct);
+        var template = await ReadAsync(await session.PostAsync("/v1/templates", new { name = "Van driver" }, Ct), HttpStatusCode.Created);
+        var templateId = template.GetProperty("id").GetGuid();
+
+        // The recruiter adds the question, turns the must-have on and publishes. Nothing else is set up.
+        await SignInAsync(email);
+        await Page.GotoAsync(DashboardUrl($"/templates/{templateId}?tab=forms"));
+        var questions = Page.GetByRole(AriaRole.Region, new() { Name = "Questions", Exact = true });
+        await questions.GetByRole(AriaRole.Button, new() { Name = "Add a question" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Yes or no", Exact = true }).ClickAsync();
+        await questions.GetByRole(AriaRole.Textbox, new() { Name = "Question 1", Exact = true }).FillAsync(RightToWork);
+        await questions.GetByRole(AriaRole.Switch, new() { Name = "Must-have answer" }).ClickAsync();
+        await Expect(questions).ToContainTextAsync("go to Rejection review, where a person decides.");
+        await ExpectNoProblemsAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Publish", Exact = true }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Published version 1." })).ToBeVisibleAsync();
+        await Expect(Page.GetByText("Must-have: Yes", new() { Exact = true })).ToBeVisibleAsync();
+
+        // A job from it, and a candidate who answers No on the careers apply route.
+        var version = await ReadAsync(await session.Client.GetAsync($"/v1/templates/{templateId}/versions/1", Ct), HttpStatusCode.OK);
+        var questionId = version.GetProperty("definition").GetProperty("workflow").GetProperty("questionnaire").GetProperty("questions")[0].GetProperty("id").GetString();
+        var job = await ReadAsync(
+            await session.PostAsync(
+                "/v1/jobs",
+                new
+                {
+                    title = "Van driver, days",
+                    description = "<p>Drive the van.</p>",
+                    employmentType = "FullTime",
+                    workplaceType = "Remote",
+                    applicantLocationRequirements = (string[])["GB"],
+                    templateVersionId = version.GetProperty("id").GetGuid(),
+                },
+                Ct),
+            HttpStatusCode.Created);
+        var jobId = job.GetProperty("id").GetGuid();
+        await ReadAsync(await session.PostAsync($"/v1/jobs/{jobId}/publish", new { }, Ct), HttpStatusCode.OK);
+        var organization = await ReadAsync(await session.Client.GetAsync("/v1/organization", Ct), HttpStatusCode.OK);
+        using var careers = Fixture.CreateHttpClient("api");
+        using var applied = await careers.PostAsJsonAsync(
+            $"/v1/public/organizations/{organization.GetProperty("slug").GetString()}/jobs/{jobId}/applications",
+            new
+            {
+                candidate = new { firstName = "Robin", lastName = "Ellis", email = ApiSession.NewEmail("driver") },
+                privacyNoticeVersion = "2026-11-07.1",
+                answers = new[] { new { questionId, value = "no" } },
+                aiUseDeclaration = "DidNotUse",
+            },
+            Ct);
+        var applicationId = (await ReadAsync(applied, HttpStatusCode.Created)).GetProperty("applicationId").GetGuid();
+
+        // The team has a rejection review to decide, and the candidate is still in Applied.
+        await Page.GotoAsync(DashboardUrl("/tasks"));
+        await Page.GetByRole(AriaRole.Tab, new() { NameRegex = new Regex("^For the team") }).ClickAsync();
+        var open = Page.GetByRole(AriaRole.Region, new() { Name = "Open tasks" });
+        await Expect(open).ToContainTextAsync("Rejection review");
+        await Expect(open).ToContainTextAsync($"{RightToWork}: answered No");
+        await Page.GotoAsync(DashboardUrl($"/applications/{applicationId}"));
+        await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Pipeline", Exact = true }).Locator("[aria-current='step']")).ToContainTextAsync("Applied");
     }
 
     [Fact]

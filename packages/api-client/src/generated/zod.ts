@@ -663,7 +663,7 @@ export const GetPublicApplicationFormResponse = zod.object({
   "max": zod.number().nullable(),
   "maxLength": zod.int().nullable(),
   "acceptedFileTypes": zod.array(zod.string()).nullable()
-}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\naccepts every answer, and a person reviews what follows from it.')),
+}).describe('One question of a job\'s application form, as a candidate sees it. Must-have answers stay on the server: the form\naccepts every answer, and a person reviews what follows from it.')),
   "aiUsePolicy": zod.enum(['Allowed', 'AllowedWithDisclosure', 'NotAllowed']).describe('What the employer allows candidates to do with AI tools while applying.'),
   "uploads": zod.object({
   "maxBytes": zod.int(),
@@ -930,7 +930,7 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "max": zod.number().nullable(),
   "maxLength": zod.int().nullable(),
   "acceptedFileTypes": zod.array(zod.string()).nullable()
-}).describe('One question of a job\'s application form, as a candidate sees it. Knockout settings stay on the server: the form\naccepts every answer, and a person reviews what follows from it.')),
+}).describe('One question of a job\'s application form, as a candidate sees it. Must-have answers stay on the server: the form\naccepts every answer, and a person reviews what follows from it.')),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -943,7 +943,7 @@ export const GetPublicQuestionnaireResponse = zod.object({
   "values": zod.array(zod.string()).nullish()
 }).describe('One answer to a screening question, in the form automation conditions read (`answers.{QuestionId}`):\n`yes` or `no` for yes/no questions, an option id for single choice, the text, number or URL for the\nothers, and an upload id for a file question. Multiple choice answers are option ids in `values`.')),
   "equalityMonitoring": zod.boolean().default(getPublicQuestionnaireResponseEqualityMonitoringDefault)
-}).describe('A follow-up questionnaire as its careers page shows it, through the signed link in the candidate\'s email.\n`questions`, `sections` and `draft` are listed only while the link is `Open`; knockout settings stay\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\n`draft` holds the answers the candidate saved to finish later, empty when there are none.\n`equalityMonitoring`: an equality monitoring form, whose page says its answers are optional and only ever counted.')
+}).describe('A follow-up questionnaire as its careers page shows it, through the signed link in the candidate\'s email.\n`questions`, `sections` and `draft` are listed only while the link is `Open`; must-have answers stay\non the server. `sections` are its named pages, or null to split it into pages of `questionsPerPage`.\n`draft` holds the answers the candidate saved to finish later, empty when there are none.\n`equalityMonitoring`: an equality monitoring form, whose page says its answers are optional and only ever counted.')
 
 
 export const AnswerPublicQuestionnaireParams = zod.object({
@@ -1504,7 +1504,7 @@ export const CreateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -1572,7 +1572,7 @@ export const CreateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -1661,7 +1661,7 @@ export const CreateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -1767,7 +1767,7 @@ export const GetJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -1835,7 +1835,7 @@ export const GetJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -1924,7 +1924,7 @@ export const GetJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2053,7 +2053,7 @@ export const UpdateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2121,7 +2121,7 @@ export const UpdateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2210,7 +2210,7 @@ export const UpdateJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2374,7 +2374,7 @@ export const SetJobAiUseResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2442,7 +2442,7 @@ export const SetJobAiUseResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2531,7 +2531,7 @@ export const SetJobAiUseResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2641,7 +2641,7 @@ export const PublishJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2709,7 +2709,7 @@ export const PublishJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2798,7 +2798,7 @@ export const PublishJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2904,7 +2904,7 @@ export const CloseJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -2972,7 +2972,7 @@ export const CloseJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3061,7 +3061,7 @@ export const CloseJobResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3217,7 +3217,7 @@ export const UpdateJobWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3285,7 +3285,7 @@ export const UpdateJobWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3393,7 +3393,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3461,7 +3461,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3550,7 +3550,7 @@ export const UpdateJobWorkflowResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3661,7 +3661,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3729,7 +3729,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3818,7 +3818,7 @@ export const ApplyJobTemplateUpdateResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -3965,7 +3965,7 @@ export const SwitchJobTemplateResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4033,7 +4033,7 @@ export const SwitchJobTemplateResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4122,7 +4122,7 @@ export const SwitchJobTemplateResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4228,7 +4228,7 @@ export const CreateHiringTemplateBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4296,7 +4296,7 @@ export const CreateHiringTemplateBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4536,7 +4536,7 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4604,7 +4604,7 @@ export const CreateHiringTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4700,7 +4700,7 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4768,7 +4768,7 @@ export const CreateHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4880,7 +4880,7 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -4948,7 +4948,7 @@ export const GetHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -5056,7 +5056,7 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -5124,7 +5124,7 @@ export const UpdateHiringTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -5220,7 +5220,7 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -5288,7 +5288,7 @@ export const UpdateHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -5400,7 +5400,7 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -5468,7 +5468,7 @@ export const PublishHiringTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -5721,7 +5721,7 @@ export const CreateApplicationResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -5898,7 +5898,7 @@ export const GetApplicationResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -6013,7 +6013,7 @@ export const MoveApplicationResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -6247,7 +6247,7 @@ export const AddApplicationTagResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -6360,7 +6360,7 @@ export const RemoveApplicationTagResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -10142,7 +10142,7 @@ export const ValidateWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -10210,7 +10210,7 @@ export const ValidateWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -10301,7 +10301,7 @@ export const SimulateWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -10369,7 +10369,7 @@ export const SimulateWorkflowBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -11559,7 +11559,7 @@ export const CreateFormTemplateBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -11698,7 +11698,7 @@ export const CreateFormTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -11734,7 +11734,7 @@ export const CreateFormTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -11781,7 +11781,7 @@ export const GetFormTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -11824,7 +11824,7 @@ export const UpdateFormTemplateVersionBody = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -11860,7 +11860,7 @@ export const UpdateFormTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -11907,7 +11907,7 @@ export const PublishFormTemplateVersionResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),
@@ -12048,7 +12048,7 @@ export const SendApplicationFormResponse = zod.object({
   "knockout": zod.union([zod.null(),zod.object({
   "disqualifyingAnswer": zod.boolean(),
   "reason": zod.string().nullish()
-}).describe('Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2).')]).optional(),
+}).describe('A yes/no question\'s must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate.')]).optional(),
   "min": zod.number().nullish(),
   "max": zod.number().nullish(),
   "maxLength": zod.int().nullish(),

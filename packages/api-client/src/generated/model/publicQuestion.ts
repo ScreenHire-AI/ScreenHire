@@ -8,7 +8,7 @@ import type { QuestionOption } from './questionOption.ts';
 import type { QuestionType } from './questionType.ts';
 
 /**
- * One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form
+ * One question of a job's application form, as a candidate sees it. Must-have answers stay on the server: the form
  * accepts every answer, and a person reviews what follows from it.
  */
 export interface PublicQuestion {

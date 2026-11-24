@@ -370,8 +370,11 @@ public static class DefinitionChanges
 
         if (q.Knockout is { } knockout)
         {
-            var rule = $"Answering {(knockout.DisqualifyingAnswer ? "yes" : "no")} makes the candidate ineligible";
-            yield return ("Eligibility check", knockout.Reason is { Length: > 0 } reason ? $"{rule}. {reason}" : rule);
+            yield return ("Must-have answer", knockout.DisqualifyingAnswer ? "No" : "Yes");
+            if (knockout.Reason is { Length: > 0 } note)
+            {
+                yield return ("Must-have note", note);
+            }
         }
 
         if (q.Min is { } min)
@@ -386,7 +389,7 @@ public static class DefinitionChanges
 
         if (q.MaxLength is { } length)
         {
-            yield return ("Longest answer", $"{length.ToString(CultureInfo.InvariantCulture)} characters");
+            yield return ("Maximum length", $"{length.ToString(CultureInfo.InvariantCulture)} characters");
         }
 
         if (q.AcceptedFileTypes is { Count: > 0 } types)
