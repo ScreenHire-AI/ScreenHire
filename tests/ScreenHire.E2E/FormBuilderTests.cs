@@ -159,7 +159,15 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
                 await Expect(header).ToBeFocusedAsync();
             }
 
-            await questions.GetByRole(AriaRole.Button, new() { Name = "Expand all" }).ClickAsync();
+            // With one row open, Collapse all is in reach at every width, and Expand all beside it where the header has the room.
+            var expand = questions.GetByRole(AriaRole.Button, new() { Name = "Expand all" });
+            await HeaderButton(1).ClickAsync();
+            await Expect(collapse).ToBeVisibleAsync();
+            await Expect(expand).ToBeVisibleAsync(new() { Visible = width > 390 });
+            await collapse.ClickAsync();
+            await Expect(expand).ToBeFocusedAsync();
+
+            await expand.ClickAsync();
             await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(2);
             await Expect(collapse).ToBeFocusedAsync();
             await ExpectNoSidewaysScrollAsync(width);
