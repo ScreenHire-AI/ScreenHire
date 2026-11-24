@@ -46,7 +46,7 @@ describe('the default page size', () => {
 });
 
 describe('progressPercent', () => {
-  it('counts the step on screen as reached and the sent form as the last step, so the review stays short of 100', () => {
+  it('counts the step on screen as reached and the sent form as the last step, so the last step stays short of 100', () => {
     expect([1, 2, 3, 4].map((step) => progressPercent(step, 4))).toEqual([20, 40, 60, 80]);
     expect([1, 2].map((step) => progressPercent(step, 2))).toEqual([33, 67]);
     expect(progressPercent(1, 1)).toBe(50);
