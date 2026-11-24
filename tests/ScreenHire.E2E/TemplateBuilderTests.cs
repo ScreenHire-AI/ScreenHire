@@ -839,6 +839,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
     // Opens a blank of the automation's sentence and presses one of its choices.
     private async Task ChooseAsync(ILocator sheet, string blank, string choice)
     {
+        // The list a choice just closed fades out for a moment, and its options are still in the page.
+        await Expect(Page.GetByRole(AriaRole.Listbox)).ToHaveCountAsync(0);
         await sheet.GetByRole(AriaRole.Button, new() { Name = blank }).ClickAsync();
         await Page.GetByRole(AriaRole.Option, new() { Name = choice, Exact = true }).ClickAsync();
     }
