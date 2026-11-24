@@ -132,6 +132,23 @@ describe('stage sheet', () => {
     expect(within(dialog).getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent?.trim())).toEqual(sections);
   });
 
+  it('says Edit in Automations where the reminder under When overdue is all the stage has, and lists that reminder once it is off', async () => {
+    const reminderOnly = (enabled: boolean): HiringWorkflow => ({
+      ...workflow,
+      stages: workflow.stages.map((stage) => (stage.id === 'interview' ? { ...stage, slaDays: 3 } : stage)),
+      automations: [{ id: 'reminder-interview', name: 'Remind the team', enabled, trigger: { type: 'SlaBreached', stageId: 'interview' }, conditions: null, actions: [{ type: 'NotifyTeam' }] }],
+    });
+    const { unmount } = renderSheet({ flow: reminderOnly(true) });
+    let dialog = await sheet();
+    expect(overdue(dialog)).toHaveTextContent(tellsTeam);
+    expect(within(within(dialog).getByRole('region', { name: 'Automations' })).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual(['Edit in Automations']);
+    unmount();
+
+    renderSheet({ flow: reminderOnly(false) });
+    dialog = await sheet();
+    expect(within(within(dialog).getByRole('region', { name: 'Automations' })).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual(['Remind the team, off', 'Edit in Automations']);
+  });
+
   it('closes the sheet when Edit in Automations is pressed', async () => {
     renderSheet();
     const dialog = await sheet();

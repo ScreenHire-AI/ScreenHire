@@ -391,8 +391,8 @@ Authors check their screens against this list, and the `design-review` agent rep
 - **F3** Navigation and actions follow section 8 at each size.
 - **F4** Touch (`pointer: coarse`) gets 44px targets and 16px inputs. Anything shown on hover also opens on tap or
   focus. A control that adds, arranges or removes is visible without hovering, in a muted colour that keeps its contrast
-  (never by opacity); hover and focus may strengthen it (the owner's walk-through, 2026-11-24). The one
-  exception is a view's menu in the sidebar, which shows on hover, focus and touch: it would repeat on every view of every page.
+  (never by opacity); hover and focus may strengthen it. The one exception is a view's menu in the sidebar, which shows on
+  hover, focus and touch: it would repeat on every view of every page (the owner's walk-through, 2026-11-24).
 - **F5** Controls never wrap, except an Overview stat's title, the whole label of a card-sized link (section 11). Long text truncates (`min-w-0`, ellipsis) with the full value in a tooltip.
 - **F6** A field's message sits under the field, and the actions that go with the field (Save note, Add tag) share
   that row on the right, rather than starting a row of their own.
@@ -421,8 +421,8 @@ Authors check their screens against this list, and the `design-review` agent rep
   sort. On a phone a Sort chip beside the filters offers the same choices. A fixed grid, such as the permissions
   table, does not sort.
 - **L3** The same button repeated down a list belongs in the row's menu (Message, Invite to apply, Remove), not as a
-  button down a column. It holds for a builder's rows too: a workflow stage's Edit stage, Add an automation, Choose scorecard and
-  Remove stage are one menu on its card, and a job's candidate row and board card have one menu with Move to.
+  button down a column. A job's candidate row and board card have one menu with Move to. A workflow stage's card has no menu:
+  its name opens the Stage sheet, whose footer menu holds Remove stage.
 - **L4** A table in a flush panel starts and ends at the panel's own padding (18px, 16px on a phone): its first and last
   columns line up with the panel's title and never sit closer to the edge than it. `Panel` sets this for any table in a
   flush body.
@@ -1332,7 +1332,7 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   are and where they stand, in this order: the name and the verification state (Clear, Review, Verify, Pending or
   Dismissed, then Saved, Rejected, Withdrawn or Hired once they left), with the actions on the right (Email and Move to
   stage, the only filled button, or Message and Invite to another job for a saved candidate); one meta line (section 11, Fact
-  lines); the rating as a link to Scorecards, once someone scored them, and the tags (remove on hover, focus and tap, Add tag in
+  lines); the rating as a link to Scorecards, once someone scored them, and the tags (a muted Remove on each, Add tag in
   place); then the stage rail (section 11). On a phone the rail shows the current stage with "2 of 6". The Application tab's
   Answers panel lists the job's questions, then the ones every application asks (AI use,
   adjustments to the process, future roles), each under the question as the apply form words it; only what the candidate
@@ -1402,8 +1402,8 @@ to the careers pages, the apply flow, the embeddable widget and the top of every
   settings, never in the workflow. A built-in hiring template or
   scorecard reads only, says why and offers Copy (E3), with no History. Built-in emails stay editable in place. A
   publish or save says how far it reaches in the notice beside it ("Published version 2. Jobs created from now on
-  start from it."). In the hiring template's Pipeline tab each stage's Edit stage, Add an automation, Choose scorecard and Remove
-  stage are its card's More menu (L2); a hiring template that reads only (built in, archived, a published version, or one you may not edit) has the Stage flow there instead. An empty Emails tab offers New template as a
+  start from it."). In the hiring template's Pipeline tab a stage's name opens its Stage sheet, which holds its scorecard and Remove
+  stage, and its automations are edited on the Automations tab; a hiring template that reads only (built in, archived, a published version, or one you may not edit) has the Stage flow there instead. An empty Emails tab offers New template as a
   link to the new-email page. A pop-out preview window with no editor behind it (a reload, an editor that closed) says
   so in one line instead of loading for ever.
 - **Settings:** one sidebar item that opens the first settings page; every page has the whole menu, every setting in three groups, Organization, Careers site and Integrations, with search, and a breadcrumb of Settings, the group and the page (section 11). Email domain is under Organization, Hiring setup is Careers site, and Verification is its own sidebar item with its own tabs (section 16). Careers branding becomes Branding, and email

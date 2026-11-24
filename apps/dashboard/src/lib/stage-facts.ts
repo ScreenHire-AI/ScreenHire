@@ -144,7 +144,7 @@ function ownName(automation: Automation, workflow: HiringWorkflow, templateNames
 
 /**
  * The stage sheet's list: every automation placed at the stage, by its own name, in the workflow's order. One that is off
- * says so, because the list links to where it is turned on. The stage's own reminder is under its time limit instead (W7).
+ * says so, because the list links to where it is turned on. The sheet leaves out what its When overdue lists (W7).
  */
 export function stageAutomations(
   workflow: HiringWorkflow,
@@ -152,7 +152,7 @@ export function stageAutomations(
   templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
 ): StageFact[] {
   return workflow.automations
-    .filter((automation) => placeOf(workflow, automation) === stage.id && automation.id !== reminderId(stage.id))
+    .filter((automation) => placeOf(workflow, automation) === stage.id)
     .map((automation) => ({ text: `${ownName(automation, workflow, templateNames)}${isOn(automation) ? '' : ', off'}`, automationId: automation.id }));
 }
 

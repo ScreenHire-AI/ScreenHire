@@ -34,8 +34,9 @@
   // One stage's sheet (design system section 11, Stage sheet): its name and kind, then plain sections shown by kind:
   // Timing, Meeting, Scorecard and Automations. It opens in place from a stage card and saves with the pipeline, so Done
   // is the only primary (A1) and there is no subtitle. A stage's kind follows its name until someone sets it by hand.
-  // Automations are edited on the Automations tab alone, so here they are names that link there. Respond within is plain choices; setting one gives the stage a reminder for the team
-  // (`syncReminder`), and "When overdue" under it says what runs once the time passes, or offers to add a reminder.
+  // Automations are edited on the Automations tab alone, so here they are names that link there. Respond within is plain
+  // choices; setting one gives the stage a reminder for the team (`syncReminder`), and "When overdue" under it says what
+  // runs once the time passes, or offers to add a reminder.
   let {
     workflow = $bindable(),
     stageId = $bindable(),
@@ -46,6 +47,7 @@
     automationHref,
     onreminder,
     onshow,
+    onautomations,
     onCloseAutoFocus,
   }: {
     workflow: HiringWorkflow;
@@ -64,6 +66,8 @@
     onreminder?: (stageId: string) => void;
     /** Opens an automation on the Automations tab instead of following its link. */
     onshow?: (automationId: string) => void;
+    /** Goes to the Automations tab in the page instead of following its link. */
+    onautomations?: () => void;
     /** As the sheet closes; prevent the default to put the focus somewhere else than the button that opened it. */
     onCloseAutoFocus?: (event: Event) => void;
   } = $props();
@@ -82,9 +86,11 @@
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
   const overdue = $derived(stage ? whenOverdue(workflow, stage.id, templateNames) : []);
-  // Every automation placed here by its own name, one that is off included. What "When overdue" lists is not listed again (W7).
+  // Every automation placed here by its own name, one that is off included. What "When overdue" lists is not listed again
+  // (W7), and still counts as one the stage has.
+  const placed = $derived(stage ? stageAutomations(workflow, stage, templateNames) : []);
   const listedOverdue = $derived(new Set(stage?.slaDays && !isTerminal(stage.kind) ? overdue.map((fact) => fact.automationId) : []));
-  const here = $derived(stage ? stageAutomations(workflow, stage, templateNames).filter((fact) => !listedOverdue.has(fact.automationId)) : []);
+  const here = $derived(placed.filter((fact) => !listedOverdue.has(fact.automationId)));
 
   let otherChosen = $state(false);
   // Which stage the local choices belong to, so they reset when the sheet opens another.
@@ -280,7 +286,14 @@
           <a
             href={automationsHref}
             class="w-fit underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
-            onclick={() => (stageId = null)}>{here.length > 0 ? 'Edit in Automations' : 'Add in Automations'}</a
+            onclick={(event) => {
+              if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+              if (onautomations) {
+                event.preventDefault();
+                onautomations();
+              }
+              stageId = null;
+            }}>{placed.length > 0 ? 'Edit in Automations' : 'Add in Automations'}</a
           >
         </section>
       </div>

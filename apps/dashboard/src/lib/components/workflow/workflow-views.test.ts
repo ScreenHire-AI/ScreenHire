@@ -605,6 +605,26 @@ describe('workflow builder', () => {
     }
   });
 
+  it('puts the focus on the end left in its place when a stage that ends the candidacy is removed', async () => {
+    renderViews('editor');
+    const stages = screen.getByRole('region', { name: 'Stages' });
+    await fireEvent.click(within(stages).getByRole('button', { name: 'Edit Hired' }));
+    const sheet = await screen.findByRole('dialog', { name: 'Hired' });
+    await fireEvent.pointerDown(within(sheet).getByRole('button', { name: 'More for Hired' }), { button: 0, pointerType: 'mouse' });
+    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove stage' }));
+    await vi.waitFor(() => expect(within(stages).getByRole('button', { name: 'Edit Not progressing' })).toHaveFocus());
+    expect(within(stages).queryByRole('button', { name: 'Edit Hired' })).toBeNull();
+  });
+
+  it("goes to the Automations tab from the link in a stage's sheet, with the focus on that tab", async () => {
+    renderViews('editor');
+    await fireEvent.click(within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name: 'Phone screen' }));
+    await fireEvent.click(within(await screen.findByRole('dialog', { name: 'Phone screen' })).getByRole('link', { name: 'Edit in Automations' }));
+    await vi.waitFor(() => expect(screen.getByRole('tab', { name: 'Automations' })).toHaveFocus());
+    expect(screen.getByRole('tab', { name: 'Automations' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it("goes to the Automations tab from a card's automations chip: its one automation, or the stage's list of several", async () => {
     const { unmount } = renderViews('editor');
     const chip = (name: string) => within(screen.getByRole('region', { name: 'Stages' })).getByRole('button', { name });

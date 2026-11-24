@@ -309,6 +309,12 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(shown).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" })).ToHaveAttributeAsync("aria-selected", "true");
 
+        // The link to the whole tab takes the focus there, since the card that opened the sheet is hidden with its tab.
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" }).GetByRole(AriaRole.Button, new() { Name = "Applied", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Dialog, new() { Name = "Applied" }).GetByRole(AriaRole.Link, new() { Name = "Edit in Automations" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" })).ToBeFocusedAsync();
+
         // An automation with a blank tag pauses the Try it tab, with the fix inline.
         await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" }).GetByRole(AriaRole.Button, new() { Name = "Add an automation to Applied" }).ClickAsync();
         await Page.GetByRole(AriaRole.Dialog, new() { Name = "Add an automation" }).GetByRole(AriaRole.Button, new() { Name = "Write your own" }).ClickAsync();

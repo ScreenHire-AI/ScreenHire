@@ -70,8 +70,9 @@ describe('stageAutomations', () => {
     ]);
   });
 
-  it('says which are off, and leaves the sheet\'s own reminder to When overdue (W7)', () => {
+  it('says which are off, and lists the reminder too, for the sheet to leave out what When overdue lists (W7)', () => {
     expect(listed('screen')).toEqual([
+      { text: 'reminder-screen', automationId: 'reminder-screen' },
       { text: 'tag-left', automationId: 'tag-left' },
       { text: 'off, off', automationId: 'off' },
     ]);

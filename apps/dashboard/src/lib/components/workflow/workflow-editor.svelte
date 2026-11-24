@@ -55,7 +55,10 @@
 
   // The stage whose sheet is open, by id, so reordering the stages behind it keeps the same one.
   let stageId = $state<string | null>(null);
-  const openStage = (id: string) => (stageId = id);
+  const openStage = (id: string) => {
+    removed = null;
+    stageId = id;
+  };
 
   // Removing a stage takes the card that opened its sheet, so the focus goes to the card (or the end) that took its place,
   // or to the last one left. Nothing changes until Save, so it does not confirm (section 10).
@@ -70,12 +73,26 @@
     workflow.automations = next.automations;
   }
 
-  function focusAfterRemoval(event: Event) {
+  // The sheet's link to the Automations tab hides the card that opened the sheet, so the focus goes to the tab it shows.
+  let leftForAutomations = false;
+  function goToAutomations() {
+    leftForAutomations = true;
+    tab = 'automations';
+  }
+
+  function onStageSheetClosed(event: Event) {
     const gone = removed;
+    const left = leftForAutomations;
     removed = null;
+    leftForAutomations = false;
+    if (left) {
+      event.preventDefault();
+      document.querySelector<HTMLElement>('[role="tab"][data-value="automations"]')?.focus();
+      return;
+    }
     if (!gone || tab !== 'pipeline') return;
-    const left = document.querySelectorAll<HTMLElement>(gone.terminal ? '[data-end-stage]' : '[data-stage-card] [data-stage-open]');
-    const next = left[gone.at] ?? left[left.length - 1];
+    const cards = document.querySelectorAll<HTMLElement>(gone.terminal ? '[data-end-stage]' : '[data-stage-card] [data-stage-open]');
+    const next = cards[gone.at] ?? cards[cards.length - 1];
     if (!next) return;
     event.preventDefault();
     next.focus();
@@ -377,7 +394,8 @@
     addReminder(id);
   }}
   {automationHref}
-  onCloseAutoFocus={focusAfterRemoval}
+  onautomations={goToAutomations}
+  onCloseAutoFocus={onStageSheetClosed}
   onshow={(id) => {
     stageId = null;
     showAutomation(id);
