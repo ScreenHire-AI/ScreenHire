@@ -374,7 +374,8 @@ The walk is a theory, one row per group of routes, never one method:
   never submit them, so the scene stays as it was built.
 - Each step also measures every text field's edge against what surrounds it, with the colours the browser drew, and fails
   under 3:1 (`CollectFieldEdgesAsync`, WCAG 1.4.11). `FormEdgesTests` does the same for the careers apply page, in the light
-  theme and with the dark tokens switched on by a class, and checks that a faint edge is reported.
+  theme and with the dark tokens switched on by a class, and checks that a faint edge is reported. It also opens a question on the Forms tab, whose fields no walk opens,
+  and fails on one thick coloured side on that tab or the Verification tab (design system S11), with a thick side it must report.
 - `SeparatorTests` measures the shared separator: 1 px high, as wide as its box.
 
 The careers and candidate pages are not in the dark walk: they have no dark theme today ([status](../status.md)).
