@@ -26,7 +26,9 @@
   <Tabs.List variant="line" aria-label={label} class="h-11 p-0 group-data-[orientation=horizontal]/tabs:h-11">
     {#each tabs as tab (tab.value)}
       <!-- The selected tab's line sits on the strip's bottom edge, inside the scroller, so it is never clipped. -->
-      <Tabs.Trigger value={tab.value} class="h-full flex-none px-3 font-semibold group-data-[orientation=horizontal]/tabs:after:bottom-0">
+      <!-- A tab takes the focus before it changes the view: bits-ui's focus scope in a sheet moves to the sheet's first control
+           when the view it leaves held the focus, if the tab has not been heard to take it yet. -->
+      <Tabs.Trigger value={tab.value} onmousedown={(event) => event.button === 0 && event.currentTarget.focus()} class="h-full flex-none px-3 font-semibold group-data-[orientation=horizontal]/tabs:after:bottom-0">
         {tab.label}{#if tab.count !== undefined}{' '}<Badge variant="count">{tab.count}</Badge>{/if}
       </Tabs.Trigger>
     {/each}

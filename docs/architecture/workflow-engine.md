@@ -106,8 +106,10 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/automation-name.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-sentence.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-blank.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/choice-list.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-recipes.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-list.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/controls.ts
   - resource: apps/dashboard/src/lib/components/workflow/automations-panel.svelte
   - resource: apps/dashboard/src/lib/components/workflow/interview-fields.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-cards.svelte
@@ -117,7 +119,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/try-it-stage.svelte
   - resource: apps/dashboard/src/lib/components/workflow/try-it-email.svelte
   - resource: apps/dashboard/src/lib/components/workflow/problem-notice.svelte
-  - resource: apps/dashboard/src/lib/components/workflow/problems-panel.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/problem-lines.svelte
   - resource: apps/dashboard/src/lib/components/workflow/validation-badge.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-tabs.svelte
   - resource: apps/dashboard/src/lib/components/starting-point-card.svelte
@@ -355,19 +357,28 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     call") with the automation's name under it, an If node's is its conditions (`ruleTitle`: "Right to work is No",
     "Verification is Review or Verify") and a Then node's the step. A node's accessible name keeps the automation's name
     right after the word, so "When Fast-track referrals" names the trigger node. With the editor the whole node is one
-    button, so it is the node's only tab stop: an automation's node opens the automation's sheet, on the tab chosen last or on Rules when it is
+    button: an automation's node opens the automation's sheet, on the tab chosen last or on Rules when it is
     too complex for a sentence (`sentenceLimit`), at the node's part (its trigger, its conditions or that action); the Any stage band or a stage
     opens its automations as rows. A version that cannot be edited draws the same nodes as a focusable box with no
     buttons. A phone does not draw the map: the Automations tab is the list there (see **List and sheets**).
-  - **Plus buttons.** Where a thing would go there is a plus, only while editing and once the workflow has an
-    automation: under each stage and the Any stage band for a new automation (`addAutomation`), on the line between a trigger and its
-    first action for a first condition (`addCondition`), and under the last action for another action (`addAction`).
-    The plus for a new automation opens the recipes for that stage (Applied's include those for an arriving application
-    and the checks), or every recipe under Any stage, where Write your own starts a run by hand so the new automation
-    stays in that band (Add automation's starts one for an arriving application, under Applied); the other two open the
-    sentence at what they added. A
-    workflow with no automations says what an automation is and offers one button, "Add an automation", which opens the
-    every recipe.
+  - **Add buttons.** Where a thing would go there is an add button, only while editing and once the workflow has an
+    automation. Under each stage and the Any stage band it is New automation, in words, which opens the recipes for that
+    stage (Applied's include those for an arriving application and the checks), or every recipe under Any stage. Write your
+    own (`addAutomation`) adds an automation with its trigger and no step, named by that trigger: a run by hand in the Any
+    stage band, so it stays there, and an arriving application from Add automation, under Applied. On the line between a
+    trigger and its first action, and under the last action, it is a small plus. A plus opens a list: the facts a first
+    condition can check (`addConditionBlank`) or the kinds of step (`addStepBlank`), the sentence's own lists with its
+    guardrail, and the one chosen is added and the automation opened at the first thing it still asks for
+    (`firstBlankPath`), an empty text ready to type. So a plus never adds a placeholder. A workflow with no automations says
+    what an automation is and offers one button, "Add an automation", which opens every recipe.
+  - **Removing.** Each When, If and Then has a menu, a button beside the node's own and the next tab stop, and Delete or
+    Backspace on the node does the same (`removeNode`): an automation from its When, its conditions from its If, a step from
+    its Then, and the automation with its last step, because one with none is only a problem. The key is Svelte Flow's
+    `deleteKey`, which deletes the nodes marked selected: the node whose button has the focus is marked, only what can be
+    removed is `deletable`, and `onbeforedelete` makes the workflow's edit and cancels the canvas's. Every removal, here and
+    in the list, the sheet and the problem lines, offers Undo and asks nothing (design system section 10). A `Removal`
+    carries its own `restore`, which puts back what went by id into the workflow as it is by then. An open sheet keeps the
+    focus, so it draws its own offers and hands the last to the page as it closes (`UndoOffer.moveTo`).
   - **Paths.** Hovering or focusing a node lights its path (`pathOf`): an automation's chain with the stage it fires on
     and the stage it moves into, or a stage's automations and the moves into it. The rest quietens by its edge and its
     line alone, so text keeps its contrast, and nothing moves for someone who prefers reduced motion.
@@ -381,26 +392,34 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     finish at any of them from any stage. Their automations hang under them like any stage's.
   - **Keyboard.** Nodes are listed in reading order, a band at a time, which is the Tab order. The arrow keys move along
     a column (Up, Down) and across to the nearest column (Left, Right), Home and End go to the first and last
-    (`neighbour`); whatever takes the focus is panned into view and out from under the toolbar. Closing a sheet returns
+    (`neighbour`); whatever takes the focus by key or Tab is panned into view and out from under the toolbar, but a node pressed with a pointer stays where it is, because panning it from under the pointer would lose the click. Closing a sheet returns
     the focus to the node that opened it (`focusGraphNode`), or to the row that opened it in the list.
   - **Links.** A "move to a stage" action also points at its stage by drawing a link from its right edge to a stage, a
     pointer shortcut for the form's Stage field (`connect`), never the only way (WCAG 2.5.7).
   - A validation message shows on the node its path names, an automation's own messages on its trigger node, as it does
-    under the sentence. Removing an automation is Remove automation on its Rules tab.
+    under the sentence.
   - **List and sheets.** The panel header has a List | Map switch and Add automation (`automations-panel.svelte`); the
     list (`automation-list.svelte`) groups the automations as the map does, by stage and then Any stage, with each one's
     sentence, and a phone shows only it. One sheet in `workflow-editor.svelte`, one width in every view, has three views: a
-    stage's or Any stage's automations as rows, the recipes, and one automation: its Name and On (`automation-name.svelte`)
-    over two tabs, Sentence and Rules, that edit the same automation. Every automation opens on the tab the person chose
+    stage's or Any stage's automations as rows, the recipes, and one automation: its name, which is
+    the title, and On (`automation-name.svelte`) over two tabs, Sentence and Rules, that edit the same automation, and a
+    footer with Remove automation in its menu and Done. A name that was the suggestion before a change (`suggestedName`, from
+    the trigger and the steps) is the new suggestion after it, so it follows until a person types one; nothing about it is
+    stored. While an automation is open, its unfinished problems are left out of the sheet, the map and the problem lines
+    (`isUnfinished`: an empty value, or a web address half typed), unless Fix opened it. A guardrail's refusal is on the step, the
+    fact or the opt-in itself, so it is never one of them. As the sheet closes (`tidyAutomation`), a step left without its
+    text is dropped and an automation without a step is removed, with Undo. Every automation opens on the tab the person chose
     last (`preferences.automationView`, in the browser); one too complex for a sentence (`sentenceLimit`: a rejection, or
     a condition on a fact its trigger does not offer) opens on Rules, and its Sentence tab says why.
-  - **The sentence.** `automation-sentence.svelte` reads one automation as "When [someone applies] and [their answer to
-    Right to work is No], [ask the team to review] and [add the tag ...]", from `sentenceOf` in
-    `#lib/automation-sentence.ts`, which returns text and blanks; each blank holds its choices and an `apply` that returns
+  - **The sentence.** `automation-sentence.svelte` reads one automation as When, If and Then, one clause a line: "[someone
+    applies]", "[their answer to Right to work] [is] [No]", "[ask] [the team] to review" and "and [add the tag] [...]", from
+    `sentenceOf` in `#lib/automation-sentence.ts`, which returns the three sections, their clauses (a joining word, text and
+    blanks, and how to take the clause away) and the plus that ends each; each blank holds its choices and an `apply` that returns
     the automation with that choice made, so the definition is the only thing stored and the validator stays the judge.
     The facts are grouped as Their answers, The application and ScreenHire's checks; a fixed list of values is ticked,
     one value stored as is and two or more as is one of. The Rules tab is `automation-form.svelte`, When, If and
-    Then as three wells, with Remove automation at its foot.
+    Then as three wells; it ticks the same fixed lists by name and stores the same codes, and its Add action is a menu of the
+    kinds the guardrail allows, with Reject where it does.
   - **What a move sets off.** `enteringLines` in the same module says what entering a stage does, one sentence per
     automation that fires on it, in the list's words ("Send the "Moved to the next step" email."). The dashboard asks
     with it before a move (`createMoves`, `move-confirm-dialog.svelte`), unless the person ticked Don't ask again. An
@@ -504,9 +523,10 @@ the API stores a template draft, and a draft job's workflow, whatever the valida
 is refused, `DraftShape`), and returns the problems with the save (`problems` on the template version, `workflowProblems`
 on the job). Only Try it and Publish wait for the fix: a template publish and a job's first publish validate
 again and refuse. A save to an open job's workflow is live at once, so it is validated like a publish. The editor still
-holds unsaved work in the page and asks before leaving it. It lists the open problems in a "Problems to fix" panel above
-every tab but Try it; a read-only view lists a stored version's in a "Problems" panel. An Add a tag step asks for its tag
-first, and a step left empty is dropped with Undo, so a blank step is never a problem. Saving with no changes sends
+holds unsaved work in the page and asks before leaving it. It lists the open problems as compact lines
+(`problem-lines.svelte`) above every tab but Try it, three and then the rest, each with Fix and a blank step with Remove
+step; a read-only view lists a stored version's the same way, with no buttons. An Add a tag step asks for its tag first, and
+a step left empty is dropped with Undo, so a blank step is a problem only for someone who takes that back. Saving with no changes sends
 nothing, because each save of a job's workflow is a new version.
 
 ## 5. API surface (public, same API the dashboard uses)

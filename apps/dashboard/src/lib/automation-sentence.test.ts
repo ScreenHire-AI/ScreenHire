@@ -8,12 +8,14 @@ import {
   checkDrivenIds,
   checkGuardrailLine,
   enteringLines,
+  firstBlankPath,
   leftOutLine,
   readSentence,
   relationChoices,
   ruleHoldsForTags,
   sentenceLimit,
   sentenceOf,
+  suggestedName,
   thenChoices,
   triggerTitle,
   violations,
@@ -98,7 +100,7 @@ const labels = (blank: ChoiceBlank) => blank.choices.map((entry) => entry.label)
 const ids = (blank: ChoiceBlank) => blank.choices.map((entry) => entry.id);
 
 describe('the sentence', () => {
-  it('reads an automation as one sentence with a blank for each part', () => {
+  it('reads an automation as When, If and Then with a blank for each part', () => {
     const workflow = flow([
       automation(
         'review',
@@ -108,15 +110,15 @@ describe('the sentence', () => {
       ),
     ]);
 
-    expect(readSentence(sentence(workflow))).toBe('When someone applies and their answer to Right to work is No, ask the team to review and add the tag Not eligible.');
+    expect(readSentence(sentence(workflow))).toBe('When someone applies, if their answer to Right to work is No, then ask the team to review and add the tag Not eligible.');
   });
 
   it('reads a stage trigger, a wait and a check in plain words', () => {
     expect(readSentence(sentence(flow([automation('a', { type: 'StageEntered', stageId: 'screening' }, [mail])])))).toBe(
-      'When someone moves into Phone call, send the email Moved to the next step.',
+      'When someone moves into Phone call, then send the email Moved to the next step.',
     );
     expect(readSentence(sentence(flow([automation('a', { type: 'TimeElapsed', stageId: 'screening', afterHours: 48 }, [{ type: 'NotifyTeam', note: 'Chase' }])])))).toBe(
-      'When someone has waited 2 days in Phone call, tell the team Chase.',
+      'When someone has waited 2 days in Phone call, then tell the team Chase.',
     );
     expect(
       readSentence(
@@ -128,7 +130,7 @@ describe('the sentence', () => {
           ]),
         ),
       ),
-    ).toBe('When the checks finish and Verification is Review or Verify, add the tag Look.');
+    ).toBe('When the checks finish, if Verification is Review or Verify, then add the tag Look.');
   });
 
   it('puts each part where the validator looks for its errors, and the first of each where Fix focuses', () => {
@@ -140,10 +142,33 @@ describe('the sentence', () => {
     expect(blanks.find((blank) => blank.id === 'action-1-kind')).toMatchObject({ errorPath: 'automations[0].actions[1]', focusPath: 'automations[0].actions[1]' });
   });
 
-  it('ends in the plus blanks that add a condition and a step', () => {
-    const blanks = blanksOf(sentence(flow([automation('a', { type: 'ApplicationSubmitted' }, [mail])])));
+  it('ends If and Then in the plus that adds a clause, worded for the first one and for another', () => {
+    const adds = (workflow: HiringWorkflow) => sentence(workflow).map((section) => section.add?.text ?? null);
 
-    expect(blanks.filter((blank) => blank.adds).map((blank) => blank.text)).toEqual(['and if', 'then also']);
+    expect(adds(flow([automation('a', { type: 'ApplicationSubmitted' }, [])]))).toEqual([null, 'a condition', 'an action']);
+    expect(adds(flow([automation('a', { type: 'ApplicationSubmitted' }, [{ type: 'AssignReviewer' }], [checkRule])]))).toEqual([null, 'another condition', 'another action']);
+  });
+
+  it('gives every clause but the trigger a removal, named by its place, that can be taken back', () => {
+    const workflow = flow([
+      automation('a', { type: 'ApplicationSubmitted' }, [mail, { type: 'AddTag', tag: 'x' }], [{ fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' }, { fact: 'application.tags', operator: 'Exists' }], 'Any'),
+    ]);
+    const [when, conditions, steps] = sentence(workflow);
+
+    expect(when!.clauses.map((clause) => clause.remove)).toEqual([undefined]);
+    expect([...conditions!.clauses, ...steps!.clauses].map((clause) => clause.remove!.label)).toEqual(['Remove condition 1', 'Remove condition 2', 'Remove step 1', 'Remove step 2']);
+    for (const clause of [...conditions!.clauses, ...steps!.clauses]) expect(clause.remove!.restore(clause.remove!.apply())).toEqual(workflow.automations[0]);
+  });
+
+  it('starts a line with its joining word: a choice of and or or between conditions, and between steps', () => {
+    const [, conditions, steps] = sentence(
+      flow([automation('a', { type: 'ApplicationSubmitted' }, [mail, { type: 'AddTag', tag: 'x' }], [checkRule, { fact: 'application.tags', operator: 'Exists' }, { fact: 'answers.notes', operator: 'Exists' }])]),
+    );
+
+    expect(conditions!.clauses.map((clause) => (clause.joiner?.type === 'blank' ? clause.joiner.blank.text : clause.joiner))).toEqual([null, 'and', 'and']);
+    expect(steps!.clauses.map((clause) => clause.joiner)).toEqual([null, { type: 'text', text: 'and' }]);
+    const ids = blanksOf([conditions!]).map((blank) => blank.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 
@@ -330,7 +355,7 @@ describe('the condition blanks', () => {
     expect(readSentence(sentence(given))).toContain('their answer to Anything else is given');
   });
 
-  it('joins two conditions with and or or, and says one of when any holds', () => {
+  it('joins two conditions with and or or', () => {
     const two = [
       { fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' },
       { fact: 'application.tags', operator: 'Contains', value: 'referral' },
@@ -338,18 +363,17 @@ describe('the condition blanks', () => {
     const all = flow([automation('a', { type: 'ApplicationSubmitted' }, [mail], two)]);
     const any = flow([automation('a', { type: 'ApplicationSubmitted' }, [mail], two, 'Any')]);
 
-    expect(readSentence(sentence(all))).toContain('and their answer to Right to work is No and their tags includes referral');
-    expect(readSentence(sentence(any))).toContain('and one of their answer to Right to work is No or their tags includes referral');
-    expect(choice(all, 'match').apply('Any').conditions?.match).toBe('Any');
+    expect(readSentence(sentence(all))).toContain('if their answer to Right to work is No and their tags includes referral');
+    expect(readSentence(sentence(any))).toContain('if their answer to Right to work is No or their tags includes referral');
+    expect(choice(all, 'match-1').apply('Any').conditions?.match).toBe('Any');
   });
 
-  it('adds a condition by naming what to check, and removes one from its own list', () => {
+  it('adds a condition by naming what to check', () => {
     const added = choice(workflow, 'add-condition').apply('application.tags');
     expect(added.conditions?.rules).toEqual([
       { fact: 'answers.right_to_work', operator: 'EqualTo', value: 'no' },
       { fact: 'application.tags', operator: 'Contains', value: '' },
     ]);
-    expect(choice(workflow, 'rule-0-fact').remove?.apply().conditions).toBeNull();
   });
 });
 
@@ -413,10 +437,9 @@ describe('the step blanks', () => {
     expect(labels(choice(move, 'action-0-arg'))).toEqual(['Applied', 'Phone call', 'Trial shift', 'Interview', 'Offer', 'Hired']);
   });
 
-  it('adds a step at the end and removes one from its own list', () => {
+  it('adds a step at the end by naming its kind', () => {
     const next = choice(workflow, 'add-action').apply('NotifyTeam');
     expect(next.actions).toEqual([{ type: 'AddTag', tag: 'x' }, { type: 'NotifyTeam', note: '' }]);
-    expect(choice(flow([next]), 'action-0-kind').remove?.apply().actions).toEqual([{ type: 'NotifyTeam', note: '' }]);
   });
 
   it('keeps a time limit to reminders', () => {
@@ -759,5 +782,55 @@ describe('sentenceLimit', () => {
   it('names a condition on something the trigger does not offer', () => {
     const stray = automation('stray', applies, [mail], [{ fact: 'answers.gone', operator: 'EqualTo', value: 'yes' }]);
     expect(sentenceLimit(flow([stray]), 0)).toBe('Too complex for a sentence: a condition checks something this trigger does not offer.');
+  });
+});
+
+describe('the suggested name', () => {
+  const name = (actions: AutomationAction[], trigger: Automation['trigger'] = { type: 'ApplicationSubmitted' }) => {
+    const draft = automation('a', trigger, actions);
+    return suggestedName(draft, flow([draft]));
+  };
+
+  it('says the trigger, then what it does', () => {
+    expect(name([])).toBe('When someone applies');
+    expect(name([], { type: 'StageEntered', stageId: 'trial' })).toBe('When someone moves into Trial shift');
+    expect(name([{ type: 'AddTag', tag: 'Referral' }])).toBe('Add the tag "Referral" when someone applies');
+    expect(name([{ type: 'AssignReviewer' }, { type: 'AddTag', tag: 'Referral' }])).toBe('Ask the team to review and add the tag "Referral" when someone applies');
+  });
+
+  it('reads a step with nothing in it by its kind, and never by a word a query loads', () => {
+    expect(name([{ type: 'AddTag', tag: '' }])).toBe('Add a tag when someone applies');
+    expect(name([{ type: 'SendEmail', emailTemplate: 'c1f0' }])).toBe('Send an email when someone applies');
+    expect(name([{ type: 'AssignReviewer', assigneeUserId: 'u-1' }])).toBe('Ask a teammate to review when someone applies');
+  });
+
+  it("keeps within the validator's 120 characters however many steps there are", () => {
+    const tags = Array.from({ length: 6 }, (_, i): AutomationAction => ({ type: 'AddTag', tag: `a tag with quite a long name ${i}` }));
+
+    expect(name(tags)).toBe('Add the tag "a tag with quite a long name 0" and 5 more when someone applies');
+    expect(name([{ type: 'AddTag', tag: 'x'.repeat(50) }], { type: 'StageEntered', stageId: 'y'.repeat(100) }).length).toBeLessThanOrEqual(120);
+  });
+});
+
+describe('where the focus goes after adding', () => {
+  it('is the empty text of the new step, or the step itself when it asks for none', () => {
+    expect(firstBlankPath(automation('a', { type: 'ApplicationSubmitted' }, [mail, { type: 'AddTag', tag: '' }]), 2, 'step')).toBe('automations[2].actions[1].tag');
+    expect(firstBlankPath(automation('a', { type: 'ApplicationSubmitted' }, [mail]), 0, 'step')).toBe('automations[0].actions[0]');
+  });
+
+  it("is the new condition's value, or the condition when it takes none", () => {
+    const withRule = (rule: AutomationCondition) => automation('a', { type: 'ApplicationSubmitted' }, [mail], [rule]);
+
+    expect(firstBlankPath(withRule(checkRule), 0, 'condition')).toBe('automations[0].conditions.rules[0].value');
+    expect(firstBlankPath(withRule({ fact: 'application.tags', operator: 'In', values: [] }), 0, 'condition')).toBe('automations[0].conditions.rules[0].values');
+    expect(firstBlankPath(withRule({ fact: 'application.tags', operator: 'Exists' }), 0, 'condition')).toBe('automations[0].conditions');
+  });
+
+  it('is a place a blank of the sentence says it has', () => {
+    const draft = automation('a', { type: 'ApplicationSubmitted' }, [mail, { type: 'AddTag', tag: '' }], [checkRule]);
+    const places = blanksOf(sentence(flow([draft]))).map((blank) => blank.focusPath);
+
+    expect(places).toContain(firstBlankPath(draft, 0, 'step'));
+    expect(places).toContain(firstBlankPath(draft, 0, 'condition'));
   });
 });

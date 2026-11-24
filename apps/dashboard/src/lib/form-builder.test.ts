@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import StarIcon from '~icons/lucide/star';
-import { applyFormKinds, choicesSummary, duplicateId, followUpKinds, insertAt, kindIn, scorecardKinds } from './form-builder.js';
+import { applyFormKinds, choicesSummary, duplicateId, followUpKinds, kindIn, scorecardKinds } from './form-builder.js';
 
 describe('answer kinds', () => {
   it('offers every question type on the apply form, General first, and no File in a follow-up', () => {
@@ -23,13 +23,6 @@ describe('answer kinds', () => {
     expect(kindIn(scorecardKinds, 'RatingYesNo')).toMatchObject({ fixed: ['Yes', 'No'] });
     expect(kindIn(scorecardKinds, 'Rating10')?.fixed).toBeUndefined();
     expect(kindIn(scorecardKinds, 'Number')).toBeUndefined();
-  });
-});
-
-describe('insertAt', () => {
-  it('puts the item at the index, after the one before it', () => {
-    expect(insertAt(['a', 'b', 'c'], 1, 'x')).toEqual(['a', 'x', 'b', 'c']);
-    expect(insertAt(['a'], 1, 'x')).toEqual(['a', 'x']);
   });
 });
 

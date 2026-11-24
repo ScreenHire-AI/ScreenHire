@@ -123,6 +123,13 @@ export function shortcutGroups(
       ],
     },
     {
+      label: 'Automations map',
+      shortcuts: [
+        { label: 'Open what the node stands for', keys: ['Enter'], singleKey: false },
+        { label: 'Remove what the node stands for', keys: ['Delete'], singleKey: false },
+      ],
+    },
+    {
       label: 'Notes',
       shortcuts: [
         { label: 'Mention a teammate', keys: ['@'], singleKey: false },
