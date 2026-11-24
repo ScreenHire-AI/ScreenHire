@@ -110,8 +110,8 @@
     @apply max-sm:px-5;
   }
 
-  /* The row's 48px and 96px for the label, hint and error above a field, so a focused field the browser scrolls to is
-     never under the row (WCAG 2.4.11), and nor is the question it answers. An error summary's link lands a field here. */
+  /* The row's 48px and 96px for the label, hint and error above a text field, so a focused field the browser scrolls to is
+     never under the row (WCAG 2.4.11). An error summary's link lands a field here, and its label has to show too. */
   html:has(.apply-progress) {
     @apply max-sm:scroll-pt-36;
   }

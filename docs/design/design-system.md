@@ -580,7 +580,7 @@ it instead of showing white on a dark page.
 | `candidate-foreground` / `candidate-muted-foreground` | `#231F1A` / `#6A5D4D` | `#F2EDE6` / `#B3ABA0` |
 | `candidate-chip` | `#F3E7D6` (text `#5A4630`) | `#2E2A25` |
 | `candidate-cta` | `#C2462F` (white text, 4.98:1) | `#F08A6E` (text `#1A1310`) |
-| `candidate-sheen` | white at 45% | the same |
+| `candidate-sheen` (a custom property for the gradient, no utility class) | white at 45% | the same |
 
 `candidate-input-border` is the edge of a field, a file control and the drop area, and of a secondary button, at least 3:1 on `candidate-surface` and `candidate-background` in both themes (3.9:1 and 3.6:1 light, 3.7:1 and 4.0:1 dark). `candidate-border` stays the quiet edge of cards.
 
@@ -644,7 +644,7 @@ Titles take the employer's heading font where one is set (section 18), otherwise
 (`packages/ui/src/questions`) above its fields: one 48px row with the bar, "40% done" at its end in the hint size, semibold,
 and a hairline under both. Sending counts as the last step, so no page reads 100% done, and the review reads "Ready to send"
 with the bar full. The fill is the employer's colour on the neutral track, and no words sit on it. Under 640px the row
-stays at the top of the window, with the scroll padding that keeps a focused field and its label clear of it. The fill
+stays at the top of the window, with the scroll padding that keeps a focused field, and a text field's label, clear of it. The fill
 grows from step to step and a soft sheen (`--candidate-sheen`) crosses it once, the page's one deliberate motion moment (the
 owner's sixth walk-through, 2026-11-24); it never loops, and reduced motion has neither (apply-flow.md section 7). Each
 page's heading is its section's name. An
