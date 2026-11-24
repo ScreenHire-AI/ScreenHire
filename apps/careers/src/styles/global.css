@@ -7,10 +7,11 @@
 
 /* Steps that move with no script (apply-flow.md §7): every careers page opts in to cross-document view transitions, so a
    step of the apply form, a follow-up page or the page after Send slides in from the right as the last one leaves, while
-   the header holds still and the progress bar's fill grows from the last step's width to this one's. Only for people who have not asked for
-   reduced motion; a browser without view transitions loads the next page as it always has. The transition runs no
-   script, but only where scripting is on: Chromium with JavaScript off starts a cross-document transition and never
-   ends it, which leaves the new page under the transition's layer and every click on it caught there. */
+   the header holds still and the progress bar's fill grows from the last step's width to this one's. Only for people who
+   have not asked for reduced motion; a browser without view transitions loads the next page as it always has. The
+   transition runs no script, but only where scripting is on: Chromium with JavaScript off starts a cross-document
+   transition and never ends it, which leaves the new page under the transition's layer and every click on it caught
+   there. */
 @media (prefers-reduced-motion: no-preference) and (scripting: enabled) {
   @view-transition {
     navigation: auto;
@@ -32,7 +33,8 @@
   }
 
   /* The fill is one colour, so its old and new pictures cross-fade with no visible change while the group's width grows.
-     They keep the bar's height and their round right end, instead of scaling with the width, and the group rounds the left. */
+     The wider picture keeps the bar's height and its round right end, instead of scaling with the width, and the group's
+     own rounding covers the left. */
   ::view-transition-group(apply-progress-fill) {
     @apply overflow-clip rounded-full;
   }
@@ -108,9 +110,10 @@
     @apply max-sm:px-5;
   }
 
-  /* The row's 48px and 16px of air, so a focused field the browser scrolls to is never under it (WCAG 2.4.11). */
+  /* The row's 48px and 96px for the label, hint and error above a field, so a focused field the browser scrolls to is
+     never under the row (WCAG 2.4.11), and nor is the question it answers. An error summary's link lands a field here. */
   html:has(.apply-progress) {
-    @apply max-sm:scroll-pt-16;
+    @apply max-sm:scroll-pt-36;
   }
 
   .button-primary {

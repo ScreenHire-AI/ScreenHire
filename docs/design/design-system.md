@@ -644,9 +644,10 @@ Titles take the employer's heading font where one is set (section 18), otherwise
 (`packages/ui/src/questions`) above its fields: one 48px row with the bar, "40% done" at its end in the hint size, semibold,
 and a hairline under both. Sending counts as the last step, so no page reads 100% done, and the review reads "Ready to send"
 with the bar full. The fill is the employer's colour on the neutral track, and no words sit on it. Under 640px the row
-stays at the top of the window, with the scroll padding that keeps a focused field clear of it. The fill grows from step to
-step and a soft sheen (`--candidate-sheen`) crosses it once, the page's one deliberate motion moment (the owner's sixth
-walk-through, 2026-11-24); it never loops, and reduced motion has neither (apply-flow.md section 7). Each page's heading is its section's name. An
+stays at the top of the window, with the scroll padding that keeps a focused field and its label clear of it. The fill
+grows from step to step and a soft sheen (`--candidate-sheen`) crosses it once, the page's one deliberate motion moment (the
+owner's sixth walk-through, 2026-11-24); it never loops, and reduced motion has neither (apply-flow.md section 7). Each
+page's heading is its section's name. An
 apply form without sections asks four questions a page by default. Marketing type is section 22.4. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 

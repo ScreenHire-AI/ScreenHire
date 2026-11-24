@@ -239,17 +239,28 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
 
         await GoToAsync("careers", $"/{organization.Slug}/jobs/{job.Slug}/apply");
         await Page.Locator("astro-island:not([ssr])").WaitForAsync(); // hydrated
+        var next = Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" });
+        var row = Page.Locator(".apply-progress");
+        var first = Page.GetByLabel("First name");
+
+        // The error summary's link puts its field at the edge the browser scrolls to: the bar covers neither the field nor
+        // the label and the error above it.
+        await next.ClickAsync();
+        await Page.GetByRole(AriaRole.Alert).GetByRole(AriaRole.Link, new() { Name = "Enter your first name." }).ClickAsync();
+        await Expect(first).ToBeFocusedAsync();
+        var stuck = (await row.BoundingBoxAsync())!;
+        stuck.Y.Should().Be(0, "the page scrolled to the field, under the bar");
+        (await Page.Locator("label[for='" + await first.GetAttributeAsync("id") + "']").BoundingBoxAsync())!.Y
+            .Should().BeGreaterThanOrEqualTo(stuck.Y + stuck.Height, "the label of the field the summary opens is not under the bar");
+
         await FillDetailsAsync(ApiSession.NewEmail("phone"));
         await Page.GetByLabel("Your CV or resume").SetInputFilesAsync(new FilePayload { Name = "Casey CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
         await Expect(Page.GetByText("Casey CV.pdf")).ToBeVisibleAsync();
 
-        // The end of the form, then back up through it: every field the focus reaches from below is under the bar's edge.
-        var next = Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" });
+        // The end of the form, then back up through it: every field the focus reaches stays below the bar's edge.
         await next.FocusAsync();
-        var row = Page.Locator(".apply-progress");
         (await row.BoundingBoxAsync())!.Y.Should().Be(0, "the bar stays at the top of the window");
         var covered = new List<string>();
-        var first = Page.GetByLabel("First name");
         for (var stops = 0; stops < 20 && !await first.EvaluateAsync<bool>("field => field === document.activeElement"); stops++)
         {
             await Page.Keyboard.PressAsync("Shift+Tab");
@@ -271,12 +282,13 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         await next.ClickAsync();
         await Expect(Progress()).ToHaveTextAsync("40% done");
         var eligibility = await FillWidthAsync();
-        eligibility.Should().BeApproximately(2 * details, 1);
+        (await FillShareAsync()).Should().BeApproximately(0.4, 0.005);
         var grew = await Page.EvaluateAsync<double[]>("() => window.fillWidths");
         grew.Should().HaveCount(2);
         grew[0].Should().BeApproximately(details, 1);
         grew[1].Should().BeApproximately(eligibility, 1);
         var sheen = Page.Locator(".page-progress-sheen");
+        await Expect(sheen).ToHaveCSSAsync("animation-name", "page-progress-sheen");
         await Expect(sheen).ToHaveCSSAsync("animation-iteration-count", "1");
 
         // Reduced motion: the same form, with nothing moving.
@@ -284,19 +296,23 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         await RightToWork().GetByLabel("Yes").CheckAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue", Exact = true }).ClickAsync();
         await Expect(Progress()).ToHaveTextAsync("60% done");
-        (await FillWidthAsync()).Should().BeApproximately(3 * details, 1);
+        (await FillShareAsync()).Should().BeApproximately(0.6, 0.005);
         (await Page.EvaluateAsync<double[]>("() => window.fillWidths")).Should().BeEmpty();
         await Expect(sheen).ToBeHiddenAsync();
         await Expect(Page.Locator(".page-progress-fill")).ToHaveCSSAsync("transition-duration", "0s");
         await Experience().GetByLabel("3 to 5").CheckAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
         await Expect(Progress()).ToHaveTextAsync("Ready to send");
-        (await FillWidthAsync()).Should().BeApproximately((await Page.Locator(".page-progress-track").BoundingBoxAsync())!.Width, 1);
+        (await FillShareAsync()).Should().BeApproximately(1, 0.005);
         await ExpectNoAccessibilityViolationsAsync();
         problems.Should().BeEmpty("the content security policy must not block anything the bar needs");
     }
 
     private async Task<double> FillWidthAsync() => (await Page.Locator(".page-progress-fill").BoundingBoxAsync())!.Width;
+
+    // The track is what the words beside it leave, so the fill is measured against its own track.
+    private async Task<double> FillShareAsync() =>
+        await FillWidthAsync() / (await Page.Locator(".page-progress-track").BoundingBoxAsync())!.Width;
 
     private ILocator Progress() => Page.Locator("[data-page-progress]");
 

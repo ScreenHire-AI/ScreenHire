@@ -279,8 +279,9 @@ the answers page by page, each with its own Change; a page opened from the revie
 - It fills with the employer's colour (`candidate-cta`) on the neutral track, edged in `candidate-brand-ui`, so a pale colour
   saved before the contrast check (branding.md section 2) still shows where the fill ends. No words sit on it.
 - On a phone (under 640px) the row stays at the top of the window while the questions scroll under it, by
-  `position: sticky` on `.apply-progress`, a child of `main`. The page has the matching `scroll-padding-top`, so a focused
-  field the browser scrolls to is never under it (WCAG 2.4.11). In the widget the frame is as tall as its page, so there is
+  `position: sticky` on `.apply-progress`, a child of `main`. The page's `scroll-padding-top` is the row's 48px
+  and 96px for the label, hint and error above a field, so neither a focused field the browser scrolls to nor its label is
+  under the row (WCAG 2.4.11). In the widget the frame is as tall as its page, so there is
   nothing to stick to and the row keeps its place. The dashboard's preview does not stick: the window there is the app's.
 - A sheen crosses the fill once when a step opens, 300ms in, over 800ms. It never loops (WCAG 2.2.2).
 - With reduced motion nothing grows and no sheen is drawn. Reduce motion in the dashboard's Preferences does the same in the
