@@ -261,11 +261,11 @@
     return slide(node, motion());
   }
 
-  // Escape closes the open row it is pressed in. A menu sits in a portal, outside the row. Two things inside the row keep
-  // their own Escape: a popover open from a button here (an Info button), and an option picked up with the keyboard, whose
-  // list item has the focus.
+  // Escape closes the open row it is pressed in. A menu sits in a portal, outside the row. Three things inside the row
+  // keep their own Escape: a word being composed in a field (an IME), a popover open from a button here (an Info button), and
+  // an option picked up with the keyboard, whose list item has the focus.
   function onrowkeydown(event: KeyboardEvent, id: string) {
-    if (event.key !== 'Escape' || event.defaultPrevented) return;
+    if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
     if ((event.target as Element | null)?.matches('[data-reorder-id], [aria-haspopup="dialog"][aria-expanded="true"]')) return;
     event.preventDefault();
     void close(id);
@@ -332,7 +332,7 @@
           onkeydown={isOpen ? (event) => onrowkeydown(event, id) : undefined}
         >
           <!-- The strip is the same open or closed, so it never moves. Its button's box stretches over the strip, and over the
-               whole row while it is closed, under the grip and the row menu (A9). -->
+               whole row while it is closed, under the grip and the row menu (A9). What is under it starts where its words do. -->
           <div data-question-header class={['flex min-w-0 items-start gap-2 py-2 pr-2 pl-2.5', isOpen && 'relative bg-accent text-accent-foreground']}>
             <span class="relative z-10 pt-0.5 pointer-coarse:pt-0">{@render grip()}</span>
             <button
@@ -360,10 +360,10 @@
             </span>
           </div>
           {#if errors.length > 0}
-            <div class={['pr-4 pb-3 pl-13 pointer-coarse:pl-16', isOpen && 'pt-3']}><FieldErrors id={errorsId} messages={errors} /></div>
+            <div class={['pr-4 pb-3 pl-14.5 pointer-coarse:pl-17.5', isOpen && 'pt-3']}><FieldErrors id={errorsId} messages={errors} /></div>
           {/if}
           {#if !isOpen && (helpLine || kind.options)}
-            <div data-question-summary class="flex min-w-0 flex-col gap-1 pr-4 pb-3 pl-13 text-muted-foreground pointer-coarse:pl-16" transition:slide={motion()}>
+            <div data-question-summary class="flex min-w-0 flex-col gap-1 pr-4 pb-3 pl-14.5 text-muted-foreground pointer-coarse:pl-17.5" transition:slide={motion()}>
               {#if helpLine}<span class="break-words">{helpLine}</span>{/if}
               {#if kind.options}
                 <span data-question-choices class="flex min-w-0 items-center gap-2">
@@ -378,7 +378,7 @@
               role="group"
               aria-labelledby={`${uid}-name-${index}`}
               data-question-body
-              class="border-t border-border-subtle px-4 py-4 @md:pl-13 pointer-coarse:@md:pl-16"
+              class="border-t border-border-subtle px-4 py-4 @md:pl-14.5 pointer-coarse:@md:pl-17.5"
               in:slideOpen
               out:slideShut
             >

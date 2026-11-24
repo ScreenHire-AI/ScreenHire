@@ -225,7 +225,8 @@
     choosingReplacement = true;
   }
 
-  // As with removing, a confirmation only where automations go too: the ones that read answers the new form does not ask.
+  // As with removing, a confirmation only where automations go too: the ones that read answers the new form does not ask, and
+  // for an equality monitoring form every one that acts on the old form's answers.
   function chooseReplacement(version: LibraryVersion) {
     const { removed } = replaceForm(workflow, replacingId, version);
     replacement = { name: nameOfForm(replacingId), version, removed };
@@ -376,7 +377,9 @@
   <ConfirmDialog
     bind:open={replacing}
     title={`Replace ${name} with ${version.content.name}?`}
-    description={`This also removes ${removed.join(', ')}, because the new form does not ask what ${removed.length === 1 ? 'it reads' : 'they read'}.`}
+    description={version.kind === 'EqualityMonitoring'
+      ? `This also removes ${removed.join(', ')}, because nothing may act on an equality monitoring form's answers.`
+      : `This also removes ${removed.join(', ')}, because the new form does not ask what ${removed.length === 1 ? 'it reads' : 'they read'}.`}
     confirmLabel="Replace form"
     failure="Could not replace the form"
     onconfirm={async () => replace(version)}

@@ -278,25 +278,36 @@ export function useLibraryVersion(workflow: HiringWorkflow, formId: string, vers
 /**
  * Replaces the form `formId` with a copy of another library form, under the same id, so when it is sent and what runs once
  * it is answered stay. An automation whose conditions read an answer the new form does not ask goes with the old questions,
- * and its name is returned for the confirmation ("This also removes ..."). Only the same id with the same kind and words is
- * the same question: two library forms can both have a question with a made-up id such as `question`, and a rule left
- * behind would silently read the other one. Dropping only that rule would instead run the automation for more people.
- * The application form cannot be replaced, and an unknown id changes nothing.
+ * and its name is returned for the confirmation ("This also removes ..."). Only the same id with the same kind, words and
+ * choices is the same question: two library forms can both have a question with a made-up id such as `question`, and a rule
+ * left behind would silently read the other one. Dropping only that rule would instead run the automation for more people.
+ * Nothing may act on an equality monitoring form (DefinitionValidator.ValidateEqualityUse), so one in its place takes along
+ * every automation that reads the form or runs once it is answered. The application form cannot be replaced, and an unknown
+ * id changes nothing.
  */
 export function replaceForm(workflow: HiringWorkflow, formId: string, version: LibraryVersion): { workflow: HiringWorkflow; removed: string[] } {
   const form = followUpsOf(workflow).find((candidate) => candidate.id === formId);
   if (!form) return { workflow, removed: [] };
 
-  const same = (a: FormContent['questions'][number], b: FormContent['questions'][number]) =>
-    a.id === b.id && a.type === b.type && a.label.trim() === b.label.trim();
+  type AskedQuestion = FormContent['questions'][number];
+  const same = (a: AskedQuestion, b: AskedQuestion) =>
+    a.id === b.id &&
+    a.type === b.type &&
+    a.label.trim() === b.label.trim() &&
+    (a.options ?? []).every((option) => b.options?.some((next) => next.id === option.id && next.label.trim() === option.label.trim()));
+  const countedOnly = version.kind === 'EqualityMonitoring';
   const gone = new Set(
-    form.questions.filter((question) => !version.content.questions.some((next) => same(question, next))).map((question) => `answers.${question.id}`),
+    form.questions
+      .filter((question) => countedOnly || !version.content.questions.some((next) => same(question, next)))
+      .map((question) => `answers.${question.id}`),
   );
-  const readsGone = (automation: Automation) => automation.conditions?.rules.some((rule) => gone.has(rule.fact)) ?? false;
+  const goes = ({ conditions, trigger }: Automation) =>
+    (conditions?.rules.some((rule) => gone.has(rule.fact)) ?? false) ||
+    (countedOnly && trigger.type === 'QuestionnaireCompleted' && trigger.questionnaireId === formId);
   const swapped = useLibraryVersion(workflow, formId, version);
   return {
-    workflow: { ...swapped, automations: swapped.automations.filter((automation) => !readsGone(automation)) },
-    removed: workflow.automations.filter(readsGone).map((automation) => automation.name),
+    workflow: { ...swapped, automations: swapped.automations.filter((automation) => !goes(automation)) },
+    removed: workflow.automations.filter(goes).map((automation) => automation.name),
   };
 }
 

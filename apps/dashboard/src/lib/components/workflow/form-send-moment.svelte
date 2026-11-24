@@ -10,8 +10,8 @@
   // When a form is sent, chosen on the form itself (workflow-engine.md section 7, Forms): when the candidate applies, when
   // they enter a stage, some days after they enter it, or only when someone sends it by hand from the candidate's page.
   // Each choice writes the automation behind it, so the Pipeline card of that stage says "Sends <form>", and the Info button
-  // beside the choice says so (W14). A form an
-  // automation sends that does more than send it is not rewritten here: the line says so and links to that automation.
+  // beside the choice says so (W14). A form an automation sends that does more than send it is not rewritten here: the line
+  // says so and links to that automation.
   let {
     workflow = $bindable(),
     formId,

@@ -27,7 +27,7 @@
     label?: string;
     /** Shown as a count pill after the title (T4). */
     count?: number;
-    /** A quiet label after the title, such as where the panel's content comes from. Words, never a control. */
+    /** A quiet label after the title, such as where the panel's content comes from; under it on a phone with no room. Words, never a control. */
     mark?: Snippet;
     /** A list's search and filters, on the header's left after any title. Containers query it as `@container/panel`. */
     tools?: Snippet;
@@ -54,7 +54,13 @@
 >
   {#if headed}
     <!-- The header height follows the screen size (section 5), not the panel's width, so panels in a row line up. -->
-    <header class="@container/panel relative flex h-14 shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 max-md:h-13 max-md:px-4">
+    <header
+      class={cn(
+        '@container/panel relative flex h-14 shrink-0 items-center gap-2 border-b border-border-subtle px-4.5 max-md:h-13 max-md:px-4',
+        // On a phone a mark goes under the title rather than cutting it (F5).
+        mark && 'max-md:h-auto max-md:min-h-13 max-md:flex-wrap max-md:gap-y-1 max-md:py-2.5',
+      )}
+    >
       {#if title}
         <h2 {id} class="flex min-w-0 text-heading"><TruncatedText text={title} /></h2>
       {:else if label}

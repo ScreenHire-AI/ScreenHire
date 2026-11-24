@@ -1,5 +1,5 @@
 // A questionnaire's named sections in the form builder (docs/architecture/workflow-engine.md §4): section rows inside
-// the one list of questions, so the builder stays one panel with one open question and one drag zone. A section row
+// the one list of questions, so the builder stays one panel with one drag zone. A section row
 // marks where its section starts; the questions after it, up to the next section row, are its questions. The hiring
 // definition keeps the questions as one flat list and the sections as ids beside it, and these functions keep the two in
 // step: the flat list is always rebuilt from the sections, in order.

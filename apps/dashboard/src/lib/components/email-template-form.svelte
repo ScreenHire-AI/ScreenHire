@@ -25,8 +25,8 @@
   // An email template's wording in the email template editor (design system section 7, builder; A8): Edit shows a name
   // for the organization's own, the subject and the rich-text message in Liquid over a fixed list of variables, each a
   // chip in the subject and in the message (docs/architecture/rich-text.md); Preview shows the
-  // email as the sample candidate receives it, with a test send to yourself. Side by side where both fit, else the Edit /
-  // Preview switch, with the window button that opens the preview in a second window (`onpopout`).
+  // email as the sample candidate receives it, with a test send to yourself. One at a time behind the Edit / Preview
+  // switch, and the Preview panel's Open in a new window opens the preview in a second window (`onpopout`).
   // The form stays mounted in both, so the page's Save (`form={formId}`) submits it from either; a submit with problems
   // goes back to Edit, where they show. Without `editable` the wording reads as labels and values (E3). The API checks
   // the Liquid again and says what is wrong.
