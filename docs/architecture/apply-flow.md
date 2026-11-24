@@ -264,12 +264,29 @@ dropped. Steps are `details`, `page-1` to `page-N` and `review`; each page's hea
 ("Questions" for an automatic page). Each page posts the ids it rendered (`pageQuestions`), and the server reads only
 those, so an answer is never wiped when the pages change between showing a page and posting it.
 
-**Progress.** `PageProgress` (`packages/ui/src/questions`, rendered on the server with no JavaScript) shows one bar and
-"40% done". The percentage is `progressPercent(step, steps)` in `model.ts`: the step on screen over the steps plus one,
-rounded, because sending is the last step. A form of four steps reads 20, 40, 60 and 80% done, so the review never says
-100% before anything is sent. The bar is a native `<progress>`, so its fill needs no inline style under the content
-security policy, and it is hidden from screen readers, which read the same "40% done" as everyone else. The review lists
+**Progress.** `PageProgress` (`packages/ui/src/questions`, rendered on the server with no JavaScript) is one row above the
+form: the bar, "40% done" at its end, and a hairline under both. The percentage is `progressPercent(step, steps)` in
+`model.ts`: the step on screen over the steps plus one, rounded, because sending is the last step. The review has nothing
+left to fill in and nothing sent yet, so it reads "Ready to send" with the bar full (`review`): the details and two pages
+read 20, 40 and 60% done and their review reads "Ready to send". Nothing ever reads 100% done. Only the review gets those
+words: a follow-up has none, so its last page keeps its percentage (67% of two pages). The review lists
 the answers page by page, each with its own Change; a page opened from the review has "Back to review" as its primary.
+
+- The fill is an outer `<svg>` whose `width` attribute is the percentage. An attribute needs no inline style under the
+  content security policy, and an outer `<svg>` has a box of its own, which a `view-transition-name` needs. The fill of a
+  native `<progress>` is a pseudo-element and cannot have one. The bar is hidden from screen readers, which read the same
+  words as everyone else.
+- It fills with the employer's colour (`candidate-cta`) on the neutral track, edged in `candidate-brand-ui`, so a pale colour
+  saved before the contrast check (branding.md section 2) still shows where the fill ends. No words sit on it.
+- On a phone (under 640px) the row stays at the top of the window while the questions scroll under it, by
+  `position: sticky` on `.apply-progress`, a child of `main`. The page's `scroll-padding-top` is the row's 48px and
+  96px for the label, hint and error above a text field, so a focused field the browser scrolls to is never under the row
+  (WCAG 2.4.11), and a text field that the error summary opens shows its label too. In the widget the frame is as tall as
+  its page, so there is nothing to stick to and the row keeps its place. The dashboard's preview does not stick: the window
+  there is the app's.
+- A sheen crosses the fill once when a step opens, 300ms in, over 800ms. It never loops (WCAG 2.2.2).
+- With reduced motion nothing grows and no sheen is drawn. Reduce motion in the dashboard's Preferences does the same in the
+  preview. With forced colours the bar takes the system's edge and highlight.
 
 **Time to apply.** The job page says "Takes about 4 minutes" under its Apply link, from `applyMinutes` on the public job
 (`ApplicationForm.EstimatedMinutes`): a minute for the details (name, email, phone and the resume), then 10 seconds for
@@ -280,7 +297,8 @@ file, rounded up to whole minutes and never under 2.
 
 - Every careers page opts in to cross-document view transitions in `src/styles/global.css` (`@view-transition {
   navigation: auto; }`), so the form (`apply-step`) slides in from the right as the last step leaves, the header holds
-  still and the bar (`apply-progress`) cross-fades. The rule sits inside `prefers-reduced-motion: no-preference` and
+  still and the bar's fill (`apply-progress-fill`) grows from the last step's width to this one's over 300ms, while the words
+  in its row (`apply-progress`) cross-fade. In the dashboard's preview the same fill grows with a CSS transition. The rule sits inside `prefers-reduced-motion: no-preference` and
   `scripting: enabled`, so reduced motion gets a plain page load, as does a browser without view transitions. JavaScript
   off gets one too: Chromium with scripting off starts a cross-document transition and never ends it, which leaves every
   click on the new page caught by the transition's layer. The transition itself runs no script. The follow-up page and the step

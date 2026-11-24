@@ -1,7 +1,7 @@
 ---
 // How far along the apply form the candidate is (apply-flow.md §7): the shared progress bar and "40% done", rendered on
-// the server with no JavaScript, the same component the dashboard's preview shows. A line of progress, not navigation,
-// so it is no landmark.
+// the server with no JavaScript, the same component the dashboard's preview shows. The form's last step is always its
+// review, which says "Ready to send". A line of progress, not navigation, so it is no landmark.
 import { PageProgress } from '@screenhire/ui/questions';
 
 interface Props {
@@ -14,5 +14,5 @@ const { step, steps } = Astro.props;
 ---
 
 <div class="apply-progress">
-  <PageProgress step={step} steps={steps} />
+  <PageProgress step={step} steps={steps} review={step === steps} />
 </div>

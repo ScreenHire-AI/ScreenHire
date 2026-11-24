@@ -43,6 +43,7 @@ internal static class ApplySteps
         await frame.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" }).ClickAsync();
 
         await Expect(frame.Locator("#step-heading")).ToHaveTextAsync("Questions");
+        await Expect(frame.Locator("[data-page-progress]")).ToHaveTextAsync("50% done");
         await frame.GetByRole(AriaRole.Group, new() { Name = "Do you have the right to work in the country this job is in?" })
             .GetByLabel("Yes").CheckAsync();
         await frame.GetByRole(AriaRole.Group, new() { Name = "How many years have you worked as a software engineer?" })
@@ -52,6 +53,7 @@ internal static class ApplySteps
         await frame.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
 
         await Expect(frame.Locator("#step-heading")).ToHaveTextAsync("Review and send");
+        await Expect(frame.Locator("[data-page-progress]")).ToHaveTextAsync("Ready to send");
         await Expect(frame.GetByRole(AriaRole.Main)).ToContainTextAsync("Casey CV.pdf");
         await Expect(frame.GetByRole(AriaRole.Main)).ToContainTextAsync("3 to 5");
         // The job wants AI use disclosed: sending without an answer asks for one.

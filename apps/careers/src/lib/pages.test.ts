@@ -1,4 +1,4 @@
-import { checkFor, DEFAULT_QUESTIONS_PER_PAGE, progressPercent, questionPages, type QuestionSpec } from '@screenhire/ui/questions/model';
+import { checkFor, DEFAULT_QUESTIONS_PER_PAGE, progressLabel, progressPercent, questionPages, type QuestionSpec } from '@screenhire/ui/questions/model';
 import { describe, expect, it } from 'vitest';
 
 // The shared paging rules (packages/ui) the careers pages and the dashboard's preview both follow.
@@ -46,7 +46,7 @@ describe('the default page size', () => {
 });
 
 describe('progressPercent', () => {
-  it('counts the step on screen as reached and the sent form as the last step, so the review stays short of 100', () => {
+  it('counts the step on screen as reached and the sent form as the last step, so the last step stays short of 100', () => {
     expect([1, 2, 3, 4].map((step) => progressPercent(step, 4))).toEqual([20, 40, 60, 80]);
     expect([1, 2].map((step) => progressPercent(step, 2))).toEqual([33, 67]);
     expect(progressPercent(1, 1)).toBe(50);
@@ -56,6 +56,14 @@ describe('progressPercent', () => {
     expect(progressPercent(0, 4)).toBe(20);
     expect(progressPercent(9, 4)).toBe(80);
     expect(progressPercent(1, 0)).toBe(50);
+  });
+});
+
+describe('progressLabel', () => {
+  it('says the percentage on every step but the review, the last page of a follow-up included', () => {
+    expect([1, 2, 3].map((step) => progressLabel(step, 4))).toEqual(['20% done', '40% done', '60% done']);
+    expect(progressLabel(2, 2)).toBe('67% done');
+    expect(progressLabel(4, 4, true)).toBe('Ready to send');
   });
 });
 

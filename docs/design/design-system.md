@@ -580,6 +580,7 @@ it instead of showing white on a dark page.
 | `candidate-foreground` / `candidate-muted-foreground` | `#231F1A` / `#6A5D4D` | `#F2EDE6` / `#B3ABA0` |
 | `candidate-chip` | `#F3E7D6` (text `#5A4630`) | `#2E2A25` |
 | `candidate-cta` | `#C2462F` (white text, 4.98:1) | `#F08A6E` (text `#1A1310`) |
+| `candidate-sheen` (a custom property for the gradient, no utility class) | white at 45% | the same |
 
 `candidate-input-border` is the edge of a field, a file control and the drop area, and of a secondary button, at least 3:1 on `candidate-surface` and `candidate-background` in both themes (3.9:1 and 3.6:1 light, 3.7:1 and 4.0:1 dark). `candidate-border` stays the quiet edge of cards.
 
@@ -640,8 +641,13 @@ weight and tracking. The family is its own class: `font-display` for the two tit
 
 Titles take the employer's heading font where one is set (section 18), otherwise Bricolage Grotesque. Base 15px, display 30px, inputs 16px (no zoom on iOS), hints under a field 13px: `text-candidate-body`,
 `text-candidate-input` and `text-candidate-hint` in `packages/ui`. A form of several pages shows `PageProgress`
-(`packages/ui/src/questions`) above its fields: one bar and "40% done" in the hint size, semibold, where sending counts as
-the last step, so the review never reads 100% (apply-flow.md section 7); each page's heading is its section's name. An
+(`packages/ui/src/questions`) above its fields: one 48px row with the bar, "40% done" at its end in the hint size, semibold,
+and a hairline under both. Sending counts as the last step, so no page reads 100% done, and the review reads "Ready to send"
+with the bar full. The fill is the employer's colour on the neutral track, and no words sit on it. Under 640px the row
+stays at the top of the window, with the scroll padding that keeps a focused field, and a text field's label, clear of it. The fill
+grows from step to step and a soft sheen (`--candidate-sheen`) crosses it once, the page's one deliberate motion moment (the
+owner's sixth walk-through, 2026-11-24); it never loops, and reduced motion has neither (apply-flow.md section 7). Each
+page's heading is its section's name. An
 apply form without sections asks four questions a page by default. Marketing type is section 22.4. The dashboard's
 questionnaire preview shows the candidate base with `text-candidate-body`.
 
@@ -678,7 +684,7 @@ The careers and marketing pages follow W1, W2, W3, W7 and A10 as well, with thes
 - The board's heading is "Open roles", because the header already names the employer, over a lede of one sentence.
 - A message about what just happened is `Notice`: an icon, the message, and one quieter line for what to do next. A page
   never builds its own bordered block for it.
-- Every step of a form names itself in a visible heading, so the progress line ("40% done") is never the only clue. The review step says
+- Every step of a form names itself in a visible heading, so the progress row ("40% done") is never the only clue. The review step says
   who receives the answers and when.
 - A page that cannot open (an unknown, expired or closed link) says what happened in one sentence and who to contact:
   the hiring team at the employer, by the address they write from. "Open it again" is never the only advice.
@@ -1187,7 +1193,8 @@ page that holds their settings now, for the person's role, with their query stri
   Reduce motion on Your account > Preferences, for this browser: it puts `.reduce-motion` on the page, which the
   `motion-reduce` and `motion-safe` variants read as well as the system setting (`app.css`).
 - Careers pages move from page to page with cross-document view transitions and no script: a form step leaves in 160ms
-  and the next slides in from 16px to the right in 220ms while the header holds still. The rule lives inside
+  and the next slides in from 16px to the right in 220ms while the header holds still and the progress bar's fill grows over
+  300ms. The rule lives inside
   `prefers-reduced-motion: no-preference` and `scripting: enabled`, so reduced motion and JavaScript off get a plain
   page load.
 - axe runs in component tests and Playwright; manual NVDA and VoiceOver passes per release; an external audit before
