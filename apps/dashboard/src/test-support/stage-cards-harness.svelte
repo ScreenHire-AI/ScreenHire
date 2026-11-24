@@ -18,7 +18,7 @@
     errors?: DefinitionError[];
     onopen?: (stageId: string) => void;
     onscorecard?: (index: number) => void;
-    onautomations?: (stageId: string) => void;
+    onautomations?: (stageId: string | null, ids: readonly string[]) => void;
   } = $props();
 
   let edited = $state(untrack(() => workflow));
@@ -29,7 +29,7 @@
   {errors}
   onopen={(id) => onopen?.(id)}
   onscorecard={(index) => onscorecard?.(index)}
-  onautomations={(id) => onautomations?.(id)}
+  onautomations={(id, ids) => onautomations?.(id, ids)}
   automationHref={(id) => `?tab=automations&show=${id}`}
   questionsHref="?tab=forms"
 />

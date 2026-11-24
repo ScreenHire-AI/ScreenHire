@@ -168,14 +168,16 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
 
-        // The Pipeline tab counts it on the first stage, and its list names it by its own name.
+        // The Pipeline tab counts it on the first stage, and its chip goes to the stage's automations on the Automations tab: the one
+        // automation itself, or, where the stage has several (a must-have question adds its own), the list that holds this one.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
         await Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Group, new() { Name = "Stage 1: Applied" })
-            .GetByRole(AriaRole.Button, new() { NameRegex = new Regex("automations? at Applied$") }).ClickAsync();
-        var applied = Page.GetByRole(AriaRole.Dialog, new() { NameRegex = new Regex("automations? at Applied$") });
-        await Expect(applied.GetByRole(AriaRole.Link, new() { Name = "Route for review" })).ToBeVisibleAsync();
+            .GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^\\d+ automations? at Applied$") }).ClickAsync();
+        var applied = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Applied" });
+        await Expect(applied.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Route for review") })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(applied).ToBeHiddenAsync();
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" })).ToHaveAttributeAsync("aria-selected", "true");
 
         // The graph is the same workflow.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();
@@ -381,7 +383,11 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Trial shift" });
         await sheet.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("Paid trial shift");
         await sheet.GetByRole(AriaRole.Radio, new() { Name = "3 days" }).ClickAsync();
-        await Expect(sheet).ToContainTextAsync("After that they show as Overdue. Nothing happens to the candidate.");
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "About Respond within" }).ClickAsync();
+        await Expect(Page.Locator("[data-info]")).ToContainTextAsync("After that they show as Overdue. Nothing happens to the candidate.");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Page.Locator("[data-info]")).ToHaveCountAsync(0);
+        await Expect(sheet).ToBeVisibleAsync();
         await Expect(sheet.Locator("[data-when-overdue]")).ToContainTextAsync("Tell the team");
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-template-stage-sheet-light");
@@ -389,9 +395,26 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(sheet).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" })).ToContainTextAsync("Respond within 3 days");
 
+        // A stage's sheet names its automations, and a name lands on that automation, on the tab where automations are edited.
+        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" }).GetByRole(AriaRole.Button, new() { Name = "Applied", Exact = true }).ClickAsync();
+        var listed = Page.GetByRole(AriaRole.Dialog, new() { Name = "Applied" }).GetByRole(AriaRole.Region, new() { Name = "Automations" }).GetByRole(AriaRole.Link);
+        await Expect(listed.Last).ToHaveTextAsync("Edit in Automations");
+        var automationName = (await listed.First.InnerTextAsync()).Trim();
+        await listed.First.ClickAsync();
+        var shown = Page.GetByRole(AriaRole.Dialog, new() { Name = automationName, Exact = true });
+        await Expect(shown.GetByRole(AriaRole.Tab, new() { Name = "Sentence" })).ToBeVisibleAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(shown).ToBeHiddenAsync();
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" })).ToHaveAttributeAsync("aria-selected", "true");
+
+        // The link to the whole tab takes the focus there, since the card that opened the sheet is hidden with its tab.
+        await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" }).GetByRole(AriaRole.Button, new() { Name = "Applied", Exact = true }).ClickAsync();
+        await Page.GetByRole(AriaRole.Dialog, new() { Name = "Applied" }).GetByRole(AriaRole.Link, new() { Name = "Edit in Automations" }).ClickAsync();
+        await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" })).ToBeFocusedAsync();
+
         // An automation with a blank tag pauses the Try it tab, with the fix inline.
-        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Pipeline" }).GetByRole(AriaRole.Button, new() { Name = "Actions for Applied" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Add an automation" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" }).GetByRole(AriaRole.Button, new() { Name = "Add an automation to Applied" }).ClickAsync();
         await Page.GetByRole(AriaRole.Dialog, new() { Name = "Add an automation" }).GetByRole(AriaRole.Button, new() { Name = "Write your own" }).ClickAsync();
         var drawer = Page.GetByRole(AriaRole.Dialog);
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("Welcome tag");
@@ -802,9 +825,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save draft" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "Saved version 1." })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
-        await Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Button, new() { Name = "1 automation at Applied" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Dialog, new() { Name = "1 automation at Applied" }).GetByRole(AriaRole.Link, new() { Name = "Fast-track referrals" })).ToBeVisibleAsync();
-        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Button, new() { Name = "1 automation at Applied" })).ToBeVisibleAsync();
 
         // The map from a wide desktop's width to a tablet's, and on a phone, which has the list in its place. The map opens at full size.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" }).ClickAsync();

@@ -1,18 +1,12 @@
-// The Pipeline tab's short facts (design system section 11, Stage cards and Stage flow): each stage read back as a few
-// lines, one fact a line, so a recruiter sees what happens at a stage without reading sentences. Pure functions over
-// the workflow, so the words are tested without a page. Generated text never names a person: a reviewer is "the team".
+// The Pipeline tab's counts and names (design system section 11, Stage chips and Stage sheet): what happens at a stage, so a
+// recruiter sees it without reading sentences. Pure functions over the workflow, so the words are tested without a page.
+// Generated text never names a person: a reviewer is "the team".
 import type { Automation, AutomationAction, HiringWorkflow, WorkflowStage } from '@screenhire/api-client';
 import { ruleShort } from '#lib/automation-sentence.js';
 import { emailTemplateNames, followUpName, followUpsOf, isTerminal, placeOf, reminderId, timeLimitLabel } from '#lib/workflow.js';
 
-export type StageFactKind = 'limit' | 'meeting' | 'email' | 'form' | 'automation' | 'questions';
-
-export type StageFact = {
-  kind: StageFactKind;
-  text: string;
-  /** The automation the line stands for, so it can link to it on the Automations tab. */
-  automationId?: string;
-};
+/** One automation's line in the stage sheet: its words, and the automation it links to on the Automations tab. */
+export type StageFact = { text: string; automationId: string };
 
 /** "Respond within 3 days": how the time limit reads wherever it shows. */
 export const respondWithin = (days: number): string => `Respond within ${timeLimitLabel(days)}`;
@@ -114,49 +108,11 @@ const onlyForms = (automation: Automation) => automation.actions.length > 0 && a
 const placedAt = (workflow: HiringWorkflow, place: string): Automation[] =>
   workflow.automations.filter((automation) => isOn(automation) && placeOf(workflow, automation) === place);
 
-/**
- * A stage's facts, one a line, in one order: the time limit, the meeting when its name is not the stage's, each email and
- * form it sends, each other automation as a short label, then (on the first stage) how many questions the apply form
- * asks. The stage's own reminder is the time limit's line, so it is not listed again (W7); an automation that only sends
- * emails is its email lines, and one that only sends forms its form lines ("Sends "Screening questionnaire"").
- */
-export function stageFacts(
-  workflow: HiringWorkflow,
-  stage: WorkflowStage,
-  templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
-): StageFact[] {
-  const facts: StageFact[] = [];
-  const open = !isTerminal(stage.kind);
-  if (open && stage.slaDays) facts.push({ kind: 'limit', text: respondWithin(stage.slaDays) });
-  const meeting = stage.meetingName?.trim();
-  if (meeting && meeting.toLocaleLowerCase() !== stage.name.trim().toLocaleLowerCase()) facts.push({ kind: 'meeting', text: `Meeting: ${meeting}` });
-
-  const here = placedAt(workflow, stage.id).filter((automation) => automation.id !== reminderId(stage.id));
-  for (const automation of here) {
-    const plain = (automation.conditions?.rules.length ?? 0) === 0 && triggerPrefix(automation, workflow) === null;
-    if (plain && (onlyEmails(automation) || onlyForms(automation))) {
-      const kind = onlyEmails(automation) ? 'email' : 'form';
-      for (const action of automation.actions) facts.push({ kind, text: upperFirst(actionShort(action, workflow, templateNames)), automationId: automation.id });
-    } else {
-      facts.push({ kind: 'automation', text: automationLabel(automation, workflow, templateNames), automationId: automation.id });
-    }
-  }
-
-  const questions = workflow.questionnaire.questions.length;
-  if (stage.id === workflow.stages[0]?.id && questions > 0) facts.push({ kind: 'questions', text: `Asks ${questions} ${questions === 1 ? 'question' : 'questions'}` });
-  return facts;
-}
-
-/** The automations that belong to no stage (a manual run, any stage's time limit), each as its short label. */
-export function anyStageFacts(workflow: HiringWorkflow, templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined)): StageFact[] {
-  return placedAt(workflow, 'any').map((automation) => ({ kind: 'automation', text: automationLabel(automation, workflow, templateNames), automationId: automation.id }));
-}
-
 /** When a stage's time limit passes, what the team is asked to do: the short labels of its SlaBreached automations. */
 export function whenOverdue(workflow: HiringWorkflow, stageId: string, templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined)): StageFact[] {
   return workflow.automations
     .filter((automation) => isOn(automation) && automation.trigger.type === 'SlaBreached' && (automation.trigger.stageId ?? stageId) === stageId)
-    .map((automation) => ({ kind: 'automation', text: automationLabel(automation, workflow, templateNames, false), automationId: automation.id }));
+    .map((automation) => ({ text: automationLabel(automation, workflow, templateNames, false), automationId: automation.id }));
 }
 
 /** One automation in a stage's list: its own name, which a person gave it and can change. */
@@ -184,6 +140,20 @@ export type StageChipCounts = {
 /** An automation's own name; one with none yet reads as its short label, so a list item is never blank. */
 function ownName(automation: Automation, workflow: HiringWorkflow, templateNames: ReadonlyMap<string, string>): string {
   return automation.name.trim() || automationLabel(automation, workflow, templateNames);
+}
+
+/**
+ * The stage sheet's list: every automation placed at the stage, by its own name, in the workflow's order. One that is off
+ * says so, because the list links to where it is turned on. The sheet leaves out what its When overdue lists (W7).
+ */
+export function stageAutomations(
+  workflow: HiringWorkflow,
+  stage: WorkflowStage,
+  templateNames: ReadonlyMap<string, string> = emailTemplateNames(undefined),
+): StageFact[] {
+  return workflow.automations
+    .filter((automation) => placeOf(workflow, automation) === stage.id)
+    .map((automation) => ({ text: `${ownName(automation, workflow, templateNames)}${isOn(automation) ? '' : ', off'}`, automationId: automation.id }));
 }
 
 function chipsOf(workflow: HiringWorkflow, here: readonly Automation[], templateNames: ReadonlyMap<string, string>): Pick<StageChipCounts, 'automations' | 'emails' | 'forms'> {
