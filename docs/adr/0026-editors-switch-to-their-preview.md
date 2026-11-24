@@ -29,3 +29,6 @@ An edit no longer shows at once unless the person opens the preview or its windo
 
 Amended 2026-11-07: Branding's panels sit in rows, so its edit pane takes the work area's width through the `wide` option
 of `EditPreviewLayout`. It is one layout with one option, and every other editor keeps the 688px form column.
+
+Amended 2026-11-24: the window opens from the Preview panel's header, with its words, and the switch holds exactly two choices
+(the owner's walk-through). The window belongs to the preview, so its button is there.

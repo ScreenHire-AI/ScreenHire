@@ -9,9 +9,9 @@ using ScreenHire.Infrastructure.Tenancy;
 namespace ScreenHire.E2E;
 
 /// <summary>
-/// The form builder on a job's own workflow (design system section 11, A7, A8): adding, duplicating, requiring and
-/// reordering and closing questions with the controls on an open question's line at one height, the preview a step at a time at phone width and in its own window, and a File question a candidate then answers
-/// on the careers apply page. Each test signs in as a new person with a new organization and a published job.
+/// The form builder on a job's own workflow (design system section 11, A7, A8, S11): adding, duplicating, requiring and
+/// reordering questions, rows whose header never moves as they open and close, the preview a step at a time at phone width
+/// and in its own window, and a File question a candidate then answers on the careers apply page. Each test signs in as a new person with a new organization and a published job.
 /// </summary>
 public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -25,8 +25,8 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
     private static readonly byte[] Pdf = Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n");
     private static readonly string[] Gb = ["GB"];
 
-    /// <summary>The answer kinds the header line is measured with, ending on the question's own kind.</summary>
-    private static readonly string[] AnswerKinds = ["File", "Choice", "Link", "Short text", "Yes or no"];
+    /// <summary>A phone, a laptop and a wide screen (S9).</summary>
+    private static readonly (int Width, int Height)[] Widths = [(390, 844), (1440, 1000), (2560, 1300)];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -43,7 +43,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await AddQuestionAsync("Short text");
         await Expect(OpenText(1)).ToBeFocusedAsync();
         await OpenText(1).FillAsync(Notice);
-        var required = questions.GetByRole(AriaRole.Switch, new() { Name = "Required" });
+        var required = Row(1).GetByRole(AriaRole.Switch, new() { Name = "Required" });
         await required.ClickAsync();
         await Expect(required).ToHaveAttributeAsync("aria-checked", "true");
         // Duplicate is in the row's menu (L3).
@@ -51,26 +51,18 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Duplicate" }).ClickAsync();
         await Expect(OpenText(2)).ToBeFocusedAsync();
         await Expect(OpenText(2)).ToHaveValueAsync(Notice);
-        await Expect(questions.GetByRole(AriaRole.Switch, new() { Name = "Required" })).ToHaveAttributeAsync("aria-checked", "true");
+        await Expect(Row(2).GetByRole(AriaRole.Switch, new() { Name = "Required" })).ToHaveAttributeAsync("aria-checked", "true");
         await OpenText(2).FillAsync(Start);
         await AddQuestionAsync("Yes or no");
         await OpenText(3).FillAsync(RightToWork);
 
-        // The open question's header line holds its text, its answer kind, its row menu and Done, all one height on one
-        // row, whatever the kind (the owner's walk-through, 2026-11-22). Done there is the question's one Done.
-        foreach (var kind in AnswerKinds)
-        {
-            await questions.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Answer: ") }).ClickAsync();
-            // The open question's menu ticks its kind, so its items are radio items.
-            await Page.GetByRole(AriaRole.Menuitemradio, new() { Name = kind, Exact = true }).ClickAsync();
-            await Expect(questions.GetByRole(AriaRole.Button, new() { Name = $"Answer: {kind}", Exact = true })).ToBeVisibleAsync();
-            await ExpectHeaderLineSharesOneHeightAsync();
-        }
-        await Expect(questions.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true })).ToHaveCountAsync(1);
-        var third = questions.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Edit question 3: ") });
-        await questions.Locator("[data-open] [data-question-header]").GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }).ClickAsync();
+        // Each row stays open as the next is added, and Collapse all closes them together.
+        await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(3);
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, "dashboard-form-builder-open");
+        await questions.GetByRole(AriaRole.Button, new() { Name = "Collapse all" }).ClickAsync();
         await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(0);
-        await Expect(third).ToBeFocusedAsync();
+        await Expect(questions.GetByRole(AriaRole.Button, new() { Name = "Expand all" })).ToBeFocusedAsync();
         await Expect(questions.GetByRole(AriaRole.Button, new() { Name = $"Edit question 1: {Notice}" })).ToContainTextAsync("Required");
         await ExpectOrderAsync(Notice, Start, RightToWork);
         await ExpectNoAccessibilityViolationsAsync();
@@ -99,8 +91,9 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, "dashboard-form-builder-preview");
 
-        // The window icon opens the preview in a second window, which follows each edit.
-        var popup = await Page.RunAndWaitForPopupAsync(() => Page.GetByRole(AriaRole.Button, new() { Name = "Open in a new window" }).ClickAsync());
+        // The Preview panel's header opens the preview in a second window, which follows each edit. The switch is two choices.
+        await Expect(Page.GetByRole(AriaRole.Group, new() { Name = "View" }).GetByRole(AriaRole.Button)).ToHaveTextAsync(["Edit", "Preview"]);
+        var popup = await Page.RunAndWaitForPopupAsync(() => Region("Preview").GetByRole(AriaRole.Button, new() { Name = "Open in a new window" }).ClickAsync());
         await popup.GetByRole(AriaRole.Button, new() { Name = "Next" }).ClickAsync();
         await Expect(popup.GetByRole(AriaRole.Textbox, new() { Name = Start })).ToBeVisibleAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Edit", Exact = true }).ClickAsync();
@@ -109,6 +102,67 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
         await Expect(popup.GetByRole(AriaRole.Textbox, new() { Name = "What date could you start?" })).ToBeVisibleAsync();
         await Expect(popup.GetByRole(AriaRole.Textbox, new() { Name = Start })).ToHaveCountAsync(0);
         await popup.CloseAsync();
+    }
+
+    [Fact]
+    public async Task A_questions_header_never_moves_as_it_opens_and_closes_from_its_header_or_Escape_with_the_focus_back_on_it()
+    {
+        var job = await ArrangeAsync();
+        await Page.SetViewportSizeAsync(1440, 1000);
+        await SignInAsync(job.Email);
+        await OpenQuestionnaireAsync(job.JobId);
+        var questions = Region("Questions");
+        // One row with a line under its header while it is closed (its options), and one without; the long text wraps on a phone.
+        await AddQuestionAsync("Choice");
+        await OpenText(1).FillAsync("Which of these shifts could you work in an ordinary week, including the early ones?");
+        await Row(1).GetByRole(AriaRole.Switch, new() { Name = "Required" }).ClickAsync();
+        await AddQuestionAsync("Short text");
+        await OpenText(2).FillAsync(Notice);
+        // Moving the window is what is under test, not the animation: with reduced motion a row opens at once (A17).
+        await Page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+
+        foreach (var (width, height) in Widths)
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var collapse = questions.GetByRole(AriaRole.Button, new() { Name = "Collapse all" });
+            await collapse.ClickAsync();
+            await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(0);
+
+            foreach (var position in new[] { 1, 2 })
+            {
+                var header = HeaderButton(position);
+                await header.ScrollIntoViewIfNeededAsync();
+                var strip = questions.Locator("[data-question-header]").Nth(position - 1);
+                var closed = await PartsAsync(strip);
+
+                // A press on the chevron's side of the header opens it: the whole strip is the one control.
+                var box = (await strip.BoundingBoxAsync())!;
+                await strip.ClickAsync(new() { Position = new() { X = box.Width - 24, Y = box.Height / 2 } });
+                await Expect(header).ToHaveAttributeAsync("aria-expanded", "true");
+                (await PartsAsync(strip)).Should().BeEquivalentTo(closed, options => options.WithStrictOrdering(), "the header of question {0} stays put at {1}px", position, width);
+                await ExpectNoSidewaysScrollAsync(width);
+
+                // Escape closes it from a field inside it, and a press on its header closes it; either way the header has the focus.
+                await OpenText(position).FocusAsync();
+                await Page.Keyboard.PressAsync("Escape");
+                await Expect(header).ToHaveAttributeAsync("aria-expanded", "false");
+                await Expect(header).ToBeFocusedAsync();
+                (await PartsAsync(strip)).Should().BeEquivalentTo(closed, options => options.WithStrictOrdering(), "the header of question {0} is back where it was at {1}px", position, width);
+                await Page.Keyboard.PressAsync("Enter");
+                await Expect(header).ToHaveAttributeAsync("aria-expanded", "true");
+                await Expect(header).ToBeFocusedAsync();
+                await header.ClickAsync();
+                await Expect(header).ToHaveAttributeAsync("aria-expanded", "false");
+                await Expect(header).ToBeFocusedAsync();
+            }
+
+            await questions.GetByRole(AriaRole.Button, new() { Name = "Expand all" }).ClickAsync();
+            await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(2);
+            await Expect(collapse).ToBeFocusedAsync();
+            await ExpectNoSidewaysScrollAsync(width);
+            await ExpectNoAccessibilityViolationsAsync();
+            await SaveScreenshotAsync(Page, $"dashboard-form-builder-rows-{width}");
+        }
     }
 
     [Fact]
@@ -121,7 +175,7 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 
         await AddQuestionAsync("File");
         await OpenText(1).FillAsync("A work sample");
-        await Region("Questions").GetByRole(AriaRole.Switch, new() { Name = "Required" }).ClickAsync();
+        await Row(1).GetByRole(AriaRole.Switch, new() { Name = "Required" }).ClickAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save pipeline" }).ClickAsync();
         await Expect(Page.GetByText(new Regex(@"is now version 2\.$"))).ToBeVisibleAsync();
 
@@ -210,36 +264,26 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
 
     private ILocator Region(string name) => Page.GetByRole(AriaRole.Region, new() { Name = name, Exact = true });
 
-    // The open question's text box. Only one question is open at a time.
+    // An open question's text box, by its place in the list: several may be open.
     private ILocator OpenText(int position) =>
         Region("Questions").GetByRole(AriaRole.Textbox, new() { Name = $"Question {position}", Exact = true });
 
-    // The open question's text, answer kind, row menu and Done: one height, one row, as the browser lays them out. A new
-    // kind changes the row's height, and the list's reorder animation scales the rows while it settles, so it settles first.
-    private async Task ExpectHeaderLineSharesOneHeightAsync()
-    {
-        await Page.WaitForFunctionAsync(
-            "() => { const list = document.querySelector('[data-question-row][data-open]')?.closest('ul, ol'); return !!list && list.getAnimations({ subtree: true }).length === 0; }");
-        var header = Region("Questions").Locator("[data-open] [data-question-header]");
-        ILocator[] controls =
-        [
-            header.GetByRole(AriaRole.Textbox),
-            header.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Answer: ") }),
-            header.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Actions for ") }),
-            header.GetByRole(AriaRole.Button, new() { Name = "Done", Exact = true }),
-        ];
-        var boxes = new List<LocatorBoundingBoxResult>();
-        foreach (var control in controls)
-        {
-            boxes.Add((await control.BoundingBoxAsync())!);
-        }
+    private ILocator Row(int position) =>
+        Region("Questions").Locator("[data-question-row]").Filter(new() { Has = Page.GetByRole(AriaRole.Button, new() { NameRegex = new Regex($"^Edit question {position}: ") }) });
 
-        boxes.Should().AllSatisfy(box =>
-        {
-            box.Height.Should().BeApproximately(boxes[0].Height, 0.5f);
-            box.Y.Should().BeApproximately(boxes[0].Y, 0.5f);
-        });
-    }
+    private ILocator HeaderButton(int position) =>
+        Region("Questions").GetByRole(AriaRole.Button, new() { NameRegex = new Regex($"^Edit question {position}: ") });
+
+    // The strip and everything a person sees in it (the grip, the question, its badges, the row menu and the chevron's box), as
+    // the browser lays them out, in page coordinates so a scroll to what opened counts for nothing. The chevron turns inside its box.
+    private static async Task<double[][]> PartsAsync(ILocator strip) =>
+        await strip.EvaluateAsync<double[][]>(
+            "strip => [strip, ...strip.querySelectorAll('[data-reorder-grip], [data-question-edit], [data-question-edit] > span, [data-slot=badge], [aria-haspopup=menu], [data-question-chevron]')]"
+            + ".map(part => { const box = part.getBoundingClientRect(); return [box.x, box.y + scrollY, box.width, box.height].map(value => Math.round(value * 2) / 2); })");
+
+    private async Task ExpectNoSidewaysScrollAsync(int width) =>
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= document.documentElement.clientWidth"))
+            .Should().BeTrue("the page scrolls sideways at {0}px", width);
 
     private async Task AddQuestionAsync(string kind)
     {

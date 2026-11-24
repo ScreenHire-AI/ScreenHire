@@ -347,8 +347,9 @@
                 <span class="sr-only">Edit question {index + 1}:</span>{' '}<span id={`${uid}-name-${index}`}>{nameOf(question)}</span>
               </span>{' '}
               <span data-question-badges class="flex min-w-0 flex-wrap items-center gap-1.5">
-                {#if requiredOf(question)}<Badge variant="muted">Required</Badge>{' '}{/if}
-                <Badge variant="muted">{#if kind.icon}{@const Icon = kind.icon}<Icon aria-hidden="true" />{/if}{kind.label}</Badge>
+                <!-- On the open strip's accent fill a badge turns white, as a count does on a pressed toggle (T4). -->
+                {#if requiredOf(question)}<Badge variant="muted" class={isOpen ? 'bg-card' : undefined}>Required</Badge>{' '}{/if}
+                <Badge variant="muted" class={isOpen ? 'bg-card' : undefined}>{#if kind.icon}{@const Icon = kind.icon}<Icon aria-hidden="true" />{/if}{kind.label}</Badge>
               </span>
             </button>
             <span class="relative z-10 shrink-0">{@render rowMenu(nameOf(question), index)}</span>

@@ -237,7 +237,7 @@ Templates, as Avery: **Templates** in the sidebar, one tab per kind, each filter
 and Archived.
 
 - **Emails.** Open "Application received", change the subject, then switch to **Preview**: the email with the made-up
-  Jordan Lee follows your words, and the window icon opens it in a second window that follows too. **Send me a test**
+  Jordan Lee follows your words, and **Open in a new window** opens it in a second window that follows too. **Send me a test**
   lands in Mailpit with `[Test]` in front. On a job's pipeline, tick a few candidates and press **Email**: each gets the
   email in Mailpit, and it shows in their Activity. Back on the template, Last updated says "by you", and **History**
   shows "You changed the subject". "Not progressing" has Brightwater's wording: its menu's **Reset to original**
