@@ -23,8 +23,8 @@ public sealed record ApplicationFormError(string QuestionId, string Message);
 /// <see cref="ResumeQuestionId"/>, unless the questionnaire has its own question with that id.
 /// </summary>
 /// <remarks>
-/// An answer that fails a must-have is a valid answer. Whether an answer makes someone ineligible is for an automation and a person to
-/// decide after submission (workflow-engine.md §2), never for this form.
+/// An answer that fails a must-have is a valid answer. What follows from it is for an automation and a person to decide
+/// after submission (workflow-engine.md §2), never for this form.
 /// </remarks>
 public static class ApplicationForm
 {

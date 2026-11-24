@@ -5,6 +5,7 @@
   import { Input } from '#lib/components/ui/input/index.js';
   import { Label } from '#lib/components/ui/label/index.js';
   import { Switch } from '#lib/components/ui/switch/index.js';
+  import { locales } from '#lib/dates.js';
   import type { MustHaveState } from '#lib/must-have.js';
   import { cn } from '#lib/utils.js';
   import { answerLengthLimit } from '#lib/workflow.js';
@@ -157,7 +158,7 @@
             min={1}
             max={lengthLimit}
             step={1}
-            placeholder={lengthLimit.toLocaleString('en')}
+            placeholder={new Intl.NumberFormat(locales).format(lengthLimit)}
             aria-describedby={`${uid}-length-unit`}
             value={question.maxLength ?? ''}
             onchange={(event) => (question.maxLength = numberOrNull(event.currentTarget.value))}

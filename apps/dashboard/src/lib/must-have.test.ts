@@ -97,6 +97,13 @@ describe('turning a must-have on', () => {
     expect(actions[0]!.reason!.length).toBeLessThanOrEqual(500);
     expect(actions[0]!.reason).toMatch(/: answered No$/);
   });
+
+  it('never cuts an emoji in half, which the API cannot store', () => {
+    const truck = String.fromCodePoint(0x1f69a);
+    const { name } = mustHaveRecipe({ ...mustHave, label: `${'q'.repeat(93)}${truck} licence?` })!.automation;
+
+    expect(name).toBe(`Review anyone who fails "${'q'.repeat(93)}"`);
+  });
 });
 
 describe('turning it off', () => {

@@ -106,7 +106,14 @@ function make(
 }
 
 // The validator's limits (DefinitionValidator): an automation's name 120, a step's reason 500. A question may be longer.
-const clip = (text: string, length: number): string => (text.length > length ? text.slice(0, length).trimEnd() : text);
+// A cut never leaves half an emoji (a lone surrogate), which the API cannot store.
+const clip = (text: string, length: number): string =>
+  text.length > length
+    ? text
+        .slice(0, length)
+        .replace(/[\uD800-\uDBFF]$/, '')
+        .trimEnd()
+    : text;
 
 /**
  * The recipe for a must-have answer, an objective requirement the candidate declares: the team looks before anyone is
