@@ -172,10 +172,9 @@ describe('StepIndicator', () => {
   it('draws one bar and "40% done", with no step count and no answer count', async () => {
     const html = await container.renderToString(StepIndicator, { props: { step: 2, steps: 4 } });
 
-    const bar = html.match(/<progress[^>]*>/)?.[0] ?? '';
-    expect(bar).toContain('class="page-progress"');
-    expect(bar).toContain('max="100"');
-    expect(bar).toContain('value="40"');
+    // The fill's width is an attribute: the content security policy refuses an inline style.
+    const bar = html.match(/<div class="page-progress-track"[^>]*>/)?.[0] ?? '';
+    expect(html).toMatch(/<svg class="page-progress-fill" width="40%">/);
     // Hidden from screen readers, which read the same "40% done" as everyone else.
     expect(bar).toContain('aria-hidden="true"');
     expect(html).toMatch(/data-page-progress[^>]*>40% done</);
@@ -185,8 +184,10 @@ describe('StepIndicator', () => {
     expect(html).not.toMatch(/style=/);
   });
 
-  it('stays short of 100% on the review, the last step before sending', async () => {
+  it('says "Ready to send" on the review with the bar full, and never 100% done', async () => {
     const html = await container.renderToString(StepIndicator, { props: { step: 4, steps: 4 } });
-    expect(html).toContain('80% done');
+    expect(html).toMatch(/data-page-progress[^>]*>Ready to send</);
+    expect(html).toMatch(/<svg class="page-progress-fill" width="100%">/);
+    expect(html).not.toContain('% done');
   });
 });

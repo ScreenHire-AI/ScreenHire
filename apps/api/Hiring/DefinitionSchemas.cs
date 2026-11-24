@@ -32,7 +32,7 @@ internal static class DefinitionSchemas
         typeof(Questionnaire),
         "/v1/schemas/questionnaire.json",
         "Questionnaire",
-        "Screening questions: short text, long text, single or multiple choice, yes/no (optionally a knockout), number, URL and file.");
+        "Screening questions: short text, long text, single or multiple choice, yes/no (optionally with a must-have answer), number, URL and file.");
 
     public static IReadOnlyList<DefinitionSchema> All { get; } = [HiringTemplateDefinition, HiringWorkflow, Questionnaire];
 

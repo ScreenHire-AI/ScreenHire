@@ -18,8 +18,10 @@
   // The power-user view (workflow-engine.md §4): the same workflow as a graph. A projection only: it is rebuilt from the
   // workflow on every change and nothing in it is stored. The stages run left to right and each stage's automations
   // hang beneath it, read down as When, If, Then; every line has an arrowhead and the flow runs one way. With `actions`
-  // (the builder) a node is a button that opens what it stands for, and a plus where a condition, an action or an
-  // automation would go adds one. Hovering or focusing a node lights its path.
+  // (the builder) a node is a button that opens what it stands for, with a menu beside it, and New automation or a plus where
+  // an automation, a condition or a step would go adds one. Delete or Backspace takes away what the focused node stands for:
+  // Svelte Flow deletes the nodes marked selected, so the node whose button has the focus is, and `onbeforedelete` makes it the
+  // workflow's edit instead of the canvas's. Hovering or focusing a node lights its path.
   // Every node is a tab stop, and the arrow keys move between nodes (GraphKeys). Nothing needs dragging: the wheel or
   // trackpad pans (panOnScroll), the controls zoom and fit, and a link drawn from a "move to a stage" action to a stage
   // is only a shortcut for the action's Stage field (WCAG 2.5.7). A phone does not draw the graph: its tab is the List
@@ -49,6 +51,8 @@
   const light = providePathLight();
   let hovered = $state<string | null>(null);
   let focused = $state<string | null>(null);
+  // The node whose own button has the focus. Its menu, a sibling in the node, is not what Delete is pressed on.
+  let selected = $state<string | null>(null);
   const lit = $derived.by(() => {
     const active = hovered ?? focused;
     return active ? pathOf(graph, active) : null;
@@ -64,6 +68,7 @@
     a.position.x === b.position.x &&
     a.position.y === b.position.y &&
     a.height === b.height &&
+    a.selected === b.selected &&
     a.data.actions === b.data.actions &&
     JSON.stringify({ ...a.data, actions: null }) === JSON.stringify({ ...b.data, actions: null });
 
@@ -73,7 +78,7 @@
     return {
       nodes: graph.nodes.map((node) => {
         const old = previous.get(node.id);
-        const next: StepNode = { ...node, data: { ...node.data, actions: editing }, ...(old?.measured && { measured: old.measured }) };
+        const next: StepNode = { ...node, selected: node.id === selected, data: { ...node.data, actions: editing }, ...(old?.measured && { measured: old.measured }) };
         return old && sameNode(old, next) ? old : next;
       }),
       edges: graph.edges as Edge[],
@@ -95,14 +100,25 @@
 
   const nodeOf = (target: EventTarget | null) => (target instanceof HTMLElement ? target.closest<HTMLElement>('.svelte-flow__node')?.dataset.id : undefined);
 
-  const onfocusout = () => (focused = null);
+  const controlOf = (target: EventTarget | null) =>
+    target instanceof HTMLElement && target === target.closest('.svelte-flow__node')?.querySelector('button, [tabindex="0"]');
+
+  function onfocusin(event: FocusEvent) {
+    focused = nodeOf(event.target) ?? null;
+    selected = controlOf(event.target) ? focused : null;
+  }
+
+  function onfocusout() {
+    focused = null;
+    selected = null;
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   bind:this={root}
   class="h-[max(560px,70svh)] overflow-hidden rounded-b-panel"
-  onfocusin={(event) => (focused = nodeOf(event.target) ?? null)}
+  {onfocusin}
   {onfocusout}
 >
   <SvelteFlow
@@ -121,7 +137,12 @@
     elementsSelectable={false}
     autoPanOnNodeFocus={false}
     disableKeyboardA11y
-    deleteKey={null}
+    deleteKey={editing ? ['Delete', 'Backspace'] : null}
+    onbeforedelete={async ({ nodes: deleted }) => {
+      const node = deleted[0];
+      if (node) editing?.remove(node.id);
+      return false;
+    }}
     ariaLabelConfig={{ 'handle.ariaLabel': 'Link point' }}
     isValidConnection={(connection) => canConnect(workflow, connection.source, connection.target)}
     onbeforeconnect={(connection) => {

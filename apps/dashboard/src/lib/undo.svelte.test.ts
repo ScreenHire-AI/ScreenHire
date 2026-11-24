@@ -111,4 +111,30 @@ describe('the offer to undo', () => {
     expect(offer.open).toBe(false);
     expect(first).not.toHaveBeenCalled();
   });
+
+  it('moves to another place that draws it, with its full time again', async () => {
+    const sheet = new UndoOffer();
+    const page = new UndoOffer();
+    const undo = vi.fn(async () => null);
+    sheet.offer('Removed the step.', undo);
+    vi.advanceTimersByTime(9_000);
+
+    sheet.moveTo(page);
+
+    expect(sheet.open).toBe(false);
+    expect(page.message).toBe('Removed the step.');
+    vi.advanceTimersByTime(9_999);
+    expect(page.open).toBe(true);
+    await page.run();
+    expect(undo).toHaveBeenCalledTimes(1);
+  });
+
+  it('moves nothing when there is nothing to undo', () => {
+    const page = new UndoOffer();
+    page.offer('Deleted "Weekly".', async () => null);
+
+    new UndoOffer().moveTo(page);
+
+    expect(page.message).toBe('Deleted "Weekly".');
+  });
 });

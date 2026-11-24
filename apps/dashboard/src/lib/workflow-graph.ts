@@ -6,13 +6,13 @@
 // Edits made in the graph are the functions at the end of this file, each a change to the workflow that the next
 // projection shows.
 import type { Edge, Node } from '@xyflow/svelte';
-import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
-import { ruleTitle, triggerTitle } from './automation-sentence.js';
-import { describeAction, emailTemplateNames, errorsUnder, factsFor, isTerminal, newAction, newAutomation, newRule, placeOf } from './workflow.js';
+import type { Automation, DefinitionError, HiringWorkflow } from '@screenhire/api-client';
+import { ruleTitle, suggestedName, triggerTitle } from './automation-sentence.js';
+import { describeAction, emailTemplateNames, errorsUnder, insertAt, isEmptyTextStep, isTerminal, newAutomation, placeOf, removeAt } from './workflow.js';
 
 export type StepKind = 'lane' | 'stage' | 'trigger' | 'conditions' | 'action' | 'add-automation' | 'add-condition' | 'add-action';
 
-/** The kinds that are a plus button: the place a new automation, condition or action would go. */
+/** The kinds that are an add button: the place a new automation, condition or step would go. */
 export const isAdd = (kind: StepKind) => kind === 'add-automation' || kind === 'add-condition' || kind === 'add-action';
 
 interface StepFields {
@@ -33,6 +33,8 @@ interface StepFields {
   /** A stage where an application finishes: Hired, Rejected or Withdrawn. */
   endStage?: boolean;
   disabled: boolean;
+  /** What its menu calls taking it away, or '' for a node nothing here removes. */
+  removes: string;
   /** A "move to a stage" action, the one node a link can be drawn from (`connect`). */
   movesToStage: boolean;
   /** The validator's messages about this node, as its form shows them. */
@@ -100,10 +102,14 @@ const GROUP_GAP = 20;
 /** The room between the deepest stage chain and the Any stage band below. */
 const ANY_GAP = 48;
 const CHAIN_GAP = 36;
-/** A plus button's size at full size, where the first view shows it: a target for a finger too. */
-export const PLUS = 48;
+/** An add button's height, and a plus's width, at full size: a target for a finger (F4) around the small plus it draws. */
+export const PLUS = 44;
+/** The circle a plus draws in the middle of its target. */
+const PLUS_MARK = 24;
 const PLUS_PAD = 16;
-/** Where a plus ends and the line below it can turn without touching it. */
+/** The room between a plus's target and the nodes above and below it. Its circle stands further off. */
+const STEP_PAD = 4;
+/** Where an add button ends and the line below it can turn without touching it. */
 const TRUNK_CLEARANCE = 32;
 const BUS_PITCH = 24;
 const BUS_MARGIN = 16;
@@ -188,7 +194,7 @@ function groupBy<T, K>(items: readonly T[], key: (item: T) => K): T[][] {
   return [...groups.values()];
 }
 
-const none = { automation: null, automationId: null, automationName: '', path: '', lane: null, disabled: false, movesToStage: false } as const;
+const none = { automation: null, automationId: null, automationName: '', path: '', lane: null, disabled: false, removes: '', movesToStage: false } as const;
 
 export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): Graph {
   const { templateNames = emailTemplateNames(undefined), errors = [], editable = false } = options;
@@ -225,6 +231,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
           title: triggerTitle(automation.trigger, workflow),
           detail: automation.name,
           path: `${path}.trigger`,
+          removes: 'Remove automation',
           movesToStage: false,
         },
         `When${off}: ${automation.name}`,
@@ -243,6 +250,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
             title,
             detail: '',
             path: `${path}.conditions`,
+            removes: rules.length === 1 ? 'Remove this condition' : 'Remove these conditions',
             movesToStage: false,
           },
           `If${off}: ${title}, ${automation.name}`,
@@ -260,6 +268,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
             title,
             detail: action.reason ?? action.note ?? action.url ?? '',
             path: `${path}.actions[${actionIndex}]`,
+            removes: 'Remove this step',
             movesToStage: action.type === 'MoveToStage',
           },
           `Then${off}, action ${actionIndex + 1}: ${title}, ${automation.name}`,
@@ -346,8 +355,8 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
 
   // Down: each chain stacks from under its header. A trigger with no conditions and an action has room for a plus
   // between them. The Any stage band stands below the deepest stage chain.
-  const conditionGap = PLUS + 2 * PLUS_PAD;
-  const actionTailGap = 20;
+  const conditionGap = PLUS + 2 * STEP_PAD;
+  const actionTailGap = STEP_PAD;
   const stack = (band: Band): number => {
     let deepest = band.y + rowHeight;
     for (const chain of band.chains) {
@@ -426,7 +435,7 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
   const top = busHeight;
   const busY = (lane: number) => top - BUS_MARGIN - lane * BUS_PITCH;
 
-  // Nodes, in reading order: a band's header and its plus, then each automation from the top, which is also the order
+  // Nodes, in reading order: a band's header and its New automation, then each automation from the top, which is also the order
   // Tab visits them.
   const nodes: StepNode[] = [];
   const edges: RouteEdge[] = [];
@@ -440,16 +449,19 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       width,
       height: entry.height,
       domAttributes: wrapper,
+      // What Delete may take (`removeNode`). A stage is removed on the Pipeline tab, and a band is only a heading.
+      deletable: editable && entry.spec.removes !== '',
       data: { ...entry.spec, problems: entry.problems, column: columnOf, depth, label: entry.ariaLabel },
     });
-  const plusNode = (id: string, left: number, upper: number, spec: Spec, ariaLabel: string, columnOf: number, depth: number) =>
+  const addNode = (id: string, centreX: number, upper: number, width: number, spec: Spec, ariaLabel: string, columnOf: number, depth: number) =>
     nodes.push({
       id,
       type: 'step',
-      position: { x: left, y: upper },
-      width: PLUS,
+      position: { x: centreX - width / 2, y: upper },
+      width,
       height: PLUS,
       domAttributes: wrapper,
+      deletable: false,
       data: { ...spec, problems: [], column: columnOf, depth, label: ariaLabel },
     });
   const route = (
@@ -482,12 +494,13 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
     const plusTop = headTop + rowHeight + PLUS_PAD;
     if (addable) {
       const title = band.key === LANE_BAND ? 'any stage' : band.header.spec.title;
-      plusNode(
+      addNode(
         `add:${band.key}`,
-        hx - PLUS / 2,
+        hx,
         plusTop,
-        { ...none, kind: 'add-automation', title: 'Add an automation', detail: '', lane: band.header.spec.lane, band: band.key },
-        `Add an automation to ${title}`,
+        NODE_WIDTH,
+        { ...none, kind: 'add-automation', title: 'New automation', detail: '', lane: band.header.spec.lane, band: band.key },
+        `New automation at ${title}`,
         band.firstColumn,
         0.5,
       );
@@ -521,10 +534,11 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       const first = chain.items[0]!;
       if (chain.addCondition) {
         const above = top + first.y + first.height;
-        plusNode(
+        addNode(
           `${chain.id}:add-condition`,
-          cx - PLUS / 2,
-          above + PLUS_PAD,
+          cx,
+          above + STEP_PAD,
+          PLUS,
           { ...none, kind: 'add-condition', title: 'Add a condition', detail: '', automation: chain.index, automationId: chain.id, automationName: chain.name, band: band.key },
           `Add a condition to ${chain.name}`,
           chain.column,
@@ -534,16 +548,17 @@ export function toGraph(workflow: HiringWorkflow, options: GraphOptions = {}): G
       const last = chain.items.at(-1)!;
       const lastBottom = top + last.y + last.height;
       const tail = `${chain.id}:add-action`;
-      plusNode(
+      addNode(
         tail,
-        cx - PLUS / 2,
+        cx,
         lastBottom + actionTailGap,
-        { ...none, kind: 'add-action', title: 'Add an action', detail: '', automation: chain.index, automationId: chain.id, automationName: chain.name, band: band.key },
-        `Add an action to ${chain.name}`,
+        PLUS,
+        { ...none, kind: 'add-action', title: 'Add a step', detail: '', automation: chain.index, automationId: chain.id, automationName: chain.name, band: band.key },
+        `Add a step to ${chain.name}`,
         chain.column,
         chain.items.length + 0.5,
       );
-      route(`${chain.id}:stub-action`, 'stub', last.id, tail, ['bottom', 'top'], [{ x: cx, y: lastBottom }, { x: cx, y: lastBottom + actionTailGap }], owner);
+      route(`${chain.id}:stub-action`, 'stub', last.id, tail, ['bottom', 'top'], [{ x: cx, y: lastBottom }, { x: cx, y: lastBottom + actionTailGap + (PLUS - PLUS_MARK) / 2 }], owner);
     }
   });
 
@@ -704,36 +719,94 @@ export function focusGraphNode(root: ParentNode, id: string): boolean {
 
 /**
  * Adds a new automation to a stage's band, or with no stage to Applied (an arriving application) or, `anyStage`, to the
- * Any stage band (a run by hand), as the automations sheet's Write your own does.
+ * Any stage band (a run by hand), as the automations sheet's Write your own does. It has its trigger, the name that trigger
+ * suggests, and no step.
  */
 export function addAutomation(workflow: HiringWorkflow, stageId: string | null, anyStage = false): { workflow: HiringWorkflow; id: string } {
-  const automation = newAutomation(workflow, stageId, anyStage);
+  const blank = newAutomation(workflow, stageId, anyStage);
+  const automation = { ...blank, name: suggestedName(blank, workflow) };
   return { workflow: { ...workflow, automations: [...workflow.automations, automation] }, id: automation.id };
 }
 
-/**
- * Adds a condition to an automation, the one its form's Add condition adds (the first fact its trigger offers), and
- * says where the new rule is so its form can start there. An automation that already has conditions is left alone: its
- * conditions node opens the form.
- */
-export function addCondition(workflow: HiringWorkflow, automationId: string): { workflow: HiringWorkflow; path: string } | null {
-  const index = workflow.automations.findIndex((automation) => automation.id === automationId);
-  const automation = workflow.automations[index];
-  const fact = automation && factsFor(workflow, automation.trigger.type)[0];
-  if (!automation || !fact || (automation.conditions?.rules.length ?? 0) > 0) return null;
-  const next = { ...automation, conditions: { match: 'All' as const, rules: [newRule(fact)] } };
-  return { workflow: { ...workflow, automations: workflow.automations.map((candidate, i) => (i === index ? next : candidate)) }, path: `automations[${index}].conditions` };
+/** A removal, and how to take it back: `restore` puts what was removed into the workflow as it is by then, found by id. */
+export interface Removal {
+  workflow: HiringWorkflow;
+  /** What was removed, in a sentence, for the Undo notice. */
+  message: string;
+  restore: (current: HiringWorkflow) => HiringWorkflow;
 }
 
-/** Adds an action to the end of an automation, the one its form's Add action adds, and says where it is. */
-export function addAction(workflow: HiringWorkflow, automationId: string): { workflow: HiringWorkflow; path: string } | null {
-  const index = workflow.automations.findIndex((automation) => automation.id === automationId);
+const named = (automation: Automation) => (automation.name.trim() ? `"${automation.name.trim()}"` : 'the automation');
+
+const replaceAutomation = (workflow: HiringWorkflow, id: string, change: (automation: Automation) => Automation): HiringWorkflow => ({
+  ...workflow,
+  automations: workflow.automations.map((automation) => (automation.id === id ? change(automation) : automation)),
+});
+
+/** The workflow without an automation, `message` saying what went; Undo puts it back where it was. */
+export function removeAutomation(workflow: HiringWorkflow, id: string, message?: string): Removal | null {
+  const index = workflow.automations.findIndex((automation) => automation.id === id);
   const automation = workflow.automations[index];
   if (!automation) return null;
-  const next = { ...automation, actions: [...automation.actions, newAction('AddTag')] };
   return {
-    workflow: { ...workflow, automations: workflow.automations.map((candidate, i) => (i === index ? next : candidate)) },
-    path: `automations[${index}].actions[${automation.actions.length}]`,
+    workflow: { ...workflow, automations: removeAt(workflow.automations, index) },
+    message: message ?? `Removed ${named(automation)}.`,
+    restore: (current) =>
+      current.automations.some((existing) => existing.id === id) ? current : { ...current, automations: insertAt(current.automations, index, automation) },
+  };
+}
+
+/**
+ * The workflow without one step of an automation. An automation left with no step would only be a problem to fix, so it goes
+ * with its last one, and the message says so.
+ */
+export function removeStep(workflow: HiringWorkflow, id: string, step: number, message = 'Removed the step.'): Removal | null {
+  const automation = workflow.automations.find((candidate) => candidate.id === id);
+  const action = automation?.actions[step];
+  if (!automation || !action) return null;
+  if (automation.actions.length === 1) return removeAutomation(workflow, id, `Removed ${named(automation)} with its only step.`);
+  return {
+    workflow: replaceAutomation(workflow, id, (existing) => ({ ...existing, actions: removeAt(existing.actions, step) })),
+    message,
+    restore: (current) => replaceAutomation(current, id, (existing) => ({ ...existing, actions: insertAt(existing.actions, step, action) })),
+  };
+}
+
+/** The workflow without an automation's conditions, which the map draws as one If. */
+function removeConditions(workflow: HiringWorkflow, id: string): Removal | null {
+  const conditions = workflow.automations.find((candidate) => candidate.id === id)?.conditions;
+  if (!conditions) return null;
+  return {
+    workflow: replaceAutomation(workflow, id, (existing) => ({ ...existing, conditions: null })),
+    message: conditions.rules.length === 1 ? 'Removed the condition.' : 'Removed the conditions.',
+    restore: (current) => replaceAutomation(current, id, (existing) => ({ ...existing, conditions: existing.conditions ?? conditions })),
+  };
+}
+
+/** Removes what a node of the map stands for: an automation from its When, its conditions from its If, a step from its Then. */
+export function removeNode(workflow: HiringWorkflow, nodeId: string): Removal | null {
+  const match = /^(.*):(trigger|conditions|action:(\d+))$/.exec(nodeId);
+  if (!match) return null;
+  if (match[2] === 'trigger') return removeAutomation(workflow, match[1]!);
+  if (match[2] === 'conditions') return removeConditions(workflow, match[1]!);
+  return removeStep(workflow, match[1]!, Number(match[3]));
+}
+
+/**
+ * What closing an automation's sheet leaves behind: its steps that ask for text and have none are dropped, as leaving one
+ * does, and an automation with no step left is removed. Null when there is nothing to tidy.
+ */
+export function tidyAutomation(workflow: HiringWorkflow, id: string): Removal | null {
+  const automation = workflow.automations.find((candidate) => candidate.id === id);
+  if (!automation) return null;
+  const dropped = automation.actions.flatMap((action, at) => (isEmptyTextStep(action) ? [{ action, at }] : []));
+  if (dropped.length === automation.actions.length) return removeAutomation(workflow, id, `Removed ${named(automation)}, which had no step.`);
+  if (dropped.length === 0) return null;
+  return {
+    workflow: replaceAutomation(workflow, id, (existing) => ({ ...existing, actions: existing.actions.filter((action) => !isEmptyTextStep(action)) })),
+    message: dropped.length === 1 ? 'Removed the empty step.' : 'Removed the empty steps.',
+    restore: (current) =>
+      replaceAutomation(current, id, (existing) => ({ ...existing, actions: dropped.reduce((list, { action, at }) => insertAt(list, at, action), existing.actions) })),
   };
 }
 

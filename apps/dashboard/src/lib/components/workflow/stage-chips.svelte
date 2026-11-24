@@ -17,9 +17,11 @@
   // A stage read at a glance (design system section 11, Stage chips): one row of small outline buttons, each an icon and a
   // count, in one order: the time limit ("Respond within 3 days"), automations, emails, questions, the scorecard. A count
   // opens a short list of what it counts, by name, each item a link to its place (the automation on the Automations tab,
-  // the form on Forms); the time limit opens the stage's sheet and the scorecard its scorecard sheet. They are buttons with
-  // a border, never badges (principle 4, A6), and their words are in the tooltip and the accessible name. Where the
-  // pipeline only reads, the lists are text and the time limit and scorecard are plain chips. A stage with nothing on it
+  // the form on Forms); the time limit opens the stage's sheet and the scorecard, which says its word, its scorecard sheet.
+  // Where the pipeline is edited the automations chip has no list: it goes to the stage's automations on the Automations
+  // tab, the one place they are edited. They are buttons with a border, never badges (principle 4, A6), and a count's words
+  // are in the tooltip and the accessible name. Where the pipeline only reads, the lists are text and the time limit and
+  // scorecard are plain chips. A stage with nothing on it
   // says "Nothing happens automatically", muted, in one line.
   let {
     chips,
@@ -31,6 +33,7 @@
     onshowform,
     onlimit,
     onscorecard,
+    onautomations,
     empty = 'Nothing happens automatically',
     class: className,
   }: {
@@ -51,6 +54,8 @@
     onlimit?: () => void;
     /** Opens the scorecard sheet from the scorecard chip. */
     onscorecard?: () => void;
+    /** Goes to these automations on the Automations tab; left out where the pipeline only reads, and the chip lists them. */
+    onautomations?: (ids: readonly string[]) => void;
     /** What a stage with nothing on it says; empty for nothing at all. */
     empty?: string;
     class?: string;
@@ -155,7 +160,30 @@
         {/if}
       </li>
     {/if}
-    {#if chips.automations.length > 0}
+    {#if chips.automations.length > 0 && onautomations}
+      {@const label = plural(chips.automations.length, 'automation')}
+      <li>
+        <Tooltip.Root>
+          <Tooltip.Trigger>
+            {#snippet child({ props })}
+              <Button
+                {...props}
+                variant="outline"
+                size="sm"
+                aria-haspopup="dialog"
+                aria-label={`${label} at ${stageName}`}
+                data-chip="automations"
+                class="px-2 tabular-nums"
+                onclick={() => onautomations(chips.automations.map((automation) => automation.id))}
+              >
+                <ZapIcon aria-hidden="true" class="text-primary" />{chips.automations.length}
+              </Button>
+            {/snippet}
+          </Tooltip.Trigger>
+          <Tooltip.Content>{label}</Tooltip.Content>
+        </Tooltip.Root>
+      </li>
+    {:else if chips.automations.length > 0}
       {@render counted('automations', ZapIcon, chips.automations.length, plural(chips.automations.length, 'automation'), automationList)}
     {/if}
     {#if chips.emails.length > 0}
@@ -167,18 +195,9 @@
     {#if chips.scorecard}
       <li>
         {#if onscorecard}
-          <!-- An icon like the counts beside it, with its word in the tooltip and the accessible name, so the counts keep one row. -->
-          <Tooltip.Root>
-            <Tooltip.Trigger>
-              {#snippet child({ props })}
-                <Button {...props} variant="outline" size="sm" aria-haspopup="dialog" aria-label="Scorecard" data-chip="scorecard" class="px-2" onclick={onscorecard}>
-                  <!-- Touch has no hover to show the tooltip before the sheet opens, so there the word shows too. -->
-                  <ClipboardListIcon aria-hidden="true" class="text-muted-foreground" /><span aria-hidden="true" class="hidden pointer-coarse:inline">Scorecard</span>
-                </Button>
-              {/snippet}
-            </Tooltip.Trigger>
-            <Tooltip.Content>Scorecard</Tooltip.Content>
-          </Tooltip.Root>
+          <Button variant="outline" size="sm" aria-haspopup="dialog" data-chip="scorecard" class="gap-1 px-2" onclick={onscorecard}>
+            <ClipboardListIcon aria-hidden="true" class="text-muted-foreground" />Scorecard
+          </Button>
         {:else}
           <!-- Where nothing opens, the chip names the scorecard, with the word Scorecard for screen readers only (W9). -->
           <span class={plainChip} data-chip="scorecard"

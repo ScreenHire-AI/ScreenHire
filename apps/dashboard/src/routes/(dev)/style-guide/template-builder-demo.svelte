@@ -87,7 +87,7 @@
     <p class="text-caption text-muted-foreground">Opens from a stage card's name, in place.</p>
     <div><Button variant="outline" onclick={() => (stageId = 'phone-call')}>Open the Phone call sheet</Button></div>
   </div>
-  <StageSheet bind:workflow bind:stageId errors={[]} onscorecard={nothing} onautomations={nothing} onremove={nothing} onreminder={nothing} automationsHref="#stage-sheet" automationHref={(id) => `#automation-${id}`} />
+  <StageSheet bind:workflow bind:stageId errors={[]} onscorecard={nothing} onremove={nothing} onreminder={nothing} automationsHref="#stage-sheet" automationHref={(id) => `#automation-${id}`} />
 </Panel>
 
 <Panel title="Start from card">

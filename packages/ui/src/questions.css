@@ -122,21 +122,47 @@
     @apply block;
   }
 
-  /* The progress bar (questions/PageProgress.svelte): a native <progress>, drawn in the candidate tokens. */
+  /* The progress row (questions/PageProgress.svelte): the bar, its words at its end and a hairline under both. 48px high,
+     which the careers pages' scroll padding allows for where the row sticks. */
   .page-progress {
-    @apply block h-2 w-full appearance-none overflow-hidden rounded-full border-0 bg-candidate-chip;
+    @apply flex min-h-12 items-center gap-3 border-b border-candidate-border;
   }
 
-  .page-progress::-webkit-progress-bar {
-    @apply bg-candidate-chip;
+  .page-progress-track {
+    @apply relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-candidate-chip;
   }
 
-  .page-progress::-webkit-progress-value {
-    @apply rounded-full bg-candidate-cta;
+  /* The width is the element's own attribute. A live step change (the dashboard's preview) grows it here; between careers
+     pages the view transition does (apps/careers global.css), at the same pace. The edge is the employer's colour at 3:1
+     on the page: the fill's own colour, unless a pale one saved before the contrast check fills it. */
+  .page-progress-fill {
+    @apply block h-full rounded-full bg-candidate-cta inset-ring inset-ring-candidate-brand-ui motion-safe:transition-[width] motion-safe:duration-300 motion-safe:ease-out;
   }
 
-  .page-progress::-moz-progress-bar {
-    @apply rounded-full bg-candidate-cta;
+  /* A light band that crosses the fill once, after the fill has grown, and ends out of sight. Never a loop (WCAG 2.2.2). */
+  .page-progress-sheen {
+    @apply absolute inset-y-0 left-0 hidden h-full rounded-full motion-safe:block;
+    background: linear-gradient(100deg, transparent, var(--candidate-sheen), transparent) -100% 0 / 50% 100% no-repeat;
+
+    @variant motion-safe {
+      animation: page-progress-sheen 800ms ease-in-out 300ms both;
+    }
+  }
+
+  /* Forced colours draw every background as the page's own, so the bar takes the system's edge and highlight. */
+  @media (forced-colors: active) {
+    .page-progress-track {
+      border: 1px solid CanvasText;
+    }
+
+    .page-progress-fill {
+      forced-color-adjust: none;
+      background: Highlight;
+    }
+
+    .page-progress-sheen {
+      background: none;
+    }
   }
 
   /* 48px, a comfortable target for a thumb (design-system 4.4). */
@@ -146,5 +172,15 @@
 
   .choice input {
     @apply size-5 flex-none accent-candidate-cta;
+  }
+}
+
+@keyframes page-progress-sheen {
+  from {
+    background-position: -100% 0;
+  }
+
+  to {
+    background-position: 200% 0;
   }
 }

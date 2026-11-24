@@ -1,7 +1,7 @@
-// An automation read and edited as one sentence with blanks (design system section 11, Automation sentence): "When
-// [someone applies] and [their answer to Right to work] [is] [No], [ask] [the team] to review and [add the tag] [Not
-// eligible]". Every blank is a short list of plain choices. This module is the model behind it and nothing else: it turns an
-// automation into parts, and each blank's `apply` returns the automation with that one choice made. The definition stays the
+// An automation read and edited as When, If and Then, one clause a line, with blanks (design system section 11, Automation
+// sentence): "When [someone applies]", "If [their answer to Right to work] [is] [No]", "Then [ask] [the team] to review" and
+// "and [add the tag] [Not eligible]". Every blank is a short list of plain choices. This module is the model behind it and
+// nothing else: it turns an automation into clauses, and each blank's `apply` returns the automation with that one choice made. The definition stays the
 // one format, the validator (DefinitionValidator) stays the judge, and the full form is the sheet's other tab (Rules).
 //
 // The guardrail lives here too (workflow-engine.md section 2, guardrails 1 and 6): a check can only ask for a closer look,
@@ -26,9 +26,11 @@ import {
   followUpName,
   followUpsOf,
   hasTimeLimit,
+  insertAt,
   newAction,
   newRule,
   operatorsFor,
+  removeAt,
   ruleOperand,
   timeLimitActions,
   triggerLabels,
@@ -233,9 +235,7 @@ interface BlankBase {
   focusPath?: string;
   /** One quiet line at the end of the list. */
   note?: string;
-  /** Removes the part the blank belongs to (a condition, a step): offered inside the list. */
-  remove?: { label: string; apply: () => Automation };
-  /** A plus blank ("and if", "then also") that adds a part rather than showing a choice. */
+  /** A plus blank ("another condition", "another action") that adds a clause rather than showing a choice. */
   adds?: boolean;
   /** Shown instead of `text` while nothing is chosen. */
   placeholder?: string;
@@ -266,7 +266,56 @@ export interface TextBlank extends BlankBase {
 
 export type Blank = ChoiceBlank | MultiBlank | TextBlank;
 
-export type Part = { type: 'text'; text: string; tight?: boolean } | { type: 'blank'; blank: Blank };
+export type Part = { type: 'text'; text: string } | { type: 'blank'; blank: Blank };
+
+/** Taking a clause away: the button's name, what the Undo notice says, and the automation without it and with it again. */
+export interface ClauseRemoval {
+  label: string;
+  message: string;
+  apply: () => Automation;
+  /** Puts the clause back into the automation as it is by then. */
+  restore: (current: Automation) => Automation;
+}
+
+/** The removal of the condition at `at`, shared by the sentence's x and Rules' remove button. */
+export function conditionRemoval(automation: Automation, at: number): ClauseRemoval {
+  const rules = automation.conditions?.rules ?? [];
+  const match = automation.conditions?.match ?? 'All';
+  return {
+    label: `Remove condition ${at + 1}`,
+    message: 'Removed the condition.',
+    apply: () => withRules(automation, removeAt(rules, at)),
+    restore: (current) => ({ ...current, conditions: { match: current.conditions?.match ?? match, rules: insertAt(current.conditions?.rules ?? [], at, rules[at]!) } }),
+  };
+}
+
+/** The removal of the step at `at`, shared the same way. */
+export function stepRemoval(automation: Automation, at: number, message = 'Removed the step.'): ClauseRemoval {
+  const action = automation.actions[at]!;
+  return {
+    label: `Remove step ${at + 1}`,
+    message,
+    apply: () => ({ ...automation, actions: removeAt(automation.actions, at) }),
+    restore: (current) => ({ ...current, actions: insertAt(current.actions, at, action) }),
+  };
+}
+
+/** One line under a keyword: what starts it, one condition or one step. */
+export interface Clause {
+  id: string;
+  /** The joining word the line starts with: "and" or "or" between conditions (a choice, at every one but the first), "and" between steps. */
+  joiner: Part | null;
+  parts: Part[];
+  /** Takes the clause away: the x at its end (A18). The trigger has none, because removing it is removing the automation. */
+  remove?: ClauseRemoval;
+}
+
+/** A keyword, its clauses, and the plus that adds one more at their end. */
+export interface Section {
+  keyword: 'When' | 'If' | 'Then';
+  clauses: Clause[];
+  add: ChoiceBlank | null;
+}
 
 /** What the sentence needs besides the workflow: the organization's emails and the people who can be asked to review. */
 export interface SentenceContext {
@@ -276,7 +325,7 @@ export interface SentenceContext {
   teamKnown?: boolean;
 }
 
-const text = (value: string, tight = false): Part => ({ type: 'text', text: value, ...(tight && { tight }) });
+const text = (value: string): Part => ({ type: 'text', text: value });
 const blank = (value: Blank): Part => ({ type: 'blank', blank: value });
 
 // ---- Triggers ------------------------------------------------------------------------------------------------------
@@ -377,7 +426,6 @@ function triggerParts(automation: Automation, index: number, workflow: HiringWor
     return false;
   });
   const parts: Part[] = [
-    text('When'),
     blank({
       kind: 'choice',
       id: 'trigger',
@@ -573,7 +621,7 @@ export function relationChoices(option: FactOption | undefined, current: Automat
 }
 
 /** A rule's relation id; an `In` over a fixed list is the list's primary relation, since the ticks decide. */
-function relationId(option: FactOption | undefined, rule: AutomationCondition): string {
+export function relationId(option: FactOption | undefined, rule: AutomationCondition): string {
   const operator = rule.operator === 'In' && hasValues(option) ? primaryOperator(option) : rule.operator;
   return `${operator}|${rule.negate ? 1 : 0}`;
 }
@@ -627,7 +675,8 @@ function factChoices(options: readonly FactOption[], workflow: HiringWorkflow, c
   );
 }
 
-function valueText(rule: AutomationCondition, option: FactOption | undefined): string {
+/** A condition's values in the list's own words: "Review or Verify". */
+export function valueWords(rule: AutomationCondition, option: FactOption | undefined): string {
   const word = (value: string) => option?.values?.find((candidate) => candidate.value === value)?.label ?? value;
   const values = rule.operator === 'In' ? (rule.values ?? []) : rule.value ? [rule.value] : [];
   return values.map(word).join(' or ');
@@ -642,7 +691,7 @@ export function ruleTitle(rule: AutomationCondition, workflow: HiringWorkflow, t
   const [operator, negated] = relationId(option, rule).split('|') as [ConditionOperator, string];
   const relation = relationWords(operator, negated === '1', option?.type ?? 'Text');
   const value =
-    rule.operator === 'Exists' ? '' : hasValues(option) ? valueText(rule, option) : rule.operator === 'In' ? (rule.values ?? []).join(', ') : (rule.value ?? '');
+    rule.operator === 'Exists' ? '' : hasValues(option) ? valueWords(rule, option) : rule.operator === 'In' ? (rule.values ?? []).join(', ') : (rule.value ?? '');
   return `${option ? factLabel(option, workflow) : rule.fact} ${relation}${value ? ` ${value}` : ''}`;
 }
 
@@ -655,7 +704,7 @@ export function ruleShort(rule: AutomationCondition, workflow: HiringWorkflow, t
   const [operator, negated] = relationId(option, rule).split('|') as [ConditionOperator, string];
   const plainIs = (operator === 'EqualTo' || operator === 'In') && negated !== '1' && option !== undefined;
   if (!plainIs) return ruleTitle(rule, workflow, trigger);
-  const value = hasValues(option) ? valueText(rule, option) : rule.operator === 'In' ? (rule.values ?? []).join(', ') : (rule.value ?? '');
+  const value = hasValues(option) ? valueWords(rule, option) : rule.operator === 'In' ? (rule.values ?? []).join(', ') : (rule.value ?? '');
   // A question's own mark goes before the colon: "Right to work?: No" reads "Right to work: No".
   return `${factLabel(option, workflow).replace(/[?.:]+$/, '')}: ${value}`;
 }
@@ -725,44 +774,42 @@ function triggerClause(trigger: Automation['trigger'], workflow: HiringWorkflow)
   }
 }
 
-function conditionParts(automation: Automation, index: number, workflow: HiringWorkflow, ctx: SentenceContext): Part[] {
-  void ctx;
+const withRules = (automation: Automation, rules: AutomationCondition[]): Automation => ({
+  ...automation,
+  conditions: rules.length > 0 ? { match: automation.conditions?.match ?? 'All', rules } : null,
+});
+
+function conditionClauses(automation: Automation, index: number, workflow: HiringWorkflow): Clause[] {
   const path = `automations[${index}]`;
   const rules = automation.conditions?.rules ?? [];
   const match = automation.conditions?.match ?? 'All';
   const trigger = automation.trigger.type;
   const { options, refused } = offeredFacts(workflow, automation, index);
-  const parts: Part[] = [];
-  const setRules = (next: AutomationCondition[]): Automation => ({
-    ...automation,
-    conditions: next.length > 0 ? { match, rules: next } : null,
-  });
-  const replace = (at: number, rule: AutomationCondition) => setRules(rules.map((existing, i) => (i === at ? rule : existing)));
+  const replace = (at: number, rule: AutomationCondition) => withRules(automation, rules.map((existing, i) => (i === at ? rule : existing)));
 
-  rules.forEach((rule, at) => {
+  return rules.map((rule, at): Clause => {
     const option = factsFor(workflow, trigger).find((candidate) => candidate.fact === rule.fact);
     const ruleName = `Condition ${at + 1}`;
     const errorPath = `${path}.conditions.rules[${at}]`;
-    const remove = { label: 'Remove this condition', apply: () => setRules(rules.filter((_, i) => i !== at)) };
-
-    if (at === 0) parts.push(text(match === 'Any' && rules.length > 1 ? 'and one of' : 'and'));
-    else {
-      parts.push(
-        blank({
-          kind: 'choice',
-          id: 'match',
-          name: 'Conditions join',
-          text: match === 'Any' ? 'or' : 'and',
-          errorPath: `${path}.conditions`,
-          choices: [
-            { id: 'All', label: 'and: all of them hold' },
-            { id: 'Any', label: 'or: any one of them holds' },
-          ],
-          selected: match,
-          apply: (id) => ({ ...automation, conditions: { match: id as 'All' | 'Any', rules } }),
-        }),
-      );
-    }
+    const remove = conditionRemoval(automation, at);
+    const parts: Part[] = [];
+    const joiner =
+      at === 0
+        ? null
+        : blank({
+            kind: 'choice',
+            id: `match-${at}`,
+            name: 'Conditions join',
+            text: match === 'Any' ? 'or' : 'and',
+            errorPath: `${path}.conditions.match`,
+            choices: [
+              { id: 'All', label: 'and: all of them hold' },
+              { id: 'Any', label: 'or: any one of them holds' },
+            ],
+            selected: match,
+            apply: (id) => ({ ...automation, conditions: { match: id as 'All' | 'Any', rules } }),
+          });
+    const clause: Clause = { id: `rule-${at}`, joiner, parts, remove };
 
     parts.push(
       blank({
@@ -771,11 +818,10 @@ function conditionParts(automation: Automation, index: number, workflow: HiringW
         name: `${ruleName}: what to check`,
         text: option ? factPhrase(option, workflow) : rule.fact,
         errorPath,
-        ...(at === 0 && { focusPath: `${path}.conditions` }),
+        focusPath: at === 0 ? `${path}.conditions` : errorPath,
         choices: factChoices(options, workflow, option),
         selected: rule.fact,
         note: refused ? leftOutLine : undefined,
-        remove,
         apply: (id) => {
           const chosen = factsFor(workflow, trigger).find((candidate) => candidate.fact === id);
           return chosen ? replace(at, newRule(chosen)) : automation;
@@ -798,13 +844,13 @@ function conditionParts(automation: Automation, index: number, workflow: HiringW
       }),
     );
 
-    if (rule.operator === 'Exists') return;
+    if (rule.operator === 'Exists') return clause;
     if (hasValues(option)) {
       const single = option.type === 'YesNo';
       const selected = rule.operator === 'In' ? (rule.values ?? []) : rule.value ? [rule.value] : [];
       const choices = option.values.map((value) => ({ id: value.value, label: value.label }));
       for (const id of selected) if (!choices.some((choice) => choice.id === id)) choices.push({ id, label: id });
-      const common = { id: `rule-${at}-value`, name: `${ruleName}: value`, text: valueText(rule, option) || 'choose', errorPath, choices };
+      const common = { id: `rule-${at}-value`, name: `${ruleName}: value`, text: valueWords(rule, option) || 'choose', errorPath, focusPath: `${errorPath}.${rule.operator === 'In' ? 'values' : 'value'}`, choices };
       parts.push(
         blank(
           single
@@ -822,7 +868,7 @@ function conditionParts(automation: Automation, index: number, workflow: HiringW
               },
         ),
       );
-      return;
+      return clause;
     }
     const numeric = option?.type === 'Number';
     const many = rule.operator === 'In';
@@ -834,6 +880,7 @@ function conditionParts(automation: Automation, index: number, workflow: HiringW
         text: many ? (rule.values ?? []).join(', ') : (rule.value ?? ''),
         placeholder: numeric ? 'a number' : 'a word',
         errorPath,
+        focusPath: `${errorPath}.${many ? 'values' : 'value'}`,
         value: many ? (rule.values ?? []).join(', ') : (rule.value ?? ''),
         numeric,
         hint: many ? 'Separated by commas.' : undefined,
@@ -853,30 +900,36 @@ function conditionParts(automation: Automation, index: number, workflow: HiringW
           ),
       }),
     );
+    return clause;
   });
+}
 
-  // "And if" adds a condition by naming what to check.
-  const addable = options.length > 0 ? options : [];
-  if (addable.length > 0) {
-    parts.push(
-      blank({
-        kind: 'choice',
-        id: 'add-condition',
-        name: rules.length === 0 ? 'Add a condition' : 'Add another condition',
-        text: rules.length === 0 ? 'and if' : 'and if also',
-        errorPath: `${path}.conditions`,
-        adds: true,
-        choices: factChoices(addable, workflow),
-        selected: null,
-        note: refused ? leftOutLine : undefined,
-        apply: (id) => {
-          const chosen = factsFor(workflow, trigger).find((candidate) => candidate.fact === id);
-          return chosen ? setRules([...rules, newRule(chosen)]) : automation;
-        },
-      }),
-    );
-  }
-  return parts;
+/**
+ * The plus that adds a condition by naming what to check: the sentence's, and the map's between When and Then. Null when
+ * there is nothing this automation may check.
+ */
+export function addConditionBlank(workflow: HiringWorkflow, index: number): ChoiceBlank | null {
+  const automation = workflow.automations[index];
+  if (!automation) return null;
+  const rules = automation.conditions?.rules ?? [];
+  const { options, refused } = offeredFacts(workflow, automation, index);
+  if (options.length === 0) return null;
+  return {
+    kind: 'choice',
+    id: 'add-condition',
+    name: 'Add a condition',
+    text: rules.length === 0 ? 'a condition' : 'another condition',
+    errorPath: `automations[${index}].conditions`,
+    focusPath: rules.length === 0 ? `automations[${index}].conditions` : undefined,
+    adds: true,
+    choices: factChoices(options, workflow),
+    selected: null,
+    note: refused ? leftOutLine : undefined,
+    apply: (id) => {
+      const chosen = factsFor(workflow, automation.trigger.type).find((candidate) => candidate.fact === id);
+      return chosen ? withRules(automation, [...rules, newRule(chosen)]) : automation;
+    },
+  };
 }
 
 // ---- Actions -------------------------------------------------------------------------------------------------------
@@ -969,18 +1022,17 @@ const textFieldHints: Partial<Record<keyof AutomationAction, { placeholder: stri
   reason: { placeholder: 'give a reason', maxLength: 500 },
 };
 
-function actionParts(automation: Automation, index: number, workflow: HiringWorkflow, ctx: SentenceContext): Part[] {
+function actionClauses(automation: Automation, index: number, workflow: HiringWorkflow, ctx: SentenceContext): Clause[] {
   const path = `automations[${index}]`;
-  const parts: Part[] = [];
   const followUps = followUpsOf(workflow);
   const driven = checkDrivenIds(workflow).has(index);
   const replaceAt = (step: number, action: AutomationAction): Automation => ({ ...automation, actions: automation.actions.map((existing, i) => (i === step ? action : existing)) });
 
-  automation.actions.forEach((action, step) => {
+  return automation.actions.map((action, step): Clause => {
+    const parts: Part[] = [];
     const errorPath = `${path}.actions[${step}]`;
     const name = `Action ${step + 1}`;
-    const remove = { label: 'Remove this step', apply: () => ({ ...automation, actions: automation.actions.filter((_, i) => i !== step) }) };
-    parts.push(text(step === 0 ? ',' : 'and', step === 0));
+    const remove = stepRemoval(automation, step);
     parts.push(
       blank({
         kind: 'choice',
@@ -992,7 +1044,6 @@ function actionParts(automation: Automation, index: number, workflow: HiringWork
         choices: thenChoices(workflow, index, step),
         selected: action.type,
         note: driven ? checkGuardrailLine : undefined,
-        remove,
         apply: (id) => replaceAt(step, startAction(workflow, index, step, id as ActionType)),
       }),
     );
@@ -1011,6 +1062,7 @@ function actionParts(automation: Automation, index: number, workflow: HiringWork
             name: `${name}: email`,
             text: choices.find((choice) => choice.id === action.emailTemplate)?.label ?? 'choose an email',
             errorPath,
+            focusPath: `${errorPath}.emailTemplate`,
             choices,
             selected: action.emailTemplate ?? null,
             apply: (id) => replaceAt(step, { type: 'SendEmail', emailTemplate: id }),
@@ -1028,6 +1080,7 @@ function actionParts(automation: Automation, index: number, workflow: HiringWork
             name: `${name}: form`,
             text: choices.find((choice) => choice.id === action.questionnaireId)?.label ?? 'choose a form',
             errorPath,
+            focusPath: `${errorPath}.questionnaireId`,
             choices,
             selected: action.questionnaireId ?? null,
             apply: (id) => replaceAt(step, { type: 'SendQuestionnaire', questionnaireId: id }),
@@ -1047,6 +1100,7 @@ function actionParts(automation: Automation, index: number, workflow: HiringWork
             name: `${name}: stage`,
             text: action.stageId ? stageName(workflow, action.stageId) : 'choose a stage',
             errorPath,
+            focusPath: `${errorPath}.stageId`,
             choices,
             selected: action.stageId ?? null,
             note: hidden && driven ? stagesRefusedLine : undefined,
@@ -1069,6 +1123,7 @@ function actionParts(automation: Automation, index: number, workflow: HiringWork
               ? (ctx.reviewers.find((member) => member.userId === action.assigneeUserId)?.displayName ?? (ctx.teamKnown ? 'a former teammate' : 'a teammate'))
               : 'the team',
             errorPath,
+            focusPath: `${errorPath}.assigneeUserId`,
             choices,
             selected: action.assigneeUserId ?? '',
             apply: (id) => replaceAt(step, id ? { type: 'AssignReviewer', assigneeUserId: id } : { type: 'AssignReviewer' }),
@@ -1090,6 +1145,7 @@ function actionParts(automation: Automation, index: number, workflow: HiringWork
               text: value,
               placeholder: hint.placeholder,
               errorPath,
+              focusPath: `${errorPath}.${field}`,
               value,
               maxLength: hint.maxLength,
               apply: (next) => replaceAt(step, { ...action, [field]: next }),
@@ -1098,26 +1154,32 @@ function actionParts(automation: Automation, index: number, workflow: HiringWork
         }
       }
     }
+    return { id: `action-${step}`, joiner: step === 0 ? null : text('and'), parts, remove };
   });
+}
 
+/**
+ * The plus that adds a step by naming its kind: the sentence's, and the map's at a chain's end. It holds only the kinds the
+ * guardrails allow here, so no choice of it is refused. Null when there are none.
+ */
+export function addStepBlank(workflow: HiringWorkflow, index: number): ChoiceBlank | null {
+  const automation = workflow.automations[index];
+  if (!automation) return null;
   const choices = thenChoices(workflow, index, null);
-  if (choices.length > 0) {
-    parts.push(
-      blank({
-        kind: 'choice',
-        id: 'add-action',
-        name: 'Add another step',
-        text: 'then also',
-        errorPath: `${path}.actions`,
-        adds: true,
-        choices,
-        selected: null,
-        note: driven ? checkGuardrailLine : undefined,
-        apply: (id) => withAction(automation, null, startAction(workflow, index, null, id as ActionType)),
-      }),
-    );
-  }
-  return parts;
+  if (choices.length === 0) return null;
+  return {
+    kind: 'choice',
+    id: 'add-action',
+    name: 'Add a step',
+    text: automation.actions.length === 0 ? 'an action' : 'another action',
+    errorPath: `automations[${index}].actions`,
+    focusPath: `automations[${index}].actions`,
+    adds: true,
+    choices,
+    selected: null,
+    note: checkDrivenIds(workflow).has(index) ? checkGuardrailLine : undefined,
+    apply: (id) => withAction(automation, null, startAction(workflow, index, null, id as ActionType)),
+  };
 }
 
 /** The one text field an action kind takes (Reject and the review queue also take a reason). */
@@ -1140,11 +1202,53 @@ export function textFieldFor(type: ActionType): 'tag' | 'note' | 'url' | 'reason
 
 // ---- The sentence --------------------------------------------------------------------------------------------------
 
-/** The automation at `index` as parts: text and blanks in reading order, ending in the plus blanks that add a part. */
-export function sentenceOf(workflow: HiringWorkflow, index: number, ctx: SentenceContext): Part[] {
+/** The automation at `index` as its three sections, in reading order. */
+export function sentenceOf(workflow: HiringWorkflow, index: number, ctx: SentenceContext): Section[] {
   const automation = workflow.automations[index];
   if (!automation) return [];
-  return [...triggerParts(automation, index, workflow), ...conditionParts(automation, index, workflow, ctx), ...actionParts(automation, index, workflow, ctx), text('.', true)];
+  return [
+    { keyword: 'When', clauses: [{ id: 'trigger', joiner: null, parts: triggerParts(automation, index, workflow) }], add: null },
+    { keyword: 'If', clauses: conditionClauses(automation, index, workflow), add: addConditionBlank(workflow, index) },
+    { keyword: 'Then', clauses: actionClauses(automation, index, workflow, ctx), add: addStepBlank(workflow, index) },
+  ];
+}
+
+/**
+ * The path of the first thing a clause just added still asks for: the empty text of a step, or a condition's value, else
+ * the clause itself. The control that carries it in `data-focus` takes the focus.
+ */
+export function firstBlankPath(automation: Automation, index: number, added: 'condition' | 'step'): string {
+  const path = `automations[${index}]`;
+  if (added === 'step') {
+    const at = automation.actions.length - 1;
+    const action = automation.actions[at];
+    const field = action ? textFieldFor(action.type) : null;
+    return field && !(action![field] ?? '').trim() ? `${path}.actions[${at}].${field}` : `${path}.actions[${at}]`;
+  }
+  const at = (automation.conditions?.rules.length ?? 0) - 1;
+  const rule = automation.conditions?.rules[at];
+  const rulePath = `${path}.conditions.rules[${at}]`;
+  if (rule?.operator === 'Exists') return at === 0 ? `${path}.conditions` : rulePath;
+  return `${rulePath}.${rule?.operator === 'In' ? 'values' : 'value'}`;
+}
+
+// ---- The suggested name ----------------------------------------------------------------------------------------------
+
+/** The validator's limit on an automation's name. */
+export const maxAutomationName = 120;
+
+/**
+ * The name an automation has until a person types one, from its trigger and its steps: "When someone applies", then "Add
+ * the tag "Referral" when someone applies". It uses no word that a query loads, so it never changes on its own.
+ */
+export function suggestedName(automation: Automation, workflow: HiringWorkflow): string {
+  const when = `when ${triggerClause(automation.trigger, workflow)}`;
+  const words = automation.actions.map((action) => (action.type === 'AddTag' && !action.tag?.trim() ? 'Add a tag' : describeAction(action, workflow)));
+  const cut = (name: string) => (name.length <= maxAutomationName ? name : `${name.slice(0, maxAutomationName - 3).trimEnd()}...`);
+  if (words.length === 0) return cut(capital(when));
+  const full = `${[words[0]!, ...words.slice(1).map(lowerFirst)].join(' and ')} ${when}`;
+  if (full.length <= maxAutomationName || words.length === 1) return cut(full);
+  return cut(`${words[0]} and ${words.length - 1} more ${when}`);
 }
 
 /**
@@ -1166,14 +1270,22 @@ export function sentenceLimit(workflow: HiringWorkflow, index: number): string |
   return null;
 }
 
-/** Every blank of a sentence, in reading order. */
-export const blanksOf = (parts: readonly Part[]): Blank[] => parts.flatMap((part) => (part.type === 'blank' ? [part.blank] : []));
+/** Every blank of a sentence, in reading order, its plus blanks included. */
+export const blanksOf = (sections: readonly Section[]): Blank[] =>
+  sections.flatMap((section) => [
+    ...section.clauses.flatMap((clause) => [...(clause.joiner ? [clause.joiner] : []), ...clause.parts].flatMap((part) => (part.type === 'blank' ? [part.blank] : []))),
+    ...(section.add ? [section.add] : []),
+  ]);
 
-/** The words of a sentence, for a test or a screen reader: text and each blank's button text, joined. */
-export function readSentence(parts: readonly Part[]): string {
-  return parts
-    .map((part) => (part.type === 'text' ? part.text : part.blank.adds ? '' : part.blank.text || part.blank.placeholder || ''))
-    .filter(Boolean)
-    .join(' ')
-    .replace(/ ([,.])/g, '$1');
+const readPart = (part: Part): string => (part.type === 'text' ? part.text : part.blank.text || part.blank.placeholder || '');
+
+/** The words of a sentence, for a test: "When someone applies, if their tags includes vip, then add the tag Fast." */
+export function readSentence(sections: readonly Section[]): string {
+  const words = sections
+    .filter((section) => section.clauses.length > 0)
+    .map((section, at) => {
+      const clauses = section.clauses.map((clause) => [...(clause.joiner ? [clause.joiner] : []), ...clause.parts].map(readPart).filter(Boolean).join(' '));
+      return `${at === 0 ? section.keyword : section.keyword.toLowerCase()} ${clauses.join(' ')}`;
+    });
+  return `${words.join(', ')}.`;
 }

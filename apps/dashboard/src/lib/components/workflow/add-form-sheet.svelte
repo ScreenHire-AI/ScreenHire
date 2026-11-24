@@ -1,11 +1,14 @@
 <script lang="ts">
+  import LibraryIcon from '~icons/lucide/library';
   import PlusIcon from '~icons/lucide/plus';
   import ReplaceIcon from '~icons/lucide/replace';
   import type { FormTemplateVersionDetail, HiringWorkflow } from '@screenhire/api-client';
   import { createListFormTemplates, getGetFormTemplateVersionQueryOptions } from '@screenhire/api-client/svelte-query';
   import { useQueryClient } from '@tanstack/svelte-query';
   import FailureText from '#lib/components/failure-text.svelte';
+  import MoreMenu from '#lib/components/more-menu.svelte';
   import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
+  import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import { Skeleton } from '#lib/components/ui/skeleton/index.js';
   import { questionClashes, questionCount, type LibraryVersion } from '#lib/forms-timeline.js';
@@ -16,9 +19,10 @@
   // "New form" on the Forms tab (workflow-engine.md section 7, Forms): the library's published forms this workflow does not
   // use yet, each with how many questions it asks. A form whose question ids another form here already uses cannot be
   // added, and says why, because a question id names one question across a hiring process. "Build a new form" makes one in
-  // the library, which the template takes when it is published. With `replacing`, "Replace with another form" on a form's
-  // card, the same list offers the form to put in its place, which keeps when it is sent; a new form is added rather than
-  // swapped in, so it is not offered there.
+  // the library, which the template takes when it is published: in the footer's menu (A19), or, with nothing left to add, the
+  // empty state's one action (E1). With `replacing`, "Replace with another form" on a form's card, the same list offers the
+  // form to put in its place, which keeps when it is sent; a new form is added rather than swapped in, so Build a new form is
+  // not offered there.
   let {
     open = $bindable(false),
     workflow,
@@ -55,6 +59,13 @@
     }
   });
 
+  const empty = $derived(!library.isPending && offered.length === 0);
+
+  function build() {
+    open = false;
+    onbuild?.();
+  }
+
   function add(formId: string) {
     const version = versions[formId];
     if (!version) return;
@@ -80,8 +91,15 @@
           {#each [0, 1, 2] as row (row)}<Skeleton class="h-14 w-full" />{/each}
         </div>
         <p class="sr-only" role="status">Loading the library…</p>
-      {:else if offered.length === 0}
+      {:else if empty}
         <p>Every published form in your library is here already.</p>
+        <div>
+          {#if onbuild && !replacing}
+            <Button variant="outline" size="lg" onclick={build}>Build a new form</Button>
+          {:else}
+            <a href="/templates?tab=forms" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Open the form library</a>
+          {/if}
+        </div>
       {:else}
         <ul class="flex flex-col divide-y divide-border rounded-lg border border-border">
           {#each offered as form (form.id)}
@@ -107,14 +125,20 @@
         </ul>
       {/if}
       <FailureText message={failure} />
-      <div class="flex flex-wrap justify-end gap-2">
-        {#if onbuild && !replacing}
-          <Button variant="outline" size="lg" onclick={() => ((open = false), onbuild())}>Build a new form</Button>
-        {:else}
-          <a href="/templates?tab=forms" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Open the form library</a>
-        {/if}
-        <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'ghost', size: 'lg' }))}>Cancel</Sheet.Close>
-      </div>
     </div>
+    {#if !empty && !replacing}
+      <!-- Each row's Add is the action, so there is no primary one here, only the menu (A19). -->
+      <Sheet.Footer>
+        <MoreMenu label="More ways to add a form" class="mr-auto">
+          {#if onbuild}
+            <DropdownMenu.Item onSelect={build}><PlusIcon aria-hidden="true" />Build a new form</DropdownMenu.Item>
+          {:else}
+            <DropdownMenu.Item>
+              {#snippet child({ props })}<a {...props} href="/templates?tab=forms"><LibraryIcon aria-hidden="true" />Open the form library</a>{/snippet}
+            </DropdownMenu.Item>
+          {/if}
+        </MoreMenu>
+      </Sheet.Footer>
+    {/if}
   </Sheet.Content>
 </Sheet.Root>

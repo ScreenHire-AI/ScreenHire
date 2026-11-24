@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { expectNoAxeViolations } from '../../test-support/axe.js';
 import RecordTabsHarness from '../../test-support/record-tabs-harness.svelte';
@@ -15,5 +15,15 @@ describe('record tabs', () => {
     expect(screen.getByRole('tab', { name: 'Details' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Activity 3' })).toBeInTheDocument();
     await expectNoAxeViolations(document.body);
+  });
+
+  it('gives a pressed tab the focus before its view shows, so a sheet does not send it to its first control', async () => {
+    render(RecordTabsHarness);
+    const details = screen.getByRole('tab', { name: 'Details' });
+
+    await fireEvent.mouseDown(details, { button: 0 });
+
+    expect(details).toHaveFocus();
+    expect(details).toHaveAttribute('aria-selected', 'true');
   });
 });

@@ -1,15 +1,15 @@
 <script lang="ts">
   import type { DefinitionError, HiringWorkflow, StageKind } from '@screenhire/api-client';
   import { createListEmailTemplates } from '@screenhire/api-client/svelte-query';
-  import ChevronDownIcon from '~icons/lucide/chevron-down';
   import Trash2Icon from '~icons/lucide/trash-2';
+  import InfoButton from '#lib/components/info-button.svelte';
   import MoreMenu from '#lib/components/more-menu.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import * as Sheet from '#lib/components/ui/sheet/index.js';
   import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
-  import { stageFacts, whenOverdue } from '#lib/stage-facts.js';
+  import { stageAutomations, whenOverdue } from '#lib/stage-facts.js';
   import {
     canRemindIn,
     defaultMeetingName,
@@ -25,28 +25,30 @@
     syncReminder,
     timeLimitChoices,
   } from '#lib/workflow.js';
-  import { labelClass, selectClass } from './controls.js';
+  import { fieldLabelClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
   import ScorecardName from './scorecard-name.svelte';
   import StageFactList from './stage-fact-list.svelte';
   import StageSchedulingFields from './stage-scheduling-fields.svelte';
 
-  // One stage's sheet (design system section 11, Stage sheet): its name, how soon the team should respond, scorecard and
-  // the automations that run there, with the stage's kind under More options. It opens in place from a stage card and
-  // saves with the pipeline, so Done is the only primary (A1) and there is no subtitle. A stage's kind follows its name
-  // until someone sets it by hand. Respond within is plain choices; setting one gives the stage a reminder for the team
-  // (`syncReminder`), and "When overdue" under it says what runs once the time passes, or offers to add a reminder.
+  // One stage's sheet (design system section 11, Stage sheet): its name and kind, then plain sections shown by kind:
+  // Timing, Meeting, Scorecard and Automations. It opens in place from a stage card and saves with the pipeline, so Done
+  // is the only primary (A1) and there is no subtitle. A stage's kind follows its name until someone sets it by hand.
+  // Automations are edited on the Automations tab alone, so here they are names that link there. Respond within is plain
+  // choices; setting one gives the stage a reminder for the team (`syncReminder`), and "When overdue" under it says what
+  // runs once the time passes, or offers to add a reminder.
   let {
     workflow = $bindable(),
     stageId = $bindable(),
     errors,
     onscorecard,
-    onautomations,
     onremove,
     automationsHref,
     automationHref,
     onreminder,
     onshow,
+    onautomations,
+    onCloseAutoFocus,
   }: {
     workflow: HiringWorkflow;
     /** The stage the sheet shows, or null while it is closed. */
@@ -54,8 +56,6 @@
     errors: readonly DefinitionError[];
     /** Opens the scorecard sheet for the stage at this index. */
     onscorecard: (index: number) => void;
-    /** Opens the automations drawer for the stage, to add one. */
-    onautomations: (stageId: string) => void;
     /** Removes the stage at this index. */
     onremove: (index: number) => void;
     /** The Automations tab, where every automation of the workflow is listed. */
@@ -66,6 +66,10 @@
     onreminder?: (stageId: string) => void;
     /** Opens an automation on the Automations tab instead of following its link. */
     onshow?: (automationId: string) => void;
+    /** Goes to the Automations tab in the page instead of following its link. */
+    onautomations?: () => void;
+    /** As the sheet closes; prevent the default to put the focus somewhere else than the button that opened it. */
+    onCloseAutoFocus?: (event: Event) => void;
   } = $props();
 
   const index = $derived(workflow.stages.findIndex((stage) => stage.id === stageId));
@@ -81,20 +85,20 @@
 
   const emailTemplates = createListEmailTemplates();
   const templateNames = $derived(emailTemplateNames(emailTemplates.data?.data.templates));
-  // What runs here, as the card says it: each email and each automation's short label. The reminder the sheet keeps for
-  // the time limit is under "When overdue", so it is not listed again (W7).
-  const here = $derived(stage ? stageFacts(workflow, stage, templateNames).filter((fact) => fact.kind === 'email' || fact.kind === 'form' || fact.kind === 'automation') : []);
   const overdue = $derived(stage ? whenOverdue(workflow, stage.id, templateNames) : []);
+  // Every automation placed here by its own name, one that is off included. What "When overdue" lists is not listed again
+  // (W7), and still counts as one the stage has.
+  const placed = $derived(stage ? stageAutomations(workflow, stage, templateNames) : []);
+  const listedOverdue = $derived(new Set(stage?.slaDays && !isTerminal(stage.kind) ? overdue.map((fact) => fact.automationId) : []));
+  const here = $derived(placed.filter((fact) => !listedOverdue.has(fact.automationId)));
 
   let otherChosen = $state(false);
-  let more = $state(false);
   // Which stage the local choices belong to, so they reset when the sheet opens another.
   let shownFor: string | null = null;
   $effect(() => {
     if (stageId === shownFor) return;
     shownFor = stageId;
     otherChosen = false;
-    more = false;
   });
 
   const standard = (days: number | null | undefined) => timeLimitChoices.some((choice) => choice.days === (days ?? null));
@@ -149,132 +153,153 @@
     stage.meetingName = raw.trim() ? raw : undefined;
   }
 
+  // A plain section: a hairline and a heading, no box.
+  const sectionClass = 'flex flex-col gap-3 border-t border-border-subtle pt-4';
+
   const hasScorecard = $derived(Boolean(stage?.scorecard || stage?.scorecardTemplateId));
 </script>
 
 <Sheet.Root open={stageId !== null} onOpenChange={(open) => !open && (stageId = null)}>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-md">
+  <Sheet.Content side="right" class="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-md" {onCloseAutoFocus}>
     <Sheet.Header>
       <Sheet.Title class="break-words">{stage?.name || 'Stage'}</Sheet.Title>
     </Sheet.Header>
     {#if stage}
       <div class="flex flex-col gap-5 px-4">
-        <label class={labelClass}>
-          Name
-          <Input
-            value={stage.name}
-            maxlength={80}
-            data-stage-name
-            aria-invalid={stageErrors.length > 0 || undefined}
-            oninput={(event) => rename(event.currentTarget.value)}
-          />
-        </label>
-        <FieldErrors id="stage-sheet-errors" messages={stageErrors} />
+        <div class="flex flex-col gap-2">
+          <!-- Kind sits beside the name it follows, and under it where there is no room for both (F2). -->
+          <div class="flex flex-wrap items-start gap-x-3 gap-y-4">
+            <label class={[labelClass, 'flex-[2_1_12rem]']}>
+              Name
+              <Input
+                value={stage.name}
+                maxlength={80}
+                data-stage-name
+                aria-invalid={stageErrors.length > 0 || undefined}
+                oninput={(event) => rename(event.currentTarget.value)}
+              />
+            </label>
+            {#if first && stage.kind === 'Applied'}
+              <!-- Candidates arrive in the first stage, so it is Applied and the validator refuses any other kind there. -->
+              <div class={[labelClass, 'flex-[1_1_9rem]']} data-stage-kind>
+                Kind
+                <span class="flex h-9 items-center font-normal text-foreground pointer-coarse:h-11">{stageKindLabels[stage.kind]}</span>
+              </div>
+            {:else}
+              <label class={[labelClass, 'flex-[1_1_9rem]']}>
+                Kind
+                <select class={selectClass} value={stage.kind} onchange={(event) => setKind(event.currentTarget.value as StageKind)}>
+                  {#each stageKinds as kind (kind)}<option value={kind}>{stageKindLabels[kind]}</option>{/each}
+                </select>
+              </label>
+            {/if}
+          </div>
+          <FieldErrors id="stage-sheet-errors" messages={stageErrors} />
+        </div>
 
         {#if !isTerminal(stage.kind)}
-          <div class="flex flex-col gap-2">
-            <span id="stage-limit-label" class="text-body font-semibold text-secondary-foreground">Respond within</span>
-            <ToggleGroup.Root
-              type="single"
-              variant="outline"
-              size="lg"
-              spacing={0}
-              value={choice}
-              onValueChange={chooseLimit}
-              aria-labelledby="stage-limit-label"
-              aria-describedby="stage-limit-help"
-              class="flex max-w-full flex-wrap"
-            >
-              {#each timeLimitChoices as option (option.label)}
-                <ToggleGroup.Item value={String(option.days ?? 'none')} class="text-foreground data-[state=on]:inset-ring-2 data-[state=on]:inset-ring-accent-foreground">{option.label}</ToggleGroup.Item>
-              {/each}
-              <ToggleGroup.Item value="other" class="text-foreground data-[state=on]:inset-ring-2 data-[state=on]:inset-ring-accent-foreground">Other</ToggleGroup.Item>
-            </ToggleGroup.Root>
+          <section aria-labelledby="stage-timing" class={sectionClass}>
+            <h3 id="stage-timing" class="text-heading">Timing</h3>
+            <div class="flex flex-col gap-2">
+              <span class="flex items-center gap-1">
+                <span id="stage-limit-label" class={fieldLabelClass}>Respond within</span>
+                <InfoButton
+                  label="About Respond within"
+                  text="How long a candidate should wait here before your team moves them on. After that they show as Overdue. Nothing happens to the candidate."
+                />
+              </span>
+              <ToggleGroup.Root
+                type="single"
+                variant="outline"
+                size="lg"
+                spacing={0}
+                value={choice}
+                onValueChange={chooseLimit}
+                aria-labelledby="stage-limit-label"
+                class="flex max-w-full flex-wrap"
+              >
+                {#each timeLimitChoices as option (option.label)}
+                  <ToggleGroup.Item value={String(option.days ?? 'none')} class="text-foreground data-[state=on]:inset-ring-2 data-[state=on]:inset-ring-accent-foreground">{option.label}</ToggleGroup.Item>
+                {/each}
+                <ToggleGroup.Item value="other" class="text-foreground data-[state=on]:inset-ring-2 data-[state=on]:inset-ring-accent-foreground">Other</ToggleGroup.Item>
+              </ToggleGroup.Root>
+            </div>
             {#if choice === 'other'}
               <label class={[labelClass, 'w-full max-w-40']}>
                 Days
                 <Input type="number" min={1} max={365} value={stage.slaDays ?? ''} onchange={(event) => setOther(event.currentTarget.value)} />
               </label>
             {/if}
-            <p id="stage-limit-help" class="text-muted-foreground">
-              How long a candidate should wait here before your team moves them on. After that they show as Overdue. Nothing happens to the candidate.
-            </p>
             {#if stage.slaDays && overdue.length > 0}
               <div data-when-overdue class="flex flex-col gap-1">
-                <span class="font-semibold">When overdue</span>
+                <span class={fieldLabelClass}>When overdue</span>
                 <StageFactList facts={overdue} {automationHref} {onshow} />
               </div>
             {:else if remindable}
               <p data-when-overdue class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span><span class="font-semibold">When overdue:</span> Nothing yet.</span>
+                <span><span class={fieldLabelClass}>When overdue:</span> Nothing yet.</span>
                 {#if onreminder}<Button variant="outline" onclick={() => stageId && onreminder(stageId)}>Add a reminder</Button>{/if}
               </p>
             {/if}
-          </div>
+          </section>
+        {/if}
 
-          <div class="flex flex-col gap-2">
-            <span class="text-body font-semibold text-secondary-foreground">Scorecard</span>
+        {#if offersMeetings(stage)}
+          <section aria-labelledby="stage-meeting" class={sectionClass}>
+            <h3 id="stage-meeting" class="text-heading">Meeting</h3>
+            <div class="flex flex-col gap-1">
+              <span class="flex items-center gap-1">
+                <label for="stage-meeting-name" class={fieldLabelClass}>What the meeting is called</label>
+                <InfoButton label="About the meeting name" text={'Candidates see it in emails and on the page where they book, as in "Book your trial shift".'} />
+              </span>
+              <Input
+                id="stage-meeting-name"
+                value={stage.meetingName ?? ''}
+                maxlength={maxMeetingNameLength}
+                placeholder={defaultMeetingName}
+                data-stage-meeting-name
+                aria-invalid={meetingNameErrors.length > 0 || undefined}
+                aria-describedby={meetingNameErrors.length > 0 ? 'stage-meeting-name-errors' : undefined}
+                oninput={(event) => setMeetingName(event.currentTarget.value)}
+              />
+              <FieldErrors id="stage-meeting-name-errors" messages={meetingNameErrors} />
+            </div>
+            <StageSchedulingFields {stage} {index} {errors} />
+          </section>
+        {/if}
+
+        {#if !isTerminal(stage.kind)}
+          <section aria-labelledby="stage-scorecard" class={sectionClass}>
+            <h3 id="stage-scorecard" class="text-heading">Scorecard</h3>
             <div class="flex items-center justify-between gap-3 rounded-lg bg-secondary p-3">
               <span class={['min-w-0 break-words', !hasScorecard && 'text-muted-foreground']}>
                 {#if hasScorecard}<ScorecardName {stage} />{:else}None yet{/if}
               </span>
               <Button variant="outline" onclick={() => onscorecard(index)}>{hasScorecard ? 'Change' : 'Choose'}{' '}<span class="sr-only">scorecard for {stage.name}</span></Button>
             </div>
-          </div>
+          </section>
         {/if}
 
-        {#if offersMeetings(stage)}
-          <label class={labelClass}>
-            What the meeting is called
-            <Input
-              value={stage.meetingName ?? ''}
-              maxlength={maxMeetingNameLength}
-              placeholder={defaultMeetingName}
-              data-stage-meeting-name
-              aria-invalid={meetingNameErrors.length > 0 || undefined}
-              aria-describedby={meetingNameErrors.length > 0 ? 'stage-meeting-name-hint stage-meeting-name-errors' : 'stage-meeting-name-hint'}
-              oninput={(event) => setMeetingName(event.currentTarget.value)}
-            />
-          </label>
-          <p id="stage-meeting-name-hint" class="-mt-3 text-muted-foreground">Candidates see it in emails and on the page where they book, as in "Book your trial shift".</p>
-          <FieldErrors id="stage-meeting-name-errors" messages={meetingNameErrors} />
-          <StageSchedulingFields {stage} {index} {errors} />
-        {/if}
-
-        <div class="flex flex-col gap-2">
-          <span class="text-body font-semibold text-secondary-foreground">Automations</span>
+        <section aria-labelledby="stage-automations" class={sectionClass}>
+          <h3 id="stage-automations" class="text-heading">Automations</h3>
           <StageFactList facts={here} {automationHref} {onshow} />
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Button variant="outline" onclick={() => stageId && onautomations(stageId)}>Add an automation</Button>
-            <a href={automationsHref} class="underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center" onclick={() => (stageId = null)}>Open in Automations</a>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-3">
-          <button
-            type="button"
-            class="flex w-full items-center justify-between gap-2 rounded-lg py-1 text-left font-semibold text-secondary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            aria-expanded={more}
-            aria-controls="stage-more-options"
-            onclick={() => (more = !more)}
+          <a
+            href={automationsHref}
+            class="w-fit underline underline-offset-2 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
+            onclick={(event) => {
+              if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+              if (onautomations) {
+                event.preventDefault();
+                onautomations();
+              }
+              stageId = null;
+            }}>{placed.length > 0 ? 'Edit in Automations' : 'Add in Automations'}</a
           >
-            More options
-            <ChevronDownIcon aria-hidden="true" class={['transition-transform', more && 'rotate-180']} />
-          </button>
-          {#if more}
-            <div id="stage-more-options" class="flex flex-col gap-2">
-              <label class={labelClass}>
-                Kind
-                <select class={selectClass} value={stage.kind} onchange={(event) => setKind(event.currentTarget.value as StageKind)}>
-                  {#each stageKinds as kind (kind)}<option value={kind}>{stageKindLabels[kind]}</option>{/each}
-                </select>
-              </label>
-            </div>
-          {/if}
-        </div>
+        </section>
       </div>
     {/if}
-    <Sheet.Footer class="flex-row items-center justify-end">
+    <!-- The menu at the left, the one primary at the right, at its normal width (A19). -->
+    <Sheet.Footer class="flex-row items-center justify-between">
       {#if stage && !first}
         <MoreMenu label={`More for ${stage.name}`} size="icon-lg">
           <DropdownMenu.Item
@@ -288,7 +313,7 @@
           </DropdownMenu.Item>
         </MoreMenu>
       {/if}
-      <Button size="lg" onclick={() => (stageId = null)}>Done</Button>
+      <Button size="lg" class="ml-auto" onclick={() => (stageId = null)}>Done</Button>
     </Sheet.Footer>
   </Sheet.Content>
 </Sheet.Root>

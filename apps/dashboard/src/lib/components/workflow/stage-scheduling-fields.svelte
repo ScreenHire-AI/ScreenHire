@@ -2,13 +2,14 @@
   import type { DefinitionError, InterviewOption, StageScheduling, WorkflowStage } from '@screenhire/api-client';
   import { createListTeamMembers, createListTeams } from '@screenhire/api-client/svelte-query';
   import ChoiceCard from '#lib/components/choice-card.svelte';
+  import InfoButton from '#lib/components/info-button.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import { Input } from '#lib/components/ui/input/index.js';
   import WeeklyHoursEditor from '#lib/components/weekly-hours-editor.svelte';
   import { optionOrder, optionWords, weekdayHours } from '#lib/interview-options.js';
   import { durationLabel, durations, maxInterviewers, toggleInterviewer } from '#lib/schedule-interview.js';
   import { errorsUnder } from '#lib/workflow.js';
-  import { checkboxClass, labelClass, selectClass } from './controls.js';
+  import { checkboxClass, fieldLabelClass, labelClass, selectClass } from './controls.js';
   import FieldErrors from './field-errors.svelte';
 
   // How interviews in a stage are usually offered (design system section 11, Stage sheet; docs/architecture/workflow-engine.md
@@ -32,9 +33,11 @@
 </script>
 
 <div class="flex flex-col gap-3" data-stage-scheduling>
-  <span class="text-body font-semibold text-secondary-foreground">Interview scheduling</span>
+  <span class="flex items-center gap-1">
+    <span class={fieldLabelClass}>Interview scheduling</span>
+    <InfoButton label="About interview scheduling" text="Set how interviews here are usually offered, so Schedule interview opens ready." />
+  </span>
   {#if !scheduling}
-    <p class="text-muted-foreground">Set how interviews here are usually offered, so Schedule interview opens ready.</p>
     <Button variant="outline" class="w-fit" onclick={() => (stage.scheduling = { option: 'OurTimes', durationMinutes: 30, windowDays: 14 })}>Set a default</Button>
   {:else}
     <div class="flex flex-col gap-2">

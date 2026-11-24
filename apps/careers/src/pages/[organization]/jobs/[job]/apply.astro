@@ -172,8 +172,8 @@ const answerText = (questionId: string): string => {
       <div class="flex flex-col gap-3">
         <h1 class="font-display text-candidate-title">{job.title}</h1>
         <JobFacts job={job} />
-        <StepIndicator step={steps.indexOf(step) + 1} steps={steps.length} />
       </div>
+      <StepIndicator step={steps.indexOf(step) + 1} steps={steps.length} />
 
       <meta slot="head" name="referrer" content="no-referrer" />
 

@@ -28,7 +28,7 @@ template does both. ScreenHire's facts are filled in from the [system descriptio
 | Recipients | Your hiring team. Sub-processors: hosting, email, and the AI provider when the language-model check is on (no training on the data) | Anyone else you share it with |
 | Transfers outside the EEA or UK | Depends on the hosting region and the AI provider in the customer agreement | Your safeguards |
 | Retention | Raw network and form-use data: at most 30 days. Findings and the review log: with the application, for the period you set | Your period, and the law that sets it |
-| Automated decisions | None from the checks: a person reviews every finding and no check can reject. A knockout question you set to reject automatically is an automated decision under Art. 22 | Whether you use automatic knockout rejection, and on what |
+| Automated decisions | None from the checks: a person reviews every finding and no check can reject. A must-have answer you set to reject automatically is an automated decision under Art. 22 | Whether you use automatic rejection on a must-have answer, and on what |
 
 ### 2. Necessity and proportionality
 

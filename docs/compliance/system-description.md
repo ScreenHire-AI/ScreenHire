@@ -55,8 +55,8 @@ summary and a suggested next step. There is no score, no percentage and no ranki
 - **No sharing between employers.** Each organization's data stays its own.
 - **No training on applicants.** No model is trained on applicant data.
 
-The one automated rejection ScreenHire offers is not a check: an employer may let a knockout question reject an
-application whose answer it marked as disqualifying, and the candidate is told the reason. That is the employer's own
+The one automated rejection ScreenHire offers is not a check: an employer may let a must-have answer reject an
+application whose answer fails it, and the candidate is told the reason. That is the employer's own
 rule, and in some places it counts as an automated decision (see the [gap map](../research/compliance-gap-map.md)).
 
 ## Uses that are harmful or inappropriate
@@ -123,7 +123,7 @@ Suggested practice for reviewers:
 - **Candidate requests:** a candidate can ask for a copy of their data, or its erasure, from the careers site, and,
   where the organization turns it on, for a person to look again at a rejection from their own page.
 - **Rejection reasons:** a person rejecting can pick the principal reason from a short list, kept with the move; an
-  automation that rejects on a knockout answer records that as its reason.
+  automation that rejects on a must-have answer records that as its reason.
 
 ## For the employer's own notices
 

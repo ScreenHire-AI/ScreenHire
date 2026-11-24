@@ -10,6 +10,7 @@ sources:
   - resource: src/ScreenHire.Domain/Hiring/DefinitionValidator.cs
   - resource: apps/dashboard/src/lib/form-sections.ts
   - resource: apps/dashboard/src/lib/forms-timeline.ts
+  - resource: apps/dashboard/src/lib/must-have.ts
   - resource: apps/dashboard/src/lib/components/workflow/form-cards.svelte
   - resource: apps/dashboard/src/lib/components/workflow/ai-use-row.svelte
   - resource: apps/dashboard/src/lib/components/job-ai-use-panel.svelte
@@ -105,8 +106,10 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/automation-name.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-sentence.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-blank.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/choice-list.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-recipes.svelte
   - resource: apps/dashboard/src/lib/components/workflow/automation-list.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/controls.ts
   - resource: apps/dashboard/src/lib/components/workflow/automations-panel.svelte
   - resource: apps/dashboard/src/lib/components/workflow/interview-fields.svelte
   - resource: apps/dashboard/src/lib/components/workflow/stage-cards.svelte
@@ -116,7 +119,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/workflow/try-it-stage.svelte
   - resource: apps/dashboard/src/lib/components/workflow/try-it-email.svelte
   - resource: apps/dashboard/src/lib/components/workflow/problem-notice.svelte
-  - resource: apps/dashboard/src/lib/components/workflow/problems-panel.svelte
+  - resource: apps/dashboard/src/lib/components/workflow/problem-lines.svelte
   - resource: apps/dashboard/src/lib/components/workflow/validation-badge.svelte
   - resource: apps/dashboard/src/lib/components/workflow/workflow-tabs.svelte
   - resource: apps/dashboard/src/lib/components/starting-point-card.svelte
@@ -180,7 +183,7 @@ Organization
  ├─ FormTemplate (versioned)            ← the form library: a form built once, used by any template
  ├─ HiringTemplate (versioned)          ← user-defined, reusable
  │    ├─ WorkflowDefinition             stages + automations
- │    ├─ Questionnaire                  the application form (+ knockouts, honeypots)
+ │    ├─ Questionnaire                  the application form (+ must-have answers, honeypots)
  │    ├─ FollowUpQuestionnaires         copies of library forms, each sent at a stage or by hand
  │    │                                 (the AI-use policy is not here: it is the organization's, with a job override, §8)
  │    ├─ PostingDefaults                target boards, duration, sponsorship defaults
@@ -261,7 +264,7 @@ values out of range, each at `stages[i].scheduling.*`; saving checks the people 
 1. **Verification-derived conditions can never drive `Reject`.** Any automation whose condition references `verification.*`
    (or any signal) may only use routing/step-up actions (`RequestVerification`, `AssignReviewer`, `AddTag`,
    `MoveToStage` into a non-terminal review stage). The validator rejects such definitions at save time.
-2. **Knockouts** (objective, candidate-declared eligibility like work authorisation, required licence) may use `Reject`,
+2. **Must-have answers** (`knockout` in the contract: objective, candidate-declared eligibility like work authorisation, required licence) may use `Reject`,
    but the default action is `QueueForRejectionReview`; auto-reject requires an explicit opt-in per rule, shows the
    candidate a reason, and is logged for record-keeping.
 3. **Every automated action is audit-logged** with the definition version, trigger event, evaluated facts and result.
@@ -321,7 +324,7 @@ pipeline (design system W13): the job's Edit pipeline, Save pipeline. A workflow
 published version, a closed job's) opens the same tabs in `workflow-summary.svelte`, which reads it as content, with no
 form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (design system section 11, Stage flow). The validation result is a Needs fixes badge beside the page title, shown only when there is a problem, with a Fix button beside it on every tab but Test.
 
-- **Pipeline:** `stage-cards.svelte`, the open stages as cards joined by a line (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`; the end stages keep their place after them), with a plus on the line between cards to insert one. The cards share the panel's width in equal columns from CSS (container units against the number of stages, as `stage-flow.svelte` does), joined by a connector with an arrow. Each card's chips come from `#lib/stage-facts.ts` (`stageChips`, drawn by `stage-chips.svelte`): the time limit ("Respond within 3 days", `respondWithin`, through `timeLimitLabel`), which opens the stage's sheet; the automations that are on, by their own names; the emails it sends, by template name; the questions its forms ask (the application form's on the first stage, plus each form an automation sends on entering it); and the scorecard. No sentence is generated for the card. An automation that only sends forms counts as those forms only while every form it names is still in the workflow; otherwise it counts as an automation by its own name, so a stage where something runs never says nothing happens. Each count opens a popover listing its items, each linking to `?tab=automations&show=<id>`, which the editor reads to open that automation in its sheet, or to `?tab=forms&form=<id>`. A plain click on an item opens it in the page instead (`onshow`, and `onshowform`, which sets the Forms tab's `selected` form in `workflow-editor.svelte`, because that tab is already mounted and reads `form` from the address only once); a modified click follows the link. The stage's own reminder is its time limit and is not counted. A stage with nothing on it says "Nothing happens automatically". Under the cards, `anyStageChips` is the Any stage row and the end stages are the Ends row, outline buttons that open their sheet. The read-only `stage-flow.svelte` draws the same chips, whose lists are text. The stage sheet still lists its automations as short labels (`stageFacts`, `automationLabel` and `whenOverdue`, drawn by `stage-fact-list.svelte`), because the sheet is where the detail is read. The stage's name is a button with a pencil and the tooltip "Edit <stage>", and opens `stage-sheet.svelte`: name, Respond within as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other) with what it means under it ("After that they show as Overdue. Nothing happens to the candidate."), then "When overdue" with the labels of what runs when it passes (`whenOverdue`), or "Nothing yet." with Add a reminder, which adds a `SlaBreached` automation for the stage that tells the team and opens it on the Automations tab (never on a stage a check moves candidates into), scorecard, "What the meeting is called" (on every stage where a team meets a candidate: not Applied, Offer or a terminal stage), the automations that run there and More options with the stage's kind. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
+- **Pipeline:** `stage-cards.svelte`, the open stages as cards joined by a line (reordered by dragging a grip, or from the menu the grip opens: Move left, Move right, Move to start, Move to end, `ReorderList` with `orientation="horizontal"`; the end stages keep their place after them), with a plus on the line between cards to insert one. The grip and the plus are always visible, and a card has no menu. The cards share the panel's width in equal columns from CSS (container units against the number of stages, as `stage-flow.svelte` does), joined by a connector with an arrow. Each card's chips come from `#lib/stage-facts.ts` (`stageChips`, drawn by `stage-chips.svelte`): the time limit ("Respond within 3 days", `respondWithin`, through `timeLimitLabel`), which opens the stage's sheet; the automations that are on, by their own names; the emails it sends, by template name; the questions its forms ask (the application form's on the first stage, plus each form an automation sends on entering it); and the scorecard. No sentence is generated for the card. An automation that only sends forms counts as those forms only while every form it names is still in the workflow; otherwise it counts as an automation by its own name, so a stage where something runs never says nothing happens. The automations chip has no list: it goes to the Automations tab (`showAutomations` in `workflow-editor.svelte`), to the automation when there is one and to the stage's list of them when there are several. The emails and questions counts each open a popover listing their items, each linking to `?tab=automations&show=<id>`, which the editor reads to open that automation in its sheet, or to `?tab=forms&form=<id>`. A plain click on an item opens it in the page instead (`onshow`, and `onshowform`, which sets the Forms tab's `selected` form in `workflow-editor.svelte`, because that tab is already mounted and reads `form` from the address only once); a modified click follows the link. The stage's own reminder is its time limit and is not counted. A stage with nothing on it says "Nothing happens automatically". Under the cards, `anyStageChips` is the Any stage row and the end stages are the Ends row, outline buttons that open their sheet. The read-only `stage-flow.svelte` draws the same chips, whose lists are text. The read-only flow's automations chip still lists them. Automations are edited on the Automations tab alone, so the stage sheet lists the stage's by their own names, off ones included, as links there (`stageAutomations`, drawn by `stage-fact-list.svelte`), with one link to the tab. The stage's name is a button with a pencil and the tooltip "Edit <stage>", and opens `stage-sheet.svelte`: the name and, beside it, the stage's kind, then sections shown by kind, Timing, Meeting, Scorecard and Automations. Timing is Respond within as plain choices (None, 2 days, 3 days, 5 days, 1 week, Other) with what it means in an Info button ("After that they show as Overdue. Nothing happens to the candidate."), then "When overdue" with the labels of what runs when it passes (`whenOverdue`), or "Nothing yet." with Add a reminder, which adds a `SlaBreached` automation for the stage that tells the team and opens it on the Automations tab (never on a stage a check moves candidates into). Meeting is "What the meeting is called" and the scheduling default, on every stage where a team meets a candidate: not Applied, Offer or a terminal stage. Remove stage is in the sheet's footer menu, and the editor then moves the focus to the card that took its place. A stage's kind follows its name (`kindFromName`) until it is set by hand. The name is matched by the words it contains, the first match winning: withdraw is Withdrawn; reject, not selected, declined, not hired or turned down is Rejected; hired, started or onboard is Hired; offer is Offer; interview is Interview; verif, background or reference is Verification; trial, test, task, assessment, skills, shift, group session or exercise is Assessment; phone, call, screen or review is Screening; anything else, and a stage still named New stage, is Custom. The first stage is always Applied, so its sheet shows the kind as text, and setting a kind that ends the application removes the stage's reminder. A time limit gives the stage a reminder for the team, an automation with the id `reminder-<stage id>` (`syncReminder`; `SlaBreached` then `NotifyTeam`), which the sheet adds, renames and removes and which task recipes may recognise; a stage a verification check moves candidates into has none, because the guardrail forbids it there. An automation's actions reorder the same way and, per stage, its automations
   in a Sheet drawer and its scorecard in another (`scorecard-picker.svelte`): a library scorecard, built-in or the
   team's own, picked from a list and shown as it asks. Questions are written on the library scorecard itself, never in
   the workflow: on the Templates page's Scorecards tab (`/templates/scorecards/{id}`), in the form builder
@@ -354,19 +357,28 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     call") with the automation's name under it, an If node's is its conditions (`ruleTitle`: "Right to work is No",
     "Verification is Review or Verify") and a Then node's the step. A node's accessible name keeps the automation's name
     right after the word, so "When Fast-track referrals" names the trigger node. With the editor the whole node is one
-    button, so it is the node's only tab stop: an automation's node opens the automation's sheet, on the tab chosen last or on Rules when it is
+    button: an automation's node opens the automation's sheet, on the tab chosen last or on Rules when it is
     too complex for a sentence (`sentenceLimit`), at the node's part (its trigger, its conditions or that action); the Any stage band or a stage
     opens its automations as rows. A version that cannot be edited draws the same nodes as a focusable box with no
     buttons. A phone does not draw the map: the Automations tab is the list there (see **List and sheets**).
-  - **Plus buttons.** Where a thing would go there is a plus, only while editing and once the workflow has an
-    automation: under each stage and the Any stage band for a new automation (`addAutomation`), on the line between a trigger and its
-    first action for a first condition (`addCondition`), and under the last action for another action (`addAction`).
-    The plus for a new automation opens the recipes for that stage (Applied's include those for an arriving application
-    and the checks), or every recipe under Any stage, where Write your own starts a run by hand so the new automation
-    stays in that band (Add automation's starts one for an arriving application, under Applied); the other two open the
-    sentence at what they added. A
-    workflow with no automations says what an automation is and offers one button, "Add an automation", which opens the
-    every recipe.
+  - **Add buttons.** Where a thing would go there is an add button, only while editing and once the workflow has an
+    automation. Under each stage and the Any stage band it is New automation, in words, which opens the recipes for that
+    stage (Applied's include those for an arriving application and the checks), or every recipe under Any stage. Write your
+    own (`addAutomation`) adds an automation with its trigger and no step, named by that trigger: a run by hand in the Any
+    stage band, so it stays there, and an arriving application from Add automation, under Applied. On the line between a
+    trigger and its first action, and under the last action, it is a small plus. A plus opens a list: the facts a first
+    condition can check (`addConditionBlank`) or the kinds of step (`addStepBlank`), the sentence's own lists with its
+    guardrail, and the one chosen is added and the automation opened at the first thing it still asks for
+    (`firstBlankPath`), an empty text ready to type. So a plus never adds a placeholder. A workflow with no automations says
+    what an automation is and offers one button, "Add an automation", which opens every recipe.
+  - **Removing.** Each When, If and Then has a menu, a button beside the node's own and the next tab stop, and Delete or
+    Backspace on the node does the same (`removeNode`): an automation from its When, its conditions from its If, a step from
+    its Then, and the automation with its last step, because one with none is only a problem. The key is Svelte Flow's
+    `deleteKey`, which deletes the nodes marked selected: the node whose button has the focus is marked, only what can be
+    removed is `deletable`, and `onbeforedelete` makes the workflow's edit and cancels the canvas's. Every removal, here and
+    in the list, the sheet and the problem lines, offers Undo and asks nothing (design system section 10). A `Removal`
+    carries its own `restore`, which puts back what went by id into the workflow as it is by then. An open sheet keeps the
+    focus, so it draws its own offers and hands the last to the page as it closes (`UndoOffer.moveTo`).
   - **Paths.** Hovering or focusing a node lights its path (`pathOf`): an automation's chain with the stage it fires on
     and the stage it moves into, or a stage's automations and the moves into it. The rest quietens by its edge and its
     line alone, so text keeps its contrast, and nothing moves for someone who prefers reduced motion.
@@ -380,26 +392,34 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     finish at any of them from any stage. Their automations hang under them like any stage's.
   - **Keyboard.** Nodes are listed in reading order, a band at a time, which is the Tab order. The arrow keys move along
     a column (Up, Down) and across to the nearest column (Left, Right), Home and End go to the first and last
-    (`neighbour`); whatever takes the focus is panned into view and out from under the toolbar. Closing a sheet returns
+    (`neighbour`); whatever takes the focus by key or Tab is panned into view and out from under the toolbar, but a node pressed with a pointer stays where it is, because panning it from under the pointer would lose the click. Closing a sheet returns
     the focus to the node that opened it (`focusGraphNode`), or to the row that opened it in the list.
   - **Links.** A "move to a stage" action also points at its stage by drawing a link from its right edge to a stage, a
     pointer shortcut for the form's Stage field (`connect`), never the only way (WCAG 2.5.7).
   - A validation message shows on the node its path names, an automation's own messages on its trigger node, as it does
-    under the sentence. Removing an automation is Remove automation on its Rules tab.
+    under the sentence.
   - **List and sheets.** The panel header has a List | Map switch and Add automation (`automations-panel.svelte`); the
     list (`automation-list.svelte`) groups the automations as the map does, by stage and then Any stage, with each one's
     sentence, and a phone shows only it. One sheet in `workflow-editor.svelte`, one width in every view, has three views: a
-    stage's or Any stage's automations as rows, the recipes, and one automation: its Name and On (`automation-name.svelte`)
-    over two tabs, Sentence and Rules, that edit the same automation. Every automation opens on the tab the person chose
+    stage's or Any stage's automations as rows, the recipes, and one automation: its name, which is
+    the title, and On (`automation-name.svelte`) over two tabs, Sentence and Rules, that edit the same automation, and a
+    footer with Remove automation in its menu and Done. A name that was the suggestion before a change (`suggestedName`, from
+    the trigger and the steps) is the new suggestion after it, so it follows until a person types one; nothing about it is
+    stored. While an automation is open, its unfinished problems are left out of the sheet, the map and the problem lines
+    (`isUnfinished`: an empty value, or a web address half typed), unless Fix opened it. A guardrail's refusal is on the step, the
+    fact or the opt-in itself, so it is never one of them. As the sheet closes (`tidyAutomation`), a step left without its
+    text is dropped and an automation without a step is removed, with Undo. Every automation opens on the tab the person chose
     last (`preferences.automationView`, in the browser); one too complex for a sentence (`sentenceLimit`: a rejection, or
     a condition on a fact its trigger does not offer) opens on Rules, and its Sentence tab says why.
-  - **The sentence.** `automation-sentence.svelte` reads one automation as "When [someone applies] and [their answer to
-    Right to work is No], [ask the team to review] and [add the tag ...]", from `sentenceOf` in
-    `#lib/automation-sentence.ts`, which returns text and blanks; each blank holds its choices and an `apply` that returns
+  - **The sentence.** `automation-sentence.svelte` reads one automation as When, If and Then, one clause a line: "[someone
+    applies]", "[their answer to Right to work] [is] [No]", "[ask] [the team] to review" and "and [add the tag] [...]", from
+    `sentenceOf` in `#lib/automation-sentence.ts`, which returns the three sections, their clauses (a joining word, text and
+    blanks, and how to take the clause away) and the plus that ends each; each blank holds its choices and an `apply` that returns
     the automation with that choice made, so the definition is the only thing stored and the validator stays the judge.
     The facts are grouped as Their answers, The application and ScreenHire's checks; a fixed list of values is ticked,
     one value stored as is and two or more as is one of. The Rules tab is `automation-form.svelte`, When, If and
-    Then as three wells, with Remove automation at its foot.
+    Then as three wells; it ticks the same fixed lists by name and stores the same codes, and its Add action is a menu of the
+    kinds the guardrail allows, with Reject where it does.
   - **What a move sets off.** `enteringLines` in the same module says what entering a stage does, one sentence per
     automation that fires on it, in the list's words ("Send the "Moved to the next step" email."). The dashboard asks
     with it before a move (`createMoves`, `move-confirm-dialog.svelte`), unless the person ticked Don't ask again. An
@@ -454,8 +474,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   with disclosure." with a Change policy link, because the policy is not the template's. The kinds a question takes
   (`applyFormKinds`, `followUpKinds` in `#lib/form-builder.ts`) are every `QuestionType`; any other form offers all but
   File, because its page takes no uploads, and an equality monitoring form only the choices (`equalityKinds` in
-  `#lib/form-library.ts`). What a kind needs beyond its text and options (a knockout, a number's range,
-  the longest answer, a file's types) is `question-settings.svelte`. A duplicate takes an id unique across the workflow,
+  `#lib/form-library.ts`). What a kind needs beyond its text and options (a must-have answer, a number's range,
+  a text answer's maximum length, a file's types) is `question-settings.svelte`. A duplicate takes an id unique across the workflow,
   so `answers.{id}` still names one question. Add a section (an outline button beside Add a question) gives the
   questionnaire named sections, each a page for the candidate (apply-flow.md §7): the first press makes "Section 1"
   with every question and an empty "Section 2", whose name takes the focus. A section is a row in the same list, with
@@ -468,8 +488,19 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   that follows each edit. The apply form's preview starts with the candidate's details and the resume and ends with the
   AI-use question; a follow-up's is its questions alone, as its page shows them. The preview pages as the candidate does (each named section, or
   pages of the organization's questions per page), one step at a time with Back and Next, each opening with the progress bar the
-  candidate sees ("40% done", apply-flow.md section 7); the last step's send button is off, because nothing is sent from a preview; in Try it it hands the answers back instead, still sending nothing. Marking a yes/no question as a knockout shows what a knockout may be (an
-  objective eligibility check, never AI use or an accommodation), and, while no automation's condition reads its answer, that nothing happens to it yet, with a link to the Automations tab (A11). The automation form offers "Send a form" and
+  candidate sees ("40% done", apply-flow.md section 7); the last step's send button is off, because nothing is sent from a preview; in Try it it hands the answers back instead, still sending nothing. A yes/no question's Must-have answer switch has an Info button that says what one may be (an
+  objective requirement only, such as the right to work or a licence, never AI use or an accommodation). Turning it on writes an automation, as a form's send
+  moment does (`#lib/must-have.ts`): on an application form question that no automation reads, on or off, it adds the recipe "Review anyone who fails"
+  (`mustHaveRecipe`), which queues a rejection review. `syncMustHaves` compares the questions before and after every edit: a changed answer or question text
+  writes that automation again, and turning the switch off, deleting the question or changing its kind takes it away, each only while the automation is still
+  exactly what the recipe wrote (`isUntouched`, its id aside, and whatever nulls the API sent back). One a person has edited is never rewritten or removed.
+  `mustHaveState` words the line beside the switch: "Candidates who answer No go to Rejection review, where a person decides." with the answer picker inline
+  and a link that opens the automation, under its own name when a person wrote or edited it; only the names of the automations that read the answer, when
+  they do something else or one of them turns people down; or that nothing happens to it yet, with a link to the Automations tab (A11). A follow-up form has no automation added, and a library form's line says only
+  which answer fails. The switch never sets `allowAutoReject` and nothing beside it offers a rejection. A text answer's maximum length
+  is at most `ApplicationForm.ShortTextMaxLength` (300) or `LongTextMaxLength` (5,000), the same limit the validator and the form use; a link takes none. A definition
+  stored earlier with a higher number no longer validates: a draft keeps it as a problem and does not publish, and a job already running it starts no automation
+  until someone lowers it (`AutomationEngine` records each run as Blocked, with the reason). The automation form offers "Send a form" and
   the "A form is answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
 - **Try it:** `try-it.svelte` (rules in `#lib/try-it.ts`, design system section 11, Try it; the owner's walk-through of
@@ -499,9 +530,10 @@ the API stores a template draft, and a draft job's workflow, whatever the valida
 is refused, `DraftShape`), and returns the problems with the save (`problems` on the template version, `workflowProblems`
 on the job). Only Try it and Publish wait for the fix: a template publish and a job's first publish validate
 again and refuse. A save to an open job's workflow is live at once, so it is validated like a publish. The editor still
-holds unsaved work in the page and asks before leaving it. It lists the open problems in a "Problems to fix" panel above
-every tab but Try it; a read-only view lists a stored version's in a "Problems" panel. An Add a tag step asks for its tag
-first, and a step left empty is dropped with Undo, so a blank step is never a problem. Saving with no changes sends
+holds unsaved work in the page and asks before leaving it. It lists the open problems as compact lines
+(`problem-lines.svelte`) above every tab but Try it, three and then the rest, each with Fix and a blank step with Remove
+step; a read-only view lists a stored version's the same way, with no buttons. An Add a tag step asks for its tag first, and
+a step left empty is dropped with Undo, so a blank step is a problem only for someone who takes that back. Saving with no changes sends
 nothing, because each save of a job's workflow is a new version.
 
 ## 5. API surface (public, same API the dashboard uses)
@@ -668,7 +700,7 @@ The data model and API from the jobs and templates task, and the engine that run
   questionnaires beside the apply questionnaire, each with at least one question. A question id is unique across the
   apply questionnaire and every follow-up, and a follow-up cannot use the apply form's own ids (`resume`,
   `linkedin_export`), so `answers.{id}` names one question. No file questions: the follow-up page works without
-  JavaScript and takes no uploads. The knockout rules apply to follow-up questions as to apply questions.
+  JavaScript and takes no uploads. The must-have rules apply to follow-up questions as to apply questions.
 - **Forms** (`FormTemplate`, `FormTemplateVersion`, tables `form_templates` and `form_template_versions`, migration
   `AddFormLibrary`). A library form is an organization's follow-up questionnaire built once: its kind (`Standard` or
   `EqualityMonitoring`, set when it is made and never changed) and numbered versions like a hiring template's, at most
@@ -693,7 +725,7 @@ The data model and API from the jobs and templates task, and the engine that run
   copies as they were. The form's history is the hiring template's kind of history (`FormTemplateChanges`).
 - **Equality monitoring forms** (`kind: EqualityMonitoring`), offered only where
   `ScreenHire:Forms:EqualityMonitoring:Enabled` is on (default off, pending a legal review): every question is an
-  optional SingleChoice, MultiChoice or YesNo with no knockout; no condition may read an equality question's
+  optional SingleChoice, MultiChoice or YesNo with no must-have answer; no condition may read an equality question's
   `answers.{id}`, and no `QuestionnaireCompleted` trigger may name the form. Sending one is allowed. Its answers never
   leave as answers (section 8): they only count toward totals in Reports. The setting gates making such a form and
   reading the totals, not sending: turned off after forms exist, their automations and Send a form still send them and
@@ -717,7 +749,7 @@ The data model and API from the jobs and templates task, and the engine that run
   counts as signal-driven too, so a signal cannot be laundered through a tag or a stage. Once any signal-driven
   automation moves applications, every `StageExited` automation counts as well: the stage a move leaves is wherever the
   application is when the action runs, which no definition can know. Only an automation whose
-  every condition is a knockout question equal to its disqualifying answer, with `allowAutoReject` set, may `Reject`,
+  every condition is a question with a must-have answer, equal to the answer that fails it, with `allowAutoReject` set, may `Reject`,
   and it must give the candidate a reason. Its move into the rejected stage keeps `rejectionReason` `KnockoutAnswer` on the
   timeline entry; a person moving an application into a rejected stage may give another reason from the same short list
   (`RejectionReason`: requirement not met, another candidate, position closed, no reply, other), and a reason with any
@@ -736,9 +768,9 @@ The data model and API from the jobs and templates task, and the engine that run
   questions, guidance and options that name personality, emotion, honesty and the like (whole words, so "data
   verification" passes), but that is a backstop: a scorecard asks about the job, and the builder's note and review of
   the built-ins hold that line.
-  A knockout question must be an objective eligibility check (right
-  to work, a required licence). A knockout on AI use or on needing an accommodation would reject candidates for
-  exactly what ADR-0004 and the accommodation guardrail protect; the template builder must say so, and review of
+  A must-have answer must be an objective requirement (the right
+  to work, a required licence). A must-have on AI use or on needing an accommodation would reject candidates for
+  exactly what ADR-0004 and the accommodation guardrail protect; the template builder must say so (the switch's Info button does), and review of
   system templates checks it.
 - **Templates** have numbered versions: at most one draft, then published versions that never change. The system
   templates "Software engineer" and "Hourly role" ship in the `AddHiringModel` migration with no organization, and a
@@ -898,7 +930,7 @@ one email. A webhook happens before the commit; a crash in between can repeat on
 | `CreateTask` | Creates a `Task` with the note. |
 | `ScheduleInterview` in Choose mode (`interviewMode: Choose`) | Creates a `ChooseScheduling` task, "Choose how Grace schedules an interview", for the hiring team, and offers nothing. The task is done when anyone offers the application an interview, never by ticking it (the complete and reopen routes answer 409). Skipped when the application has ended, an interview is open or booked, or the task is open already. Takes no other field. |
 | `QueueForRejectionReview` | Creates a `RejectionReview` task. It never moves the application. |
-| `Reject` | Only for an opted-in knockout automation. Sends `application-rejected`, in the organization's wording, with the reason (the wording must use it). ScreenHire adds the sentence that says the decision was automatic and that a person reviews it on request, which no wording can remove. It then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone, with a workflow that no longer validates or that changed version since the conditions were checked, it queues a rejection review instead: the candidate must be told why. |
+| `Reject` | Only for an opted-in automation on a must-have answer. Sends `application-rejected`, in the organization's wording, with the reason (the wording must use it). ScreenHire adds the sentence that says the decision was automatic and that a person reviews it on request, which no wording can remove. It then moves to the rejected stage. It re-validates the workflow first. Without email, with the opt-in gone, with a workflow that no longer validates or that changed version since the conditions were checked, it queues a rejection review instead: the candidate must be told why. |
 | `CallWebhook` | Posts ids only, with the action key as `Idempotency-Key`, to public addresses only (no loopback, private or link-local targets, checked at connect time; loopback only where `ScreenHire:Webhooks:AllowLoopback` is on, in the local stack and the tests). Signed: `ScreenHire-Signature: t={unix seconds},v1={hex}`, HMAC-SHA256 of `{t}.{body}` under the organization's key: hex HMAC-SHA256 of `webhook-signing:{organizationId}` under `ScreenHire:Webhooks:SigningKey` (`WebhookSignature.OrganizationKey`; the AppHost generates the platform key locally). A receiver is given its organization's key only, so it cannot sign for another organization. Never through a proxy, which would resolve the target past the address check. Without a key the action fails as an issue instead of sending something unverifiable. No HTTP retries of its own: Wolverine retries the action. |
 | `SendQuestionnaire` | Emails the candidate a link to one of the workflow's follow-up questionnaires on the careers site, through the built-in `questionnaire-request` email, whose wording must use `{{ questionnaireLink }}` ([email.md](email.md)). One request per application and questionnaire (`questionnaire_requests`, unique): the first send creates it, a later one sends a fresh link to the same request while it is unanswered, and once it is answered nothing is sent. A `QuestionnaireSent` timeline entry links each send to the run. Skipped without email, as `SendEmail` is, and for an application that has ended; fails when the questionnaire left the workflow or the careers site address (`ScreenHire:Domains`) is not set up, and in either case before the request changes. Not open to signal-driven automations. |
 | `ScheduleInterview` | Offers the candidate an interview ([interview-scheduling.md](interview-scheduling.md), ADR-0024): an Open `InterviewRequest` with the action's interviewers (the first is the organizer), length and time zone, and a window that starts when the action runs and lasts the action's days, 09:00 to 17:00 on weekdays or the stage default's hours. It offers the action's `interviewOption`, else the stage's default option, else pick from our times; we'll suggest a time needs a person, so the action refuses it at save and a stage default of it makes the Choose task instead. It adds an `InterviewInvited` timeline entry linked to the run and queues `SendInterviewInvitation` in the action's transaction, so the email leaves only if the action commits. Nothing is on a calendar until the candidate picks a time. **Skipped** (a plain detail, not a failure) when email or the careers site address is not set up, when the application has ended, or when the candidate has an interview Open (not past its window) or Booked; an Open request past its window is stored as Expired first, as the staff route does. **Failed** before anything is written when an interviewer is no longer a member, can no longer see the job (not on a hiring team that excludes them), or, for times from calendars, has neither a working calendar nor interview hours, or when the saved settings no longer pass the interview rules. The request carries the action's key (`SourceKey`, unique per application), so running the action again finds the request and skips without a second email. Not open to signal-driven or `SlaBreached` automations. |
@@ -997,7 +1029,7 @@ scorecard then asks for a required overall `Recommendation` (strong no, no, yes,
 - Only a person submits a scorecard. An API key gets 403, and a Viewer gets 403 as on every write. Both may read
   scorecards.
 - Verification output never feeds a scorecard. The sheet shows only the questions, and no automation action writes one. A
-  reviewer's "strong no" can queue a rejection review but never reject: only an opted-in knockout rejects.
+  reviewer's "strong no" can queue a rejection review but never reject: only an opted-in automation on a must-have answer rejects.
 
 **The candidate's rating** (ADR-0013 decision 13, `RatingRule`) is one to five stars from people's scorecards:
 
@@ -1040,7 +1072,7 @@ name; the worker builds the careers URL from the same `ScreenHire:Domains` setti
   clock, so the page can say "expired" rather than "not found", and a second send revives every link to the request.
   The token's own Data Protection limit is that expiry plus 30 days; after it the token reads as forged.
 - `GET /v1/public/organizations/{slug}/questionnaires/{token}` returns the organization, the job title, the
-  questionnaire's name and a status: `Open` (with the questions, knockout settings left out), `Answered`, `Expired`, or
+  questionnaire's name and a status: `Open` (with the questions, must-have answers left out), `Answered`, `Expired`, or
   `Closed` once the questionnaire left the workflow or the job or application ended. A forged token, or one for another
   organization than the slug's, is 404.
 - `POST` to the same path takes the answers, checked with `ApplicationForm.Validate` against the follow-up's questions.
@@ -1053,7 +1085,7 @@ name; the worker builds the careers URL from the same `ScreenHire:Domains` setti
   non-negotiable 4). [apply-flow.md](apply-flow.md) §8 has the page.
 - `PUT` to `/draft` under the same path keeps answers to finish later on the request (`DraftAnswers`, checked for
   shape only), and the `GET` returns them while the link is open; answering, or the daily sweep 30 days after the first
-  save, deletes them. A saved draft raises no event and fires no trigger, so a knockout answer in it decides nothing
+  save, deletes them. A saved draft raises no event and fires no trigger, so an answer in it that fails a must-have decides nothing
   until the candidate sends the answers. It is 409 once answered and 410 once expired or closed.
 - The candidate page's Application tab lists each form sent in a Forms panel, a row each that opens to the answers
   once given, read against the copied questions ("Answered 2 days ago", "Sent 3 days ago, waiting"), with Expand all;

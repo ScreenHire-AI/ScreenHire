@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 // Guards for the product non-negotiables in marketing copy (CLAUDE.md 1 and 2, ADR-0004): no number presented as a
-// fraud or AI verdict, no claim that rejection never happens at all (knockout questions can reject; verification signals
+// fraud or AI verdict, no claim that rejection never happens at all (a must-have answer can reject; verification signals
 // never do), and no pricing placeholder anywhere (an unpriced plan shows its name and limit and no amount).
 const src = fileURLToPath(new URL('..', import.meta.url));
 

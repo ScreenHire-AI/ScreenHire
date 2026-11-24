@@ -100,7 +100,12 @@ public sealed partial class FollowUpQuestionnaireTests(E2EFixture fixture) : Bro
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue" }).ClickAsync();
         await Expect(Page.Locator("#questions-heading")).ToHaveTextAsync("Your licence");
+        // The last page of questions is not a review: it keeps its percentage.
         await Expect(Page.Locator("[data-page-progress]")).ToHaveTextAsync("67% done");
+        // On a phone the bar stays at the top here too, with JavaScript off. The window is short, so the page scrolls.
+        await Page.SetViewportSizeAsync(390, 400);
+        await Page.GetByRole(AriaRole.Contentinfo).ScrollIntoViewIfNeededAsync();
+        (await Page.Locator(".apply-progress").BoundingBoxAsync())!.Y.Should().Be(0);
         await Page.GetByRole(AriaRole.Button, new() { Name = "Send answers" }).ClickAsync();
         await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync("Answer this question.");
         await Page.GetByLabel("Yes").CheckAsync();

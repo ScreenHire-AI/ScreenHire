@@ -417,7 +417,7 @@ export function idFrom(label: string, taken: Iterable<string>, fallback: string)
 /**
  * The kind a stage gets from its name, so a person who types "Trial shift" never meets the word "Assessment". The first
  * match wins, and a name that says nothing is Custom. Only a stage's creation and its name, until its kind is set by
- * hand under More options, use it. Applied is never guessed: the first stage is Applied and no other stage can be.
+ * hand in its sheet, use it. Applied is never guessed: the first stage is Applied and no other stage can be.
  */
 export function kindFromName(name: string): StageKind {
   const text = name.toLowerCase();
@@ -567,15 +567,17 @@ export function withQuestionType(question: Question, type: QuestionType): Questi
   return next;
 }
 
-/** Whether an automation that is on has a condition that reads the answer to the question `questionId` (the fact `answers.{id}`). */
-export const answerIsRead = (workflow: HiringWorkflow, questionId: string): boolean =>
-  workflow.automations.some(
-    (automation) => automation.enabled !== false && automation.conditions?.rules.some((rule) => rule.fact === `answers.${questionId}`),
-  );
+/**
+ * The most characters an answer of this kind holds, and so the most its maximum length can be: `ApplicationForm`'s
+ * ShortTextMaxLength and LongTextMaxLength. None for a kind that takes no maximum length, a link included.
+ */
+export const answerLengthLimit = (type: QuestionType): number | undefined => (type === 'ShortText' ? 300 : type === 'LongText' ? 5000 : undefined);
 
 /**
- * A new automation for a stage: its entry trigger. For none, "an application arrives" (under Applied), or, written from
- * the Any stage band (`anyStage`), a run by hand, so it stays in the band it was written from.
+ * A new automation for a stage: its entry trigger, and nothing else. For none, "an application arrives" (under Applied),
+ * or, written from the Any stage band (`anyStage`), a run by hand, so it stays in the band it was written from. It has no
+ * step, because a step nobody chose is a placeholder to undo; `addAutomation` gives it the name its trigger suggests, and
+ * one still without a step when its sheet closes is removed.
  */
 export function newAutomation(workflow: HiringWorkflow, stageId: string | null, anyStage = false): Automation {
   const id = idFrom('automation', workflow.automations.map((automation) => automation.id), 'automation');
@@ -584,10 +586,7 @@ export function newAutomation(workflow: HiringWorkflow, stageId: string | null, 
     name: 'New automation',
     trigger: stageId ? { type: 'StageEntered', stageId } : anyStage ? { type: 'Manual' } : { type: 'ApplicationSubmitted' },
     conditions: null,
-    // A step that is complete from the start, so a new automation never opens as a problem, and one that every trigger and
-    // every condition allows: a passed time limit may only remind the team or ask for a review, and after a check the sentence
-    // offers only asking a teammate, tagging or moving. With no teammate named it asks the team. The person changes it.
-    actions: [{ type: 'AssignReviewer' }],
+    actions: [],
     enabled: true,
     allowAutoReject: false,
   };
@@ -616,6 +615,9 @@ export const replaceAt = <T>(list: readonly T[], index: number, item: T): T[] =>
 /** `list` without the item at `index`. */
 export const removeAt = <T>(list: readonly T[], index: number): T[] => list.filter((_, i) => i !== index);
 
+/** `list` with `item` at `index`, or at its end when the list is shorter. */
+export const insertAt = <T>(list: readonly T[], index: number, item: T): T[] => [...list.slice(0, index), item, ...list.slice(index)];
+
 /**
  * A validator path as the builder uses it: relative to the workflow. Save responses prefix paths with the request
  * member (`definition.workflow.`, `workflow.`); the validate endpoint does not.
@@ -625,6 +627,40 @@ export const workflowPath = (path: string): string => path.replace(/^(definition
 /** The errors at `path` or inside it (`automations[0]` covers `automations[0].actions[1].reason`). */
 export const errorsUnder = (errors: readonly DefinitionError[], path: string): DefinitionError[] =>
   errors.filter((error) => error.path === path || error.path.startsWith(`${path}.`) || error.path.startsWith(`${path}[`));
+
+/** What a validator path points at, or undefined where nothing is there: a missing field, or an index past the end. */
+const valueAt = (workflow: HiringWorkflow, path: string): unknown =>
+  path
+    .split(/[.[\]]+/)
+    .filter(Boolean)
+    .reduce<unknown>((value, key) => (value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined), workflow);
+
+const isEmpty = (value: unknown): boolean =>
+  value === null || value === undefined || (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0);
+
+/** A web address half typed is not wrong yet. Every other text with something in it is judged as it stands. */
+const halfTyped = /\.actions\[\d+\]\.url$/;
+
+/**
+ * Whether a problem is something not filled in yet (a blank, or a web address half typed), rather than something refused. A
+ * guardrail's refusal names the step, the fact or the opt-in itself, which are never empty, and one that names a field with
+ * something in it is a refusal of what it says, so it is never unfinished work and always shows (workflow-engine.md
+ * section 2).
+ */
+export const isUnfinished = (workflow: HiringWorkflow, error: DefinitionError): boolean =>
+  /^automations\[\d+\]/.test(error.path) && !error.path.endsWith('.allowAutoReject') && (halfTyped.test(error.path) || isEmpty(valueAt(workflow, error.path)));
+
+/** Whether a step asks for one thing (a tag, a message, a stage, a form) and does not have it yet. */
+export function isBlankStep(action: AutomationAction): boolean {
+  const field = actionField[action.type];
+  return field !== undefined && isEmpty(action[field]);
+}
+
+/** Whether a step asks for text (a tag, a message, a web address, a reason) and has none: leaving it drops it. */
+export function isEmptyTextStep(action: AutomationAction): boolean {
+  const field = actionField[action.type];
+  return (field === 'tag' || field === 'note' || field === 'url' || field === 'reason') && isEmpty(action[field]);
+}
 
 /** The messages exactly at `path`. */
 export const errorsAt = (errors: readonly DefinitionError[], path: string): string[] =>

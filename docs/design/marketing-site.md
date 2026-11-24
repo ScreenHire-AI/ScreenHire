@@ -206,7 +206,7 @@ decides. That a candidate is told what is collected before they start, and can s
   counts against someone. The repository is public until launch, and a page that lists them tells a bad actor what to
   avoid.
 - A numeric score, or a percentage of AI-written text.
-- That ScreenHire rejects anyone, or that a check can. (A knockout question the team opts into is not a check.)
+- That ScreenHire rejects anyone, or that a check can. (A must-have answer the team opts into rejecting on is not a check.)
 - That ScreenHire reads faces, voices, feelings, honesty or personality, or looks people up on social media or LinkedIn.
 - Anything about a competitor that its own page does not say today. In particular, `competitors.md`'s lines that GoHire
   has no event triggers and no public API, and that its stage actions are Pro-only, were not confirmed on 2026-11-08:

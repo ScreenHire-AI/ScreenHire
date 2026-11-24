@@ -226,12 +226,12 @@
             <li
               data-card-id={card.id}
               aria-label={`${card.candidateName}, ${column.stage.name}`}
-              class="group flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 shadow-surface outline-offset-2"
+              class="flex flex-col gap-2 rounded-lg border border-border-subtle bg-card p-3 shadow-surface outline-offset-2"
               onkeydown={(event) => onkeydown(card, event)}
             >
               <!-- Row 1: who, then any status that needs a look (T2; calm says nothing, section 21), as the application's own
-                   header reads; a long name pushes the status to the next line. The menu sits top right, shown on hover and
-                   focus, always on touch. -->
+                   header reads; a long name pushes the status to the next line. The menu sits top right, always visible and
+                   muted (F4), because it moves the card without a drag. -->
               <span class="flex min-w-0 items-start gap-2">
                 <span
                   aria-hidden="true"
@@ -258,7 +258,7 @@
                 </span>
                 {#if moves.allowed}
                   <span
-                    class="-my-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-state=open]]:opacity-100 pointer-coarse:opacity-100 motion-reduce:transition-none"
+                    class="-my-1 shrink-0 text-muted-foreground"
                   >
                     <ApplicationMenu candidateName={card.candidateName} currentStageId={card.stage.id} {stages} onmove={(stage) => moves.move(card, stage)} />
                   </span>

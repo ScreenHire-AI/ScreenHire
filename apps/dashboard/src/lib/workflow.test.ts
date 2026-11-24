@@ -1,10 +1,12 @@
 import type { HiringWorkflow } from '@screenhire/api-client';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   actionLabels,
   actionTypes,
   actionsFor,
-  answerIsRead,
+  answerLengthLimit,
   describeAction,
   describePath,
   errorsUnder,
@@ -14,8 +16,12 @@ import {
   canRemindIn,
   hasReminder,
   idFrom,
+  insertAt,
   insertionIndex,
   insertStage,
+  isBlankStep,
+  isEmptyTextStep,
+  isUnfinished,
   kindFromName,
   laneOf,
   newAction,
@@ -73,14 +79,14 @@ const workflow: HiringWorkflow = {
   ],
 };
 
-describe('an answer an automation reads', () => {
-  it('is one a condition names, so a knockout nobody reacts to can be told apart', () => {
-    expect(answerIsRead(workflow, 'work_authorization')).toBe(true);
-    expect(answerIsRead(workflow, 'shift')).toBe(false);
-    expect(answerIsRead({ ...workflow, automations: [] }, 'work_authorization')).toBe(false);
-    // An automation that is switched off does nothing with the answer, so the knockout still says nothing happens.
-    const off = { ...workflow, automations: workflow.automations.map((automation) => ({ ...automation, enabled: false })) };
-    expect(answerIsRead(off, 'work_authorization')).toBe(false);
+describe('the longest answer', () => {
+  it("is the API's own limit for each kind of text, and none for a link or anything else", () => {
+    const form = readFileSync(resolve(process.cwd(), '../../src/ScreenHire.Domain/Applications/ApplicationForm.cs'), 'utf8');
+    const limit = (name: string) => Number(new RegExp(`const int ${name} = ([0-9]+);`).exec(form)?.[1]);
+
+    expect(answerLengthLimit('ShortText')).toBe(limit('ShortTextMaxLength'));
+    expect(answerLengthLimit('LongText')).toBe(limit('LongTextMaxLength'));
+    for (const type of ['Url', 'YesNo', 'Number', 'SingleChoice', 'MultiChoice', 'File'] as const) expect(answerLengthLimit(type), type).toBeUndefined();
   });
 });
 
@@ -187,6 +193,12 @@ describe('elements', () => {
     expect(asText).toEqual({ id: 'work_authorization', type: 'ShortText', label: 'Right to work?', required: true, helpText: null });
     expect(asChoice.options).toHaveLength(2);
     expect(asChoice.knockout).toBeUndefined();
+
+    // A maximum length too: a link takes none, and a short answer takes less than a long one.
+    const long = { ...withQuestionType(yesNo, 'LongText'), maxLength: 2000 };
+    expect(withQuestionType(long, 'Url').maxLength).toBeUndefined();
+    expect(withQuestionType(long, 'YesNo').maxLength).toBeUndefined();
+    expect(withQuestionType(long, 'ShortText').maxLength).toBeUndefined();
   });
 
   it('starts an automation on its lane: a stage entry, an arriving application, or a run by hand from Any stage', () => {
@@ -196,8 +208,8 @@ describe('elements', () => {
     expect(placeOf(workflow, newAutomation(workflow, null, true))).toBe('any');
     expect(placeOf(workflow, newAutomation(workflow, null))).toBe(workflow.stages[0]!.id);
     expect(newAutomation(workflow, null).id).toBe('automation');
-    // Complete from the start, and valid under every trigger, so "Write your own" never opens as a problem.
-    expect(newAutomation(workflow, 'screening').actions).toEqual([{ type: 'AssignReviewer' }]);
+    // Its trigger only: a step nobody chose is a placeholder to undo.
+    expect(newAutomation(workflow, 'screening').actions).toEqual([]);
   });
 
   it('names the stage a trigger names, and none for the rest', () => {
@@ -618,5 +630,76 @@ describe('meetingNameOf', () => {
     expect(meetingNameOf({ id: 'talk', name: 'Interview', kind: 'Interview' })).toBe('interview');
     expect(meetingNameOf({ id: 'talk', name: 'Interview', kind: 'Interview', meetingName: '  ' })).toBe('interview');
     expect(meetingNameOf(undefined)).toBe('interview');
+  });
+});
+
+describe('work in progress', () => {
+  const draft: HiringWorkflow = {
+    ...workflow,
+    automations: [
+      {
+        id: 'a',
+        name: 'A',
+        trigger: { type: 'StageEntered', stageId: 'screening' },
+        conditions: { match: 'All', rules: [{ fact: 'application.tags', operator: 'Contains', value: '' }, { fact: 'application.tags', operator: 'In', values: [] }, { fact: 'application.rating', operator: 'Exists' }] },
+        actions: [{ type: 'AddTag', tag: ' ' }, { type: 'CallWebhook', url: 'http' }, { type: 'ScheduleInterview', interviewerUserIds: [], interviewMinutes: 30, interviewWindowDays: 14, interviewTimeZone: 'Europe/London' }, { type: 'SendEmail', emailTemplate: 'x' }, { type: 'MoveToStage', stageId: 'gone' }],
+      },
+      { id: 'b', name: ' ', trigger: { type: 'ApplicationSubmitted' }, conditions: null, actions: [] },
+      { id: 'c', name: 'C', trigger: { type: 'QuestionnaireCompleted', questionnaireId: 'monitoring' }, conditions: null, actions: [{ type: 'AssignReviewer' }] },
+    ],
+  };
+  const unfinished = (path: string) => isUnfinished(draft, { path, message: 'm' });
+
+  it('is a blank, text half typed, or an automation with no step', () => {
+    for (const path of [
+      'automations[0].actions[0].tag',
+      'automations[0].actions[1].url',
+      'automations[0].actions[2].interviewerUserIds',
+      'automations[0].conditions.rules[0].value',
+      'automations[0].conditions.rules[1].values',
+      'automations[1].name',
+      'automations[1].actions',
+    ]) {
+      expect(unfinished(path), path).toBe(true);
+    }
+  });
+
+  // A refusal is said as it is made: the guardrails' messages name the step, the fact or the opt-in, which are not blank.
+  it('is never a refusal: a step, a fact or an email the validator will not have', () => {
+    for (const path of [
+      'automations[0].actions[3]',
+      'automations[0].actions[3].emailTemplate',
+      'automations[0].actions[4].stageId',
+      'automations[0].conditions.rules[2].fact',
+      'automations[0].trigger.stageId',
+      // A time limit on no stage, and an equality monitoring form, which nothing may act on.
+      'automations[0].trigger.type',
+      'automations[2].trigger.questionnaireId',
+    ]) {
+      expect(unfinished(path), path).toBe(false);
+    }
+    // A field with something in it is judged on what it says: a name or a tag that is refused shows, unlike an empty one.
+    expect(unfinished('automations[0].name')).toBe(false);
+    expect(isUnfinished({ ...draft, automations: [{ ...draft.automations[0]!, actions: [{ type: 'AddTag', tag: 'refused' }] }] }, { path: 'automations[0].actions[0].tag', message: 'm' })).toBe(false);
+    // The opt-in to reject without a person has no value until it is ticked, and its message always shows.
+    expect(unfinished('automations[0].allowAutoReject')).toBe(false);
+  });
+
+  it('is only an automation: a stage or a question with no name is a problem at once', () => {
+    expect(isUnfinished({ ...draft, stages: [{ id: 'x', name: '', kind: 'Custom' }] }, { path: 'stages[0].name', message: 'm' })).toBe(false);
+  });
+
+  it('knows a step with nothing in it, and which of those ask for text', () => {
+    expect(isBlankStep({ type: 'AddTag', tag: ' ' })).toBe(true);
+    expect(isBlankStep({ type: 'MoveToStage', stageId: '' })).toBe(true);
+    expect(isBlankStep({ type: 'AssignReviewer' })).toBe(false);
+    expect(isBlankStep({ type: 'AddTag', tag: 'x' })).toBe(false);
+    expect(isEmptyTextStep({ type: 'CallWebhook', url: '' })).toBe(true);
+    expect(isEmptyTextStep({ type: 'MoveToStage', stageId: '' })).toBe(false);
+  });
+
+  it('puts an item back where it was, or at the end of a list that is shorter by now', () => {
+    expect(insertAt(['a', 'c'], 1, 'b')).toEqual(['a', 'b', 'c']);
+    expect(insertAt(['a'], 4, 'b')).toEqual(['a', 'b']);
   });
 });

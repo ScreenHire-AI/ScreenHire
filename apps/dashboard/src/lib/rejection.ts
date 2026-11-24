@@ -8,12 +8,12 @@ export type RejectionReason = NonNullable<GeneratedRejectionReason>;
 
 export const rejectionReasonLabels: Record<RejectionReason, string> = {
   RequirementNotMet: 'Did not meet a stated requirement',
-  KnockoutAnswer: 'An answer to a knockout question',
+  KnockoutAnswer: 'A must-have answer',
   AnotherCandidate: 'Another candidate was a closer fit',
   PositionClosed: 'The position was filled or closed',
   NoResponse: 'No reply from the candidate',
   Other: 'Other (see the note)',
 };
 
-/** The reasons a person can pick: a knockout answer is the reason an automation gives, and the API refuses it from anyone else. */
+/** The reasons a person can pick: a must-have answer is the reason an automation gives, and the API refuses it from anyone else. */
 export const personRejectionReasons: readonly RejectionReason[] = ['RequirementNotMet', 'AnotherCandidate', 'PositionClosed', 'NoResponse', 'Other'];

@@ -52,8 +52,8 @@
     /** What the list says with nothing in it. */
     empty?: string;
     /**
-     * A candidate's header: the pills in a wrapping row, each Remove button shown on hover, focus and tap only (a touch
-     * screen has no hover), and Add tag a text button that opens its field in place. Nothing says "No tags yet".
+     * A candidate's header: the pills in a wrapping row, each with a muted Remove button that is always visible (F4), and
+     * Add tag a text button that opens its field in place. Nothing says "No tags yet".
      */
     compact?: boolean;
     /** The organization's tags (`GET /v1/tags`) to suggest while typing; without it the field is a plain text field. */
@@ -173,15 +173,15 @@
     {#if tags.length > 0}
       <ul aria-label={label} class="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-1.5">
         {#each tags as tag (tag)}
-          <li class="group/tag flex max-w-full min-w-0 items-center">
+          <li class="flex max-w-full min-w-0 items-center">
             <Badge variant="muted" class="min-w-0"><TruncatedText text={tag} /></Badge>
             {#if onremove}
-              <!-- Shown on hover, focus and tap only: the pills stay quiet until someone reaches for one (F4). -->
+              <!-- Always visible, muted: a control that removes is not found by hovering (F4). -->
               <IconButton
                 label={`Remove ${noun} ${tag}`}
                 size="icon-xs"
                 disabled={busy}
-                class="opacity-0 group-focus-within/tag:opacity-100 group-hover/tag:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
+                class="text-muted-foreground"
                 onclick={() => onremove(tag)}><XIcon aria-hidden="true" /></IconButton
               >
             {/if}

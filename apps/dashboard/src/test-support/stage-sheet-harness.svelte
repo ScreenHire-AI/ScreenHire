@@ -4,7 +4,7 @@
   import StageSheet from '#lib/components/workflow/stage-sheet.svelte';
 
   // One stage's sheet on its own, over a draft and an open stage the harness owns as the builder owns them, so the sheet's
-  // edits change the workflow it reads. The builder's three ways out are callbacks a test can watch. The stages (id, name,
+  // edits change the workflow it reads. The builder's ways out are callbacks a test can watch. The stages (id, name,
   // kind, limit, meeting name, scheduling default) and the automation ids are printed as JSON, for what the sheet does not show. Render inside
   // with-query-client.svelte.
   let {
@@ -12,7 +12,6 @@
     stageId = null,
     errors = [],
     onscorecard,
-    onautomations,
     onremove,
     onreminder,
   }: {
@@ -20,7 +19,6 @@
     stageId?: string | null;
     errors?: DefinitionError[];
     onscorecard?: (index: number) => void;
-    onautomations?: (stageId: string) => void;
     onremove?: (index: number) => void;
     onreminder?: (stageId: string) => void;
   } = $props();
@@ -35,7 +33,6 @@
   {errors}
   automationsHref="?tab=automations"
   onscorecard={(index) => onscorecard?.(index)}
-  onautomations={(id) => onautomations?.(id)}
   onremove={(index) => onremove?.(index)}
   onreminder={onreminder ? (id) => onreminder(id) : undefined}
   automationHref={(id) => `?tab=automations&show=${id}`}

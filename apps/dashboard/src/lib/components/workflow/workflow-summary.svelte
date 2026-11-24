@@ -14,7 +14,7 @@
   import { anyStageChips, stageChips } from '#lib/stage-facts.js';
   import AiUseRow from './ai-use-row.svelte';
   import { rowClass } from './controls.js';
-  import ProblemsPanel from './problems-panel.svelte';
+  import ProblemLines from './problem-lines.svelte';
   import QuestionList from './question-list.svelte';
   import QuestionnairePreview from './questionnaire-preview.svelte';
   import ScorecardName from './scorecard-name.svelte';
@@ -59,7 +59,7 @@
 </script>
 
 <!-- A stored version that today's validator refuses: say why, as the badge counts it. -->
-<ProblemsPanel title="Problems" {workflow} {errors} />
+<ProblemLines label="Problems" {workflow} {errors} />
 
 {#snippet endStages()}
   <div class="flex flex-col gap-4">

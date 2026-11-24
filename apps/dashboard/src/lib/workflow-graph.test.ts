@@ -5,9 +5,7 @@ import {
   NODE_WIDTH,
   PLUS,
   VIEW_INSET,
-  addAction,
   addAutomation,
-  addCondition,
   arrowhead,
   canConnect,
   connect,
@@ -15,7 +13,11 @@ import {
   neighbour,
   nodeHeight,
   pathOf,
+  removeAutomation,
+  removeNode,
+  removeStep,
   routePath,
+  tidyAutomation,
   toGraph,
   type Graph,
   type StepNode,
@@ -409,7 +411,7 @@ describe('toGraph layout', () => {
   });
 });
 
-describe('the plus buttons', () => {
+describe('the add buttons', () => {
   const plusIds = (graph: Graph) => graph.nodes.filter((candidate) => candidate.data.kind.startsWith('add-')).map((candidate) => candidate.id);
 
   it('are drawn only where the graph can be edited, and only once there is an automation', () => {
@@ -424,16 +426,17 @@ describe('the plus buttons', () => {
     expect(plusIds(graph).sort()).toEqual(
       ['add:lane', 'add:applied', 'add:screening', 'add:interview', 'advance:add-action', 'hello:add-action', 'hello:add-condition'].sort(),
     );
-    const plus = PLUS;
     const under = node(graph, 'add:screening');
-    expect(under.width).toBe(plus);
-    expect(under.position.x + plus / 2).toBe(node(graph, 'stage:screening').position.x + NODE_WIDTH / 2);
+    // In words, as wide as the stage it stands under.
+    expect(under.width).toBe(NODE_WIDTH);
+    expect(under.data.title).toBe('New automation');
+    expect(under.position.x + under.width! / 2).toBe(node(graph, 'stage:screening').position.x + NODE_WIDTH / 2);
     expect(under.position.y).toBeGreaterThan(node(graph, 'stage:screening').position.y + node(graph, 'stage:screening').height!);
     expect(node(graph, 'add:lane').data.lane).toBeNull();
     expect(node(graph, 'add:screening').data.lane).toBe('screening');
     expect(node(graph, 'hello:add-condition').data.label).toBe('Add a condition to Hello');
-    expect(node(graph, 'advance:add-action').data.label).toBe('Add an action to Advance');
-    expect(node(graph, 'add:lane').data.label).toBe('Add an automation to any stage');
+    expect(node(graph, 'advance:add-action').data.label).toBe('Add a step to Advance');
+    expect(node(graph, 'add:lane').data.label).toBe('New automation at any stage');
   });
 
   it('sit on the line they add to, between the trigger and the first action', () => {
@@ -448,7 +451,9 @@ describe('the plus buttons', () => {
 
   it('are a target for a finger at the size the first view shows them', () => {
     expect(firstView({ width: 400 }, pane(1000)).zoom).toBe(1);
-    expect(node(toGraph(workflow, { editable: true }), 'add:screening').width).toBe(PLUS);
+    const graph = toGraph(workflow, { editable: true });
+    for (const id of ['add:screening', 'hello:add-condition', 'advance:add-action']) expect(node(graph, id).height).toBe(PLUS);
+    expect(node(graph, 'advance:add-action').width).toBe(PLUS);
     expect(PLUS).toBeGreaterThanOrEqual(44);
   });
 });
@@ -533,25 +538,9 @@ describe('graph edits', () => {
     expect(links(toGraph(added))).toContain(`stage:applied>${id}:trigger`);
   });
 
-  it("adds a condition the way the form's Add condition does, and the projection then draws an If", () => {
-    const added = addCondition(workflow, 'hello')!;
-
-    expect(added.path).toBe('automations[1].conditions');
-    expect(added.workflow.automations[1]!.conditions).toMatchObject({ match: 'All', rules: [{ fact: expect.any(String) }] });
-    expect(workflow.automations[1]!.conditions).toBeNull();
-    expect(toGraph(added.workflow).nodes.some((candidate) => candidate.id === 'hello:conditions')).toBe(true);
-    expect(addCondition(workflow, 'advance')).toBeNull();
-    expect(addCondition(workflow, 'missing')).toBeNull();
-  });
-
-  it('adds an action at the end of an automation, and says where it is', () => {
-    const added = addAction(workflow, 'advance')!;
-
-    expect(added.path).toBe('automations[0].actions[2]');
-    expect(added.workflow.automations[0]!.actions).toHaveLength(3);
-    expect(workflow.automations[0]!.actions).toHaveLength(2);
-    expect(toGraph(added.workflow).nodes.some((candidate) => candidate.id === 'advance:action:2')).toBe(true);
-    expect(addAction(workflow, 'missing')).toBeNull();
+  it('names a new automation by its trigger and gives it no step, so nothing in it is a placeholder', () => {
+    expect(addAutomation(workflow, 'interview').workflow.automations.at(-1)).toMatchObject({ name: 'When someone moves into Interview', conditions: null, actions: [] });
+    expect(addAutomation(workflow, null, true).workflow.automations.at(-1)).toMatchObject({ name: 'When it is run by hand', actions: [] });
   });
 
   it('links only a "move to a stage" action to a stage, and leaves the workflow alone for anything else', () => {
@@ -560,6 +549,89 @@ describe('graph edits', () => {
     expect(canConnect(workflow, 'advance:action:1', 'advance:trigger')).toBe(false);
     expect(canConnect(workflow, 'stage:applied', 'stage:screening')).toBe(false);
     expect(connect(workflow, 'advance:action:0', 'stage:screening')).toBe(workflow);
+  });
+});
+
+describe('removing from the map', () => {
+  it('takes an automation from its When, its conditions from its If and a step from its Then, and each comes back', () => {
+    const whole = removeNode(workflow, 'advance:trigger')!;
+    expect(whole.workflow.automations.map((automation) => automation.id)).toEqual(['hello']);
+    expect(whole.message).toBe('Removed "Advance".');
+    const conditions = removeNode(workflow, 'advance:conditions')!;
+    expect(conditions.workflow.automations[0]!.conditions).toBeNull();
+    expect(conditions.message).toBe('Removed the condition.');
+    const step = removeNode(workflow, 'advance:action:0')!;
+    expect(step.workflow.automations[0]!.actions).toEqual([{ type: 'MoveToStage', stageId: 'interview' }]);
+    for (const removal of [whole, conditions, step]) expect(removal.restore(removal.workflow)).toEqual(workflow);
+  });
+
+  it('takes nothing from a stage, a band or a plus', () => {
+    for (const id of ['stage:screening', LANE_NODE, 'add:screening', 'advance:add-action', 'missing:trigger', 'advance:action:9']) expect(removeNode(workflow, id), id).toBeNull();
+  });
+
+  it('marks as deletable what it can take, and only where the graph can be edited', () => {
+    const deletable = (graph: Graph) => graph.nodes.filter((candidate) => candidate.deletable).map((candidate) => candidate.id);
+
+    expect(deletable(toGraph(workflow, { editable: true })).sort()).toEqual(
+      ['advance:trigger', 'advance:conditions', 'advance:action:0', 'advance:action:1', 'hello:trigger', 'hello:action:0'].sort(),
+    );
+    expect(deletable(toGraph(workflow))).toEqual([]);
+  });
+
+  it("calls each by what it is, as the node's menu says it", () => {
+    const { nodes } = toGraph(workflow);
+    const removes = (id: string) => nodes.find((candidate) => candidate.id === id)!.data.removes;
+
+    expect(removes('advance:trigger')).toBe('Remove automation');
+    expect(removes('advance:conditions')).toBe('Remove this condition');
+    expect(removes('advance:action:0')).toBe('Remove this step');
+    expect(removes('stage:screening')).toBe('');
+  });
+
+  it('takes an automation with its only step, since one with none would be a problem to fix', () => {
+    const removal = removeStep(workflow, 'hello', 0)!;
+
+    expect(removal.workflow.automations.map((automation) => automation.id)).toEqual(['advance']);
+    expect(removal.message).toBe('Removed "Hello" with its only step.');
+    expect(removal.restore(removal.workflow)).toEqual(workflow);
+  });
+
+  it('puts it back into the workflow as it is by then, once', () => {
+    const removal = removeAutomation(workflow, 'advance')!;
+    const renamed = { ...removal.workflow, automations: removal.workflow.automations.map((automation) => ({ ...automation, name: 'Renamed' })) };
+
+    const back = removal.restore(renamed);
+    expect(back.automations.map((automation) => automation.name)).toEqual(['Advance', 'Renamed']);
+    expect(removal.restore(back)).toBe(back);
+  });
+});
+
+describe('closing an automation', () => {
+  const withSteps = (actions: Automation['actions']): HiringWorkflow => ({ ...workflow, automations: [{ ...workflow.automations[0]!, actions }, workflow.automations[1]!] });
+
+  it('removes one that has no step, or only steps left empty', () => {
+    for (const actions of [[], [{ type: 'AddTag' as const, tag: ' ' }]]) {
+      const before = withSteps(actions);
+      const removal = tidyAutomation(before, 'advance')!;
+
+      expect(removal.workflow.automations.map((automation) => automation.id)).toEqual(['hello']);
+      expect(removal.message).toBe('Removed "Advance", which had no step.');
+      expect(removal.restore(removal.workflow)).toEqual(before);
+    }
+  });
+
+  it('drops the steps left empty and keeps the rest', () => {
+    const before = withSteps([{ type: 'AddTag', tag: '' }, { type: 'AssignReviewer' }, { type: 'NotifyTeam', note: '' }]);
+    const removal = tidyAutomation(before, 'advance')!;
+
+    expect(removal.workflow.automations[0]!.actions).toEqual([{ type: 'AssignReviewer' }]);
+    expect(removal.message).toBe('Removed the empty steps.');
+    expect(removal.restore(removal.workflow)).toEqual(before);
+  });
+
+  it('leaves a finished one alone', () => {
+    expect(tidyAutomation(workflow, 'advance')).toBeNull();
+    expect(tidyAutomation(workflow, 'missing')).toBeNull();
   });
 });
 

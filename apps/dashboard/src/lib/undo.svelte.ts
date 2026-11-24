@@ -36,6 +36,18 @@ export class UndoOffer {
     if (!held) this.#timer = setTimeout(() => this.dismiss(), this.#milliseconds);
   }
 
+  /**
+   * Hands the offer to another place that draws it, with its full time again: a sheet that closes gives its offer to the
+   * page. Nothing moves while there is none, or while it is being undone.
+   */
+  moveTo(other: Pick<UndoOffer, 'offer'>): void {
+    const undo = this.#undo;
+    if (!undo || this.working) return;
+    const { message } = this;
+    this.dismiss();
+    other.offer(message, undo);
+  }
+
   async run(): Promise<void> {
     const undo = this.#undo;
     if (!undo || this.working) return;

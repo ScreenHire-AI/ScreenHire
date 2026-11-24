@@ -6,9 +6,10 @@
  */
 
 /**
- * Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer
- * bool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation
- * decides, and by default it only queues the application for a person to review (workflow-engine.md §2).
+ * A yes/no question's must-have answer: an objective requirement only, such as the right to work or a licence, never AI
+ * use or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an
+ * automation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).
+ * `reason` is a team note that is never sent to a candidate.
  */
 export interface Knockout {
   disqualifyingAnswer: boolean;

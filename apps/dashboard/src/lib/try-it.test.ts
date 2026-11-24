@@ -60,13 +60,13 @@ describe('who is applying', () => {
 
   it('builds each candidate from the form: a good fit passes, the one who cannot work here fails, the flagged one passes but is flagged', () => {
     expect(candidateFor(workflow, 'fit')).toEqual({ answers: { licence: ['yes'] }, flagged: false });
-    expect(candidateFor(workflow, 'cannot')).toEqual({ answers: { licence: ['no'] }, flagged: false, saidNoTo: 'Do you hold a driving licence?' });
+    expect(candidateFor(workflow, 'cannot')).toEqual({ answers: { licence: ['no'] }, flagged: false, failed: { label: 'Do you hold a driving licence?', said: 'no' } });
     expect(candidateFor(workflow, 'check')).toEqual({ answers: { licence: ['yes'] }, flagged: true });
   });
 
   it('reads the form a person filled in, leaving out blanks, and knows when they said no to a must-have', () => {
     const candidate = candidateFromForm(workflow, { licence: 'no', tools: '  ', other: ['a', 'b'], skipped: undefined });
-    expect(candidate).toEqual({ answers: { licence: ['no'], other: ['a', 'b'] }, flagged: false, saidNoTo: 'Do you hold a driving licence?' });
+    expect(candidate).toEqual({ answers: { licence: ['no'], other: ['a', 'b'] }, flagged: false, failed: { label: 'Do you hold a driving licence?', said: 'no' } });
   });
 
   it('keeps the verification levels inside the facts: calm for most, asking a person to look when flagged', () => {

@@ -187,8 +187,9 @@ describe('job workflow page', () => {
     renderPage();
     await screen.findByRole('tabpanel', { name: 'Pipeline' });
 
+    // A press: the tab takes the focus as the button goes down (`RecordTabs`), which is what shows its view. The browser's own focus
+    // then finds it focused already, so there is no second event to send.
     await fireEvent.mouseDown(screen.getByRole('tab', { name: 'Forms' }), { button: 0 });
-    await fireEvent.focus(screen.getByRole('tab', { name: 'Forms' }));
 
     expect(goto).toHaveBeenCalledTimes(1);
     expect(goto.mock.calls[0]![0]).toBe('/?tab=forms');
