@@ -1,5 +1,5 @@
-// One stage's sheet: its name, Respond within in plain choices with a reminder that follows it and what runs when it
-// passes, its scorecard and automations, and the stage's kind under More options.
+// One stage's sheet: its name and kind, then sections shown by kind: Timing (Respond within in plain choices with a reminder
+// that follows it and what runs when it passes), Meeting, Scorecard, and the automations as names that link to their tab.
 import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,7 +28,7 @@ const workflow: HiringWorkflow = {
   ],
 };
 
-const callbacks = () => ({ onscorecard: vi.fn(), onautomations: vi.fn(), onremove: vi.fn() });
+const callbacks = () => ({ onscorecard: vi.fn(), onremove: vi.fn() });
 const renderSheet = (props: { stageId?: string; errors?: DefinitionError[]; flow?: HiringWorkflow } & Partial<ReturnType<typeof callbacks>> = {}) => {
   const { flow = workflow, stageId = 'interview', ...rest } = props;
   return render(WithQueryClient, { props: { component: StageSheetHarness, props: { workflow: structuredClone(flow), stageId, ...rest } } });
@@ -63,8 +63,7 @@ describe('stage sheet', () => {
     expect(within(dialog).getAllByRole('radio').map((radio) => radio.textContent?.trim())).toEqual(['None', '2 days', '3 days', '5 days', '1 week', 'Other']);
     expect(limit(dialog, 'None')).toBeChecked();
     expect(scorecardButton(dialog, 'Choose')).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Add an automation' })).toBeInTheDocument();
-    expect(within(dialog).getByRole('link', { name: 'Open in Automations' })).toHaveAttribute('href', '?tab=automations');
+    expect(within(dialog).getByRole('link', { name: 'Edit in Automations' })).toHaveAttribute('href', '?tab=automations');
     expect(within(dialog).getByRole('button', { name: 'Done' })).toBeInTheDocument();
     await expectNoAxeViolations(container.ownerDocument.body);
   });
@@ -76,12 +75,16 @@ describe('stage sheet', () => {
     expect(within(dialog).getByRole('button', { name: 'Choose scorecard for Interview' })).toBeInTheDocument();
   });
 
-  it('lists the automations at the stage in the pipeline\'s words, never naming the person a step asks', async () => {
+  it('lists the automations at the stage by their own names, each a link to it, with no way to add or change one here', async () => {
     renderSheet();
     const dialog = await sheet();
 
-    expect(within(dialog).getByRole('link', { name: 'Team reviews' })).toHaveAttribute('href', '?tab=automations&show=ask-review');
-    expect(dialog).not.toHaveTextContent('01a157d4');
+    const section = within(dialog).getByRole('region', { name: 'Automations' });
+    expect(within(section).getAllByRole('link').map((link) => [link.textContent?.trim(), link.getAttribute('href')])).toEqual([
+      ['Ask for a review', '?tab=automations&show=ask-review'],
+      ['Edit in Automations', '?tab=automations'],
+    ]);
+    expect(within(section).queryByRole('button')).toBeNull();
     expect(within(dialog).queryByText(/Welcome|Tell the team/)).toBeNull();
   });
 
@@ -95,17 +98,44 @@ describe('stage sheet', () => {
     expect(within(dialog).getAllByRole('link', { name: 'Tell the team' })).toHaveLength(1);
   });
 
-  it('says under Respond within what the limit means, and that nothing happens to the candidate', async () => {
+  it('says one press away what the limit means, that nothing happens to the candidate, and where candidates see the meeting name', async () => {
     renderSheet();
     const dialog = await sheet();
+    expect(dialog).not.toHaveTextContent(help);
 
-    expect(within(dialog).getByRole('group', { name: 'Respond within' })).toHaveAccessibleDescription(help);
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'About Respond within' }));
+    expect(await screen.findByText(help)).toBeInTheDocument();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'About the meeting name' }));
+    expect(await screen.findByText(/^Candidates see it in emails and on the page where they book/)).toBeInTheDocument();
   });
 
-  it('closes the sheet when Open in Automations is pressed', async () => {
+  it('has one link to the Automations tab where the stage has none yet, and says which are off', async () => {
+    const { unmount } = renderSheet({ flow: { ...workflow, automations: [] } });
+    let section = within(await sheet()).getByRole('region', { name: 'Automations' });
+    expect(within(section).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual(['Add in Automations']);
+    unmount();
+
+    renderSheet({ flow: { ...workflow, automations: workflow.automations.map((automation) => ({ ...automation, enabled: false })) } });
+    section = within(await sheet()).getByRole('region', { name: 'Automations' });
+    expect(within(section).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual(['Ask for a review, off', 'Edit in Automations']);
+  });
+
+  it.each([
+    ['applied', ['Timing', 'Scorecard', 'Automations']],
+    ['interview', ['Timing', 'Meeting', 'Scorecard', 'Automations']],
+    ['offer', ['Timing', 'Scorecard', 'Automations']],
+    ['hired', ['Automations']],
+  ])('shows the sections the kind of %s has, in one order', async (stageId, sections) => {
+    renderSheet({ stageId, flow: { ...workflow, stages: [...workflow.stages.slice(0, 2), { id: 'offer', name: 'Offer', kind: 'Offer' }, ...workflow.stages.slice(2)] } });
+    const dialog = await sheet();
+
+    expect(within(dialog).getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent?.trim())).toEqual(sections);
+  });
+
+  it('closes the sheet when Edit in Automations is pressed', async () => {
     renderSheet();
     const dialog = await sheet();
-    const link = within(dialog).getByRole('link', { name: 'Open in Automations' });
+    const link = within(dialog).getByRole('link', { name: 'Edit in Automations' });
     link.addEventListener('click', (event) => event.preventDefault());
 
     await fireEvent.click(link);
@@ -121,18 +151,16 @@ describe('stage sheet', () => {
     expect(within(dialog).queryByText('Respond within')).toBeNull();
     expect(within(dialog).queryByRole('radio')).toBeNull();
     expect(within(dialog).queryByText('Scorecard')).toBeNull();
-    expect(within(dialog).getByRole('button', { name: 'Add an automation' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Add in Automations' })).toBeInTheDocument();
   });
 
-  it('opens the scorecard sheet and the automations drawer of this stage from its buttons', async () => {
+  it('opens the scorecard sheet of this stage from its button', async () => {
     const watched = callbacks();
     renderSheet(watched);
     const dialog = await sheet();
 
     await fireEvent.click(scorecardButton(dialog, 'Choose'));
     expect(watched.onscorecard).toHaveBeenCalledExactlyOnceWith(1);
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'Add an automation' }));
-    expect(watched.onautomations).toHaveBeenCalledExactlyOnceWith('interview');
   });
 
   it('says Change, not Choose, once the stage has a scorecard, and names it', async () => {
@@ -332,10 +360,9 @@ describe('the name and the kind', () => {
     expect(interview().kind).toBe('Verification');
   });
 
-  it('stops following once the kind is set by hand under More options', async () => {
+  it('stops following once the kind is set by hand', async () => {
     renderSheet();
     const dialog = await sheet();
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'More options' }));
     await fireEvent.change(within(dialog).getByRole('combobox', { name: 'Kind' }), { target: { value: 'Offer' } });
     expect(interview().kind).toBe('Offer');
 
@@ -351,7 +378,6 @@ describe('the name and the kind', () => {
     await fireEvent.click(limit(dialog, '3 days'));
     expect(automationIds()).toContain('reminder-interview');
 
-    await fireEvent.click(within(dialog).getByRole('button', { name: 'More options' }));
     await fireEvent.change(within(dialog).getByRole('combobox', { name: 'Kind' }), { target: { value: 'Rejected' } });
 
     expect(interview().kind).toBe('Rejected');
@@ -418,20 +444,29 @@ describe('the meeting name', () => {
   });
 });
 
-describe('more options', () => {
-  it('hides the kind until More options is opened, and says whether it is open', async () => {
+describe('the kind beside the name', () => {
+  it('shows the kind without opening anything, following the name in view as it is typed', async () => {
     renderSheet();
     const dialog = await sheet();
-    const more = within(dialog).getByRole('button', { name: 'More options' });
+    const kind = within(dialog).getByRole('combobox', { name: 'Kind' });
+    expect(kind).toHaveValue('Interview');
 
-    expect(more).toHaveAttribute('aria-expanded', 'false');
+    await fireEvent.input(within(dialog).getByRole('textbox', { name: 'Name' }), { target: { value: 'Trial shift' } });
+
+    expect(kind).toHaveValue('Assessment');
+    expect(within(dialog).queryByRole('button', { name: 'More options' })).toBeNull();
+  });
+
+  it('reads Applied as text on the first stage, the one kind allowed there, and stays a choice where another kind came first', async () => {
+    const { unmount } = renderSheet({ stageId: 'applied' });
+    let dialog = await sheet();
     expect(within(dialog).queryByRole('combobox', { name: 'Kind' })).toBeNull();
-    await fireEvent.click(more);
+    expect(dialog.querySelector('[data-stage-kind]')).toHaveTextContent(/Kind\s*Applied/);
+    unmount();
 
-    expect(more).toHaveAttribute('aria-expanded', 'true');
+    renderSheet({ flow: { ...workflow, stages: [workflow.stages[1]!, workflow.stages[0]!, ...workflow.stages.slice(2)] } });
+    dialog = await sheet();
     expect(within(dialog).getByRole('combobox', { name: 'Kind' })).toHaveValue('Interview');
-    await fireEvent.click(more);
-    expect(within(dialog).queryByRole('combobox', { name: 'Kind' })).toBeNull();
   });
 });
 

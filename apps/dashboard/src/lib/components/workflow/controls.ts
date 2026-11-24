@@ -6,6 +6,9 @@ export const selectClass =
 
 export const checkboxClass = 'size-4 pointer-coarse:size-6 flex-none accent-primary';
 
+/** A field's label that stands apart from its control, with an Info button beside it (a button never sits inside a label). */
+export const fieldLabelClass = 'text-body font-semibold text-secondary-foreground';
+
 export const labelClass = 'flex min-w-0 flex-col gap-1 text-body font-semibold text-secondary-foreground';
 
 /** One item in a panel's list (S4). */

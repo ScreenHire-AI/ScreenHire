@@ -1,8 +1,8 @@
-// The Pipeline tab's short facts: a stage read back as one fact a line, an automation as a short label, the automations
-// that belong to no stage and the stages that end a candidacy.
+// What the Pipeline tab counts and names: a stage's chips, the automations its sheet lists by name, an automation as a short
+// label, and what runs when a time limit passes.
 import type { Automation, HiringWorkflow } from '@screenhire/api-client';
 import { describe, expect, it } from 'vitest';
-import { anyStageChips, anyStageFacts, automationLabel, chipsEmpty, respondWithin, stageChips, stageFacts, whenOverdue } from './stage-facts.js';
+import { anyStageChips, automationLabel, chipsEmpty, respondWithin, stageAutomations, stageChips, whenOverdue } from './stage-facts.js';
 
 const automation = (id: string, trigger: Automation['trigger'], actions: Automation['actions'], extra: Partial<Automation> = {}): Automation => ({
   id,
@@ -48,7 +48,8 @@ const names = new Map([
   ['not-this-time', 'Not this time'],
 ]);
 const stage = (id: string) => workflow.stages.find((candidate) => candidate.id === id)!;
-const texts = (id: string) => stageFacts(workflow, stage(id), names).map((fact) => fact.text);
+const labels = (id: string) => automationLabel(workflow.automations.find((candidate) => candidate.id === id)!, workflow, names);
+const listed = (id: string) => stageAutomations(workflow, stage(id), names);
 
 describe('respondWithin', () => {
   it('says the time limit as the choices name it', () => {
@@ -58,25 +59,28 @@ describe('respondWithin', () => {
   });
 });
 
-describe('stageFacts', () => {
-  it('puts what happens on arriving and when the checks finish on the first stage, then how many questions it asks', () => {
-    expect(texts('applied')).toEqual(['Sends "Thank you"', 'Right to work: No, team looks first', 'Verification: Review or Verify, team reviews', 'Asks 2 questions']);
+describe('stageAutomations', () => {
+  it('lists every automation at the stage by its own name, what it sends or asks left to the Automations tab, with its id for the link', () => {
+    const named = { ...workflow, automations: workflow.automations.map((candidate) => (candidate.id === 'thanks' ? { ...candidate, name: 'Say thank you' } : candidate)) };
+
+    expect(stageAutomations(named, stage('applied'), names)).toEqual([
+      { text: 'Say thank you', automationId: 'thanks' },
+      { text: 'knockout', automationId: 'knockout' },
+      { text: 'checks', automationId: 'checks' },
+    ]);
   });
 
-  it('says the time limit, leaves out its own reminder and anything switched off, and prefixes a trigger that is not arriving', () => {
-    expect(texts('screen')).toEqual(['Respond within 3 days', 'When they leave: Tag screened']);
+  it('says which are off, and leaves the sheet\'s own reminder to When overdue (W7)', () => {
+    expect(listed('screen')).toEqual([
+      { text: 'tag-left', automationId: 'tag-left' },
+      { text: 'off, off', automationId: 'off' },
+    ]);
   });
 
-  it('names the meeting only when it is not the stage\'s own name', () => {
-    expect(texts('trial')).toEqual(['Respond within 1 week', 'Meeting: trial shift']);
-  });
+  it('reads one with no name yet as its short label, so a line is never blank', () => {
+    const unnamed: HiringWorkflow = { ...workflow, automations: [automation('blank', { type: 'StageEntered', stageId: 'screen' }, [{ type: 'AddTag', tag: 'seen' }], { name: '' })] };
 
-  it('gives an end stage no time limit, and the email it sends', () => {
-    expect(texts('rejected')).toEqual(['Sends "Not this time"']);
-  });
-
-  it('carries the automation id on each automation and email line, for its link', () => {
-    expect(stageFacts(workflow, stage('applied'), names).map((fact) => fact.automationId)).toEqual(['thanks', 'knockout', 'checks', undefined]);
+    expect(stageAutomations(unnamed, stage('screen'), names)).toEqual([{ text: 'Tag seen', automationId: 'blank' }]);
   });
 });
 
@@ -87,19 +91,16 @@ describe('automationLabel', () => {
     expect(automationLabel(reviewer, workflow)).toBe('Team reviews');
   });
 
+  it('says what starts it when that is not arriving, and nothing more when the condition already says the checks finished', () => {
+    expect(labels('thanks')).toBe('Sends "Thank you"');
+    expect(labels('knockout')).toBe('Right to work: No, team looks first');
+    expect(labels('checks')).toBe('Verification: Review or Verify, team reviews');
+    expect(labels('by-hand')).toBe('When run by hand: Task for the team');
+    expect(labels('any-late')).toBe('When overdue: Tell the team');
+  });
+
   it('can leave out what starts it, for a list that already says it', () => {
     expect(automationLabel(workflow.automations[3]!, workflow, names, false)).toBe('Tell the team');
-  });
-});
-
-describe('anyStageFacts', () => {
-  it('lists the automations that belong to no stage', () => {
-    expect(anyStageFacts(workflow, names).map((fact) => fact.text)).toEqual(['When run by hand: Task for the team', 'When overdue: Tell the team']);
-  });
-
-  it('gives a stage that ends a candidacy what runs there', () => {
-    const rejected = workflow.stages.find((stage) => stage.name === 'Rejected')!;
-    expect(stageFacts(workflow, rejected, names).map((fact) => fact.text)).toEqual(['Sends "Not this time"']);
   });
 });
 
@@ -107,21 +108,6 @@ describe('whenOverdue', () => {
   it('says what runs when the stage\'s limit passes, its own reminders and any stage\'s', () => {
     expect(whenOverdue(workflow, 'screen', names).map((fact) => fact.text)).toEqual(['Tell the team', 'Tell the team']);
     expect(whenOverdue(workflow, 'trial', names).map((fact) => fact.automationId)).toEqual(['any-late']);
-  });
-});
-
-describe('stageFacts, a stage that sends a form', () => {
-  it('says "Sends" with the form\'s name, as its own fact that links to the automation behind it', () => {
-    const withForm: HiringWorkflow = {
-      ...workflow,
-      followUpQuestionnaires: [{ id: 'screening', name: 'Screening questionnaire', questions: [{ id: 'q_a', label: 'A?', type: 'ShortText', required: false }] }],
-      automations: [automation('send-screening', { type: 'StageEntered', stageId: 'screen' }, [{ type: 'SendQuestionnaire', questionnaireId: 'screening' }])],
-    };
-
-    expect(stageFacts(withForm, stage('screen'), names)).toEqual([
-      { kind: 'limit', text: 'Respond within 3 days' },
-      { kind: 'form', text: 'Sends "Screening questionnaire"', automationId: 'send-screening' },
-    ]);
   });
 });
 

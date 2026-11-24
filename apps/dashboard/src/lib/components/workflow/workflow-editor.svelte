@@ -9,7 +9,7 @@
   import RecordTabs from '#lib/components/record-tabs.svelte';
   import { sentenceLimit } from '#lib/automation-sentence.js';
   import { preferences, type AutomationView } from '#lib/preferences.svelte.js';
-  import { placeOf, removeAt, withoutStage } from '#lib/workflow.js';
+  import { isTerminal, placeOf, removeAt, withoutStage } from '#lib/workflow.js';
   import type { WorkflowTab } from '#lib/workflow-tabs.js';
   import { LANE_NODE, addAction, addAutomation, addCondition, connect, focusGraphNode, stageNode, triggerNode } from '#lib/workflow-graph.js';
   import AutomationForm from './automation-form.svelte';
@@ -57,10 +57,28 @@
   let stageId = $state<string | null>(null);
   const openStage = (id: string) => (stageId = id);
 
+  // Removing a stage takes the card that opened its sheet, so the focus goes to the card (or the end) that took its place,
+  // or to the last one left. Nothing changes until Save, so it does not confirm (section 10).
+  let removed: { terminal: boolean; at: number } | null = null;
   function removeStage(index: number) {
+    const stage = workflow.stages[index];
+    if (!stage) return;
+    const terminal = isTerminal(stage.kind);
+    removed = { terminal, at: workflow.stages.filter((other) => isTerminal(other.kind) === terminal).indexOf(stage) };
     const next = withoutStage(workflow, index);
     workflow.stages = next.stages;
     workflow.automations = next.automations;
+  }
+
+  function focusAfterRemoval(event: Event) {
+    const gone = removed;
+    removed = null;
+    if (!gone || tab !== 'pipeline') return;
+    const left = document.querySelectorAll<HTMLElement>(gone.terminal ? '[data-end-stage]' : '[data-stage-card] [data-stage-open]');
+    const next = left[gone.at] ?? left[left.length - 1];
+    if (!next) return;
+    event.preventDefault();
+    next.focus();
   }
 
   let drawerOpen = $state(false);
@@ -182,6 +200,15 @@
   function showAutomation(id: string) {
     tab = 'automations';
     editById(id);
+  }
+
+  // A card's automations chip: its one automation, or the list of a stage's (null is Any stage's), on the Automations tab.
+  // The chip goes out of sight with its tab, so closing the sheet goes to the stage on the map.
+  function showAutomations(lane: string | null, ids: readonly string[]) {
+    if (ids.length === 1) return showAutomation(ids[0]!);
+    tab = 'automations';
+    openLane(lane);
+    returnTo = { node: lane ? stageNode(lane) : LANE_NODE, opener: null };
   }
 
   // A stage's form item opens that form on the Forms tab. Its link (`?tab=forms&form=<id>`) does the same when loaded,
@@ -308,7 +335,7 @@
     {errors}
     onopen={openStage}
     onscorecard={openScorecard}
-    onautomations={openRecipes}
+    onautomations={showAutomations}
     {automationHref}
     questionsHref={hrefOf('forms')}
     onshow={showAutomation}
@@ -344,16 +371,13 @@
     stageId = null;
     openScorecard(index);
   }}
-  onautomations={(id) => {
-    stageId = null;
-    openRecipes(id);
-  }}
   onremove={removeStage}
   onreminder={(id) => {
     stageId = null;
     addReminder(id);
   }}
   {automationHref}
+  onCloseAutoFocus={focusAfterRemoval}
   onshow={(id) => {
     stageId = null;
     showAutomation(id);
