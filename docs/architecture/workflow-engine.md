@@ -438,8 +438,9 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   template page then adds it from `?addForm=`). Replace with another form opens the same sheet (`replacing`): `replaceForm`
   puts a copy of the chosen form under the replaced form's id, so when it is sent and what runs once it is answered stay. An
   automation whose condition reads an answer the new form does not ask for goes with the old questions, named in a
-  confirmation first: only the same id with the same kind and words counts as the same question, because two library forms
-  can both hold a made-up id such as `question`, and a rule left behind would read the other one. A library form's title
+  confirmation first: only the same id with the same kind, words and choices counts as the same question, because two library
+  forms can both hold a made-up id such as `question`, and a rule left behind would read the other one. An equality monitoring
+  form in its place takes along every automation that reads the form or runs once it is answered, because nothing may act on one. A library form's title
   says "Library form, version N", and its questions read here (`question-list.svelte`) with Edit, which opens it in the
   library, and Use version N when the library has a newer version (`useLibraryVersion`, which keeps the
   form's id, so what sends it and what reads its answers still do). `removeForm` takes a form with the automations that

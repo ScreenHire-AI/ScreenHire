@@ -169,8 +169,8 @@ carries, and a template cannot add one. The rendered subject is one line, cut at
 
 The template preview (`POST /v1/email-templates/preview`) renders unsaved wording with a made-up candidate, Jordan Lee.
 The dashboard shows the HTML part in a sandboxed frame (no scripts, forms or popups; `allow-same-origin` only so the frame
-can take the email's height), never in the page, in the preview beside the wording where both
-fit, or behind the Edit / Preview switch; Open in a new window, in the Preview panel, opens it in a second window (`/preview/email`) that the editor
+can take the email's height), never in the page, behind the Edit / Preview switch (A8);
+Open in a new window, in the Preview panel, opens it in a second window (`/preview/email`) that the editor
 feeds each rendering. The test send (`POST /v1/email-templates/test`) sends the same rendering to the signed-in person's
 own address, from the API, with `[Test]` before the subject. Try it's Send me these emails
 (`POST /v1/workflows/test-emails`, [workflow engine](workflow-engine.md#4-builder-ux-dashboard)) does the same for up to
