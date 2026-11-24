@@ -473,8 +473,8 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
   they do something else or one of them turns people down; or that nothing happens to it yet, with a link to the Automations tab (A11). A follow-up form has no automation added, and a library form's line says only
   which answer fails. The switch never sets `allowAutoReject` and nothing beside it offers a rejection. A text answer's maximum length
   is at most `ApplicationForm.ShortTextMaxLength` (300) or `LongTextMaxLength` (5,000), the same limit the validator and the form use; a link takes none. A definition
-  stored with a higher number, or with one on a link, no longer validates: it saves once someone lowers or removes it, and until then a job with it runs no automation
-  (`AutomationEngine` records each run as Blocked, with the reason). The automation form offers "Send a form" and
+  stored earlier with a higher number no longer validates: a draft keeps it as a problem and does not publish, and a job already running it starts no automation
+  until someone lowers it (`AutomationEngine` records each run as Blocked, with the reason). The automation form offers "Send a form" and
   the "A form is answered" trigger's picker only when the workflow has a follow-up to name. A version that cannot be
   edited reads its questions as content, with the same switch.
 - **Try it:** `try-it.svelte` (rules in `#lib/try-it.ts`, design system section 11, Try it; the owner's walk-through of
