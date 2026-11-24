@@ -504,12 +504,12 @@
   </Panel>
 </div>
 
-<!-- Both show while some rows are open and some are not; a narrow header has room for one, Expand all until none is closed. -->
+<!-- Both show while some rows are open and some are not; a narrow header has room for one, Collapse all while any is open. -->
 {#snippet expandAll()}
-  {#if openCount > 0}
-    <Button variant="outline" data-collapse-all class={openCount < items.length ? '@max-sm/panel:hidden' : undefined} onclick={() => setAll(false)}>Collapse all</Button>
+  {#if openCount > 0}<Button variant="outline" data-collapse-all onclick={() => setAll(false)}>Collapse all</Button>{/if}
+  {#if openCount < items.length}
+    <Button variant="outline" data-expand-all class={openCount > 0 ? '@max-sm/panel:hidden' : undefined} onclick={() => setAll(true)}>Expand all</Button>
   {/if}
-  {#if openCount < items.length}<Button variant="outline" data-expand-all onclick={() => setAll(true)}>Expand all</Button>{/if}
 {/snippet}
 
 {#snippet rowMenu(name: string, index: number)}
