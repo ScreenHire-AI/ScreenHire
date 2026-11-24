@@ -414,7 +414,7 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" })).ToBeFocusedAsync();
 
         // An automation with a blank tag pauses the Try it tab, with the fix inline.
-        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" }).GetByRole(AriaRole.Button, new() { Name = "Add an automation to Applied" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Tabpanel, new() { Name = "Automations" }).GetByRole(AriaRole.Button, new() { Name = "New automation at Applied" }).ClickAsync();
         await Page.GetByRole(AriaRole.Dialog, new() { Name = "Add an automation" }).GetByRole(AriaRole.Button, new() { Name = "Write your own" }).ClickAsync();
         var drawer = Page.GetByRole(AriaRole.Dialog);
         await drawer.GetByRole(AriaRole.Textbox, new() { Name = "Name", Exact = true }).FillAsync("Welcome tag");
