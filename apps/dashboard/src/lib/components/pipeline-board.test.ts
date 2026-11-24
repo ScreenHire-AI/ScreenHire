@@ -311,7 +311,10 @@ describe('pipeline board', () => {
     renderBoard();
     await screen.findByRole('list', { name: 'Applied stage' });
 
-    expect(screen.getAllByRole('button', { name: /^Actions for / })).toHaveLength(applications.length);
+    const menus = screen.getAllByRole('button', { name: /^Actions for / });
+    expect(menus).toHaveLength(applications.length);
+    // Visible without hovering, since a menu moves the card without a drag (F4).
+    for (const menu of menus) expect(menu.closest('[class*="opacity-0"]')).toBeNull();
   });
 
   describe('confirming a move into a stage that does something', () => {

@@ -1,5 +1,5 @@
-// The Pipeline tab's stage cards: a card per open stage with its short facts, a plus that adds a stage and opens its sheet,
-// a menu per card, a grip that moves the card left and right (design system A7), then the Any stage and Ends rows.
+// The Pipeline tab's stage cards: a card per open stage with one header row and its chips, a plus that adds a stage and opens
+// its sheet, a grip that moves the card left and right (design system A7), then the Any stage and Ends rows.
 import type { DefinitionError, HiringWorkflow } from '@screenhire/api-client';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -50,11 +50,6 @@ async function openChip(name: string, chip: RegExp) {
   return screen.findByRole('dialog', { name: chip });
 }
 
-async function openMenu(stage: string) {
-  await fireEvent.pointerDown(within(stages()).getByRole('button', { name: `Actions for ${stage}` }), { button: 0, pointerType: 'mouse' });
-  return screen.findByRole('menu');
-}
-
 beforeEach(() => {
   // jsdom has no Web Animations, and a card entering or leaving the list's `animate:flip` asks for its running ones.
   Element.prototype.getAnimations = () => [];
@@ -92,15 +87,23 @@ describe('stage cards', () => {
     expect(within(card('Interview')).queryByRole('list', { name: /What happens/ })).toBeNull();
   });
 
-  it('opens a count to a list of the automations by their own names, each linking to it on the Automations tab', async () => {
+  it('goes to the stage\'s automations from its automations chip, naming the ones it counted, and lists none of them here', async () => {
+    const watched = callbacks();
+    renderCards(watched);
+
+    await fireEvent.click(within(card('Phone screen')).getByRole('button', { name: '2 automations at Phone screen' }));
+
+    expect(watched.onautomations).toHaveBeenCalledExactlyOnceWith('phone-screen', ['tag-screen', 'tag-two']);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('says the scorecard chip\'s word, so no chip is an icon alone', () => {
     renderCards();
 
-    const list = await openChip('Phone screen', /2 automations/);
-
-    expect(within(list).getAllByRole('link').map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
-      ['Tag screened', '?tab=automations&show=tag-screen'],
-      ['Tag again', '?tab=automations&show=tag-two'],
-    ]);
+    const chip = within(card('Phone screen')).getByRole('button', { name: 'Scorecard' });
+    // The name is the word shown, not a label over a word only some screens get.
+    expect(chip).not.toHaveAttribute('aria-label');
+    expect(chip.querySelector('[aria-hidden]:not(svg)')).toBeNull();
   });
 
   it('counts the questions the first stage asks and opens to each form, linking to it on Forms', async () => {
@@ -158,13 +161,15 @@ describe('stage cards', () => {
   });
 
   it('puts the automations that belong to no stage in one Any stage row', async () => {
+    const watched = callbacks();
     renderCards({
+      ...watched,
       flow: { ...workflow, automations: [...workflow.automations, { id: 'by-hand', name: 'By hand', trigger: { type: 'Manual' }, conditions: null, actions: [{ type: 'AddTag', tag: 'vip' }] }] },
     });
 
     const any = within(stages()).getByRole('region', { name: 'Any stage' });
     await fireEvent.click(within(any).getByRole('button', { name: /1 automation/ }));
-    expect(within(await screen.findByRole('dialog', { name: /1 automation/ })).getByRole('link', { name: 'By hand' })).toHaveAttribute('href', '?tab=automations&show=by-hand');
+    expect(watched.onautomations).toHaveBeenCalledExactlyOnceWith(null, ['by-hand']);
   });
 
   it('has no Any stage row when every automation has a stage', () => {
@@ -241,62 +246,22 @@ describe('adding a stage', () => {
   });
 });
 
-describe('a card\'s menu', () => {
-  it('has Edit stage, Add an automation, Choose scorecard and Remove stage on a stage in the middle', async () => {
+describe('a card\'s header', () => {
+  it('is one row: the grip, the number and the name with its pencil', () => {
     renderCards();
+    const header = card('Phone screen').querySelector<HTMLElement>('[data-stage-header]')!;
+    const name = within(header).getByRole('button', { name: 'Phone screen' });
 
-    const menu = await openMenu('Phone screen');
-
-    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit stage', 'Add an automation', 'Choose scorecard', 'Remove stage']);
+    expect([...header.children].map((part) => part.textContent?.trim())).toEqual(['', '2', 'Phone screen']);
+    expect(within(header).getByRole('button', { name: 'Reorder Phone screen' })).toBe(header.children[0]!.firstElementChild);
+    expect(name.querySelector('svg')).not.toBeNull();
   });
 
-  it('leaves Remove stage out of the first stage, which is where candidates arrive', async () => {
+  it('has no menu: the sheet removes the stage and picks its scorecard, and automations are on their own tab', () => {
     renderCards();
 
-    const menu = await openMenu('Applied');
-
-    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent?.trim())).toEqual(['Edit stage', 'Add an automation', 'Choose scorecard']);
-  });
-
-  it('has no menu on a stage that ends the candidacy: its button opens the sheet, which holds the same actions', () => {
-    renderCards();
-
-    expect(within(stages()).queryByRole('button', { name: 'Actions for Hired' })).toBeNull();
-    expect(within(stages()).queryByRole('button', { name: 'Actions for Not progressing' })).toBeNull();
-  });
-
-  it('opens the sheet, the automations and the scorecard of the stage it was opened on, once the menu has closed', async () => {
-    const watched = callbacks();
-    renderCards(watched);
-
-    await fireEvent.click(await within(await openMenu('Interview')).findByRole('menuitem', { name: 'Edit stage' }));
-    await waitFor(() => expect(watched.onopen).toHaveBeenCalledExactlyOnceWith('interview'));
-
-    await fireEvent.click(await within(await openMenu('Interview')).findByRole('menuitem', { name: 'Add an automation' }));
-    await waitFor(() => expect(watched.onautomations).toHaveBeenCalledExactlyOnceWith('interview'));
-
-    await fireEvent.click(await within(await openMenu('Interview')).findByRole('menuitem', { name: 'Choose scorecard' }));
-    await waitFor(() => expect(watched.onscorecard).toHaveBeenCalledExactlyOnceWith(2));
-  });
-
-  it('removes the stage with its reminder and no other automation, without asking, and puts the focus on the next card', async () => {
-    renderCards();
-
-    await fireEvent.click(within(await openMenu('Phone screen')).getByRole('menuitem', { name: 'Remove stage' }));
-
-    await waitFor(() => expect(within(stages()).queryByRole('group', { name: /Phone screen/ })).toBeNull());
-    expect(ids()).toBe('applied,interview,hired,rejected');
-    expect(screen.getByTestId('automation-ids')).toHaveTextContent('welcome,tag-screen,tag-two,tag-off');
-    await waitFor(() => expect(within(stages()).getByRole('button', { name: 'Interview' })).toHaveFocus());
-  });
-
-  it('puts the focus on the last card when the last one is removed', async () => {
-    renderCards();
-
-    await fireEvent.click(within(await openMenu('Interview')).getByRole('menuitem', { name: 'Remove stage' }));
-
-    await waitFor(() => expect(within(stages()).getByRole('button', { name: 'Phone screen' })).toHaveFocus());
-    expect(ids()).toBe('applied,phone-screen,hired,rejected');
+    expect(within(stages()).queryByRole('button', { name: /^(Actions|More) for / })).toBeNull();
+    expect(within(stages()).queryByRole('button', { name: /^(Remove|Add an automation|Choose)/ })).toBeNull();
   });
 });
 

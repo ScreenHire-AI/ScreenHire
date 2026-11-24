@@ -470,7 +470,7 @@ describe('application page', () => {
         expect(fetch.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
       });
 
-      it('keeps Remove reachable by keyboard, and declares it shown on hover, focus and tap', async () => {
+      it('keeps Remove reachable by keyboard, and shows it without hovering (F4)', async () => {
         stubApi({ [`GET /v1/applications/${applicationId}`]: () => Response.json(tagged) });
         renderPage();
         const remove = await within(await header()).findByRole('button', { name: 'Remove tag Referral' });
@@ -478,8 +478,8 @@ describe('application page', () => {
         expect(remove).not.toHaveAttribute('tabindex', '-1');
         remove.focus();
         expect(remove).toHaveFocus();
-        // jsdom has no hover and no touch media, so this only checks that the reveal is declared: hidden at rest.
-        expect(remove).toHaveClass('opacity-0', 'group-hover/tag:opacity-100', 'group-focus-within/tag:opacity-100', 'focus-visible:opacity-100', 'pointer-coarse:opacity-100');
+        // A control that removes is visible at rest, muted: nothing hides it until hover (design system F4).
+        expect(remove).not.toHaveClass('opacity-0');
       });
 
       it('removes a tag with its own button beside the pill', async () => {

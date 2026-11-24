@@ -417,7 +417,7 @@ export function idFrom(label: string, taken: Iterable<string>, fallback: string)
 /**
  * The kind a stage gets from its name, so a person who types "Trial shift" never meets the word "Assessment". The first
  * match wins, and a name that says nothing is Custom. Only a stage's creation and its name, until its kind is set by
- * hand under More options, use it. Applied is never guessed: the first stage is Applied and no other stage can be.
+ * hand in its sheet, use it. Applied is never guessed: the first stage is Applied and no other stage can be.
  */
 export function kindFromName(name: string): StageKind {
   const text = name.toLowerCase();

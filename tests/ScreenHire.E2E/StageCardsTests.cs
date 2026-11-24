@@ -8,7 +8,8 @@ namespace ScreenHire.E2E;
 /// The Pipeline and Forms tabs where a pipeline is edited (design system section 11: Stage cards, Stage chips, Form
 /// cards; the owner's walk-through, 2026-11-22). The cards share the panel's width in CSS from the container's width and
 /// the number of stages, which jsdom cannot lay out, so the shares, the stacking on a phone and the absence of a sideways
-/// scroll are checked here in a real browser, with a picture at each width for the design review.
+/// scroll are checked here in a real browser, with a picture at each width for the design review. So is what shows
+/// before anything is hovered, and where the focus goes when a stage is removed from its sheet.
 /// </summary>
 public sealed class StageCardsTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -51,6 +52,17 @@ public sealed class StageCardsTests(E2EFixture fixture) : BrowserTest(fixture)
         // Each card counts what happens there and reads no sentence; a stage with nothing on it says so.
         (await cards.EvaluateAllAsync<bool>("cards => cards.every(card => card.querySelector('ul[aria-label^=\"What happens at\"], [data-chips-empty]') !== null)"))
             .Should().BeTrue("every card has its chips or says nothing happens there");
+
+        // The grip and the plus show with the pointer away (F4). Playwright counts an opacity of 0 as visible, so the page is asked,
+        // and it looks at what is around them too.
+        await Page.Mouse.MoveAsync(0, 0);
+        (await cards.EvaluateAllAsync<bool>(
+            "cards => cards.every(card => ['[data-reorder-grip]', '[data-stage-add]'].every(part => card.querySelector(part)?.checkVisibility({ opacityProperty: true, visibilityProperty: true })))"))
+            .Should().BeTrue("the grip and the plus of every card show without hovering");
+        (await stages.Locator("[data-stage-header]").EvaluateAllAsync<bool>(
+            "headers => headers.every(header => { const tops = [...header.children].map(part => part.getBoundingClientRect()); return tops.every(box => box.top < tops[0].bottom) && tops.every((box, at) => at === 0 || box.left > tops[at - 1].left); })"))
+            .Should().BeTrue("the grip, the number and the name are one row, in that order");
+        await Expect(cards.Filter(new() { HasText = "Interview" }).GetByRole(AriaRole.Button, new() { Name = "Scorecard" })).ToHaveTextAsync("Scorecard", new() { UseInnerText = true });
         (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"))
             .Should().BeTrue("the Pipeline tab at {0}px scrolls sideways", width);
         await ExpectNoAccessibilityViolationsAsync();
@@ -66,6 +78,77 @@ public sealed class StageCardsTests(E2EFixture fixture) : BrowserTest(fixture)
             .Should().BeTrue("the Forms tab at {0}px scrolls sideways", width);
         await ExpectNoAccessibilityViolationsAsync();
         await SaveScreenshotAsync(Page, $"dashboard-pipeline-form-cards-{width}");
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1024)]
+    public async Task On_touch_the_grip_the_name_and_the_plus_are_44px_targets_that_cover_no_chip(int width)
+    {
+        await UseTouchScreenAsync();
+        // Tall, so the sticky Save bar hides nothing and the picture shows the Ends row.
+        await Page.SetViewportSizeAsync(width, 1600);
+        var email = await NewMemberAsync();
+        var jobId = await NewJobAsync(email);
+        await SignInAsync(email);
+        await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}/workflow"));
+        var stages = Page.GetByRole(AriaRole.Region, new() { Name = "Stages" });
+        await Expect(stages.GetByRole(AriaRole.Region, new() { Name = "Ends" })).ToBeVisibleAsync();
+
+        (await Page.EvaluateAsync<bool>("() => matchMedia('(pointer: coarse)').matches")).Should().BeTrue("the page is measured as a touch screen");
+        var small = await stages.Locator("[data-reorder-grip], [data-stage-card] [data-stage-open], [data-stage-add]").EvaluateAllAsync<string[]>(
+            "parts => parts.map(part => [part.getAttribute('aria-label') ?? part.textContent.trim(), part.getBoundingClientRect()]).filter(([, box]) => box.width < 43.5 || box.height < 43.5).map(([name, box]) => `${name} ${box.width}x${box.height}`)");
+        small.Should().BeEmpty("every control of a card is 44px on touch (F4)");
+        var covered = await stages.EvaluateAsync<string[]>(
+            """
+            region => {
+              const meet = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
+              const chips = [...region.querySelectorAll('[data-chip], [data-end-stage]')];
+              return [...region.querySelectorAll('[data-stage-add]')].flatMap(plus => chips
+                .filter(chip => meet(plus.getBoundingClientRect(), chip.getBoundingClientRect()))
+                .map(chip => `${plus.getAttribute('aria-label')} over ${chip.textContent.trim()}`));
+            }
+            """);
+        covered.Should().BeEmpty("the plus takes no tap meant for a chip");
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth")).Should().BeTrue("the Pipeline tab at {0}px on touch scrolls sideways", width);
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, $"dashboard-pipeline-stage-cards-touch-{width}");
+
+        await stages.GetByRole(AriaRole.Button, new() { Name = "Screening", Exact = true }).TapAsync();
+        await Expect(Page.GetByRole(AriaRole.Dialog, new() { Name = "Screening" }).GetByRole(AriaRole.Button, new() { Name = "Done" })).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, $"dashboard-pipeline-stage-sheet-touch-{width}");
+        if (width == 390)
+            (await Page.GetByRole(AriaRole.Dialog, new() { Name = "Screening" }).BoundingBoxAsync())!.X.Should().BeLessThan(1, "the sheet has the whole width of a phone");
+    }
+
+    [Fact]
+    public async Task Removing_a_stage_from_its_sheet_puts_the_focus_on_the_card_that_took_its_place()
+    {
+        await Page.SetViewportSizeAsync(1440, 1000);
+        var email = await NewMemberAsync();
+        var jobId = await NewJobAsync(email);
+        await SignInAsync(email);
+        await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}/workflow"));
+        var stages = Page.GetByRole(AriaRole.Region, new() { Name = "Stages" });
+        await Expect(stages.GetByRole(AriaRole.Button, new() { NameRegex = new("^(Actions|More) for ") })).ToHaveCountAsync(0);
+
+        await stages.GetByRole(AriaRole.Button, new() { Name = "Screening", Exact = true }).ClickAsync();
+        var sheet = Page.GetByRole(AriaRole.Dialog, new() { Name = "Screening" });
+        await Expect(sheet.GetByRole(AriaRole.Heading, new() { Level = 3 })).ToHaveTextAsync(["Timing", "Meeting", "Scorecard", "Automations"]);
+        // The menu at the left, Done at the right at its normal width.
+        var menu = (await sheet.GetByRole(AriaRole.Button, new() { Name = "More for Screening" }).BoundingBoxAsync())!;
+        var done = (await sheet.GetByRole(AriaRole.Button, new() { Name = "Done" }).BoundingBoxAsync())!;
+        done.X.Should().BeGreaterThan(menu.X + menu.Width);
+        done.Width.Should().BeLessThan(120);
+        await SaveScreenshotAsync(Page, "dashboard-pipeline-stage-sheet-1440");
+
+        await sheet.GetByRole(AriaRole.Button, new() { Name = "More for Screening" }).ClickAsync();
+        await Page.GetByRole(AriaRole.Menuitem, new() { Name = "Remove stage" }).ClickAsync();
+
+        await Expect(sheet).ToBeHiddenAsync();
+        await Expect(stages.GetByRole(AriaRole.Group, new() { NameRegex = new("^Stage \\d+: Screening$") })).ToHaveCountAsync(0);
+        await Expect(stages.GetByRole(AriaRole.Button, new() { Name = "Interview", Exact = true })).ToBeFocusedAsync();
     }
 
     private async Task<Guid> NewJobAsync(string email)

@@ -168,7 +168,7 @@ public sealed partial class MarketingScreenshotsTests(MarketingDemoFixture fixtu
 
             // 9. A hiring template with its own stage names, and the branding editor. On a phone, the template from its title down to
             // the fourth stage, and the editor's colours, font and logo.
-            new("template-stages", templateUrl, "Brightwater engineering", _ => Task.CompletedTask, Height: 1300, WideTo: Stage4, WideMargin: 4,
+            new("template-stages", templateUrl, "Brightwater engineering", _ => Task.CompletedTask, Height: 1300, WideTo: Stage4, WideMargin: 16,
                 Phone: new(Height: 1800, To: Stage4)),
             new("branding", DashboardUrl("/settings/branding"), "Branding", page => Expect(page.GetByText(UploadedImageSize)).ToBeVisibleAsync(Slow),
                 Phone: new(Height: 2800, Margin: 10, From: page => PanelTitled(page, "Colours").First, To: page => PanelTitled(page, "Images"))),
