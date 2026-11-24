@@ -112,6 +112,16 @@
     onundo?.(removal.message, removal.restore);
   }
 
+  // A press on a remove button moves the focus to the one that takes its place, else to the section's add control, as the
+  // sentence's x does, so a keyboard user stays where they were working.
+  let root = $state<HTMLElement>();
+  async function removeHere(removal: ClauseRemoval, part: 'condition' | 'action', at: number) {
+    remove(removal);
+    await tick();
+    const rest = root?.querySelectorAll<HTMLElement>(`[data-remove-part="${part}"]`);
+    (rest?.[Math.min(at, rest.length - 1)] ?? root?.querySelector<HTMLElement>(`[data-add-part="${part}"]`))?.focus();
+  }
+
   function setFact(ruleIndex: number, fact: string) {
     const option = factOf(fact);
     if (option) automation.conditions!.rules[ruleIndex] = newRule(option);
@@ -188,7 +198,7 @@
   }
 </script>
 
-<article aria-label={automation.name || 'Untitled automation'} class="flex flex-col gap-4">
+<article bind:this={root} aria-label={automation.name || 'Untitled automation'} class="flex flex-col gap-4">
   <FieldErrors id={`${uid}-errors`} messages={[...errorsAt(errors, path), ...errorsAt(errors, `${path}.id`), ...errorsAt(errors, `${path}.actions`)]} />
 
   <fieldset class={ruleSectionClass} aria-describedby={describedBy(errorsUnder(errors, `${path}.trigger`).length > 0 && `${uid}-trigger-errors`)}>
@@ -354,7 +364,7 @@
                   <input type="checkbox" class={checkboxClass} bind:checked={() => rule.negate ?? false, (on) => (rule.negate = on)} />
                   Not
                 </label>
-                <IconButton size="icon-lg" label={`Remove condition ${ruleIndex + 1}`} onclick={() => remove(conditionRemoval(automation, ruleIndex))}><Trash2Icon /></IconButton>
+                <IconButton size="icon-lg" label={`Remove condition ${ruleIndex + 1}`} data-remove-part="condition" onclick={() => removeHere(conditionRemoval(automation, ruleIndex), 'condition', ruleIndex)}><Trash2Icon /></IconButton>
               </div>
             </div>
             <FieldErrors id={`${uid}-rule-${ruleIndex}-errors`} messages={ruleErrors} />
@@ -372,7 +382,7 @@
       id={`${uid}-conditions-errors`}
       messages={[...errorsAt(errors, `${path}.conditions`), ...errorsAt(errors, `${path}.conditions.match`), ...errorsAt(errors, `${path}.conditions.rules`)]}
     />
-    <div><button type="button" class={addChipClass} data-focus={automation.conditions ? undefined : `${path}.conditions`} onclick={addRule}><PlusIcon aria-hidden="true" class="size-3.5 shrink-0" />Add condition</button></div>
+    <div><button type="button" class={addChipClass} data-add-part="condition" data-focus={automation.conditions ? undefined : `${path}.conditions`} onclick={addRule}><PlusIcon aria-hidden="true" class="size-3.5 shrink-0" />Add condition</button></div>
   </fieldset>
 
   <fieldset bind:this={steps} class={ruleSectionClass}>
@@ -466,7 +476,7 @@
             {/if}
             <div class="flex h-9 shrink-0 items-center gap-0.5 pointer-coarse:h-11">
               {#if automation.actions.length > 1}{@render grip()}{/if}
-              <IconButton size="icon-lg" label={`Remove action ${actionIndex + 1}`} onclick={() => remove(stepRemoval(automation, actionIndex))}><Trash2Icon /></IconButton>
+              <IconButton size="icon-lg" label={`Remove action ${actionIndex + 1}`} data-remove-part="action" onclick={() => removeHere(stepRemoval(automation, actionIndex), 'action', actionIndex)}><Trash2Icon /></IconButton>
             </div>
           </div>
           {#if action.type === 'ScheduleInterview'}
@@ -479,7 +489,7 @@
     </ReorderList>
     <div>
       <DropdownMenu.Root>
-        <DropdownMenu.Trigger class={addChipClass} data-focus={`${path}.actions`}><PlusIcon aria-hidden="true" class="size-3.5 shrink-0" />Add action</DropdownMenu.Trigger>
+        <DropdownMenu.Trigger class={addChipClass} data-add-part="action" data-focus={`${path}.actions`}><PlusIcon aria-hidden="true" class="size-3.5 shrink-0" />Add action</DropdownMenu.Trigger>
         <DropdownMenu.Content align="start" class="min-w-52" onCloseAutoFocus={focusAdded}>
           {#each addable as type (type)}<DropdownMenu.Item onSelect={() => addAction(type)}>{actionLabels[type] ?? type}</DropdownMenu.Item>{/each}
         </DropdownMenu.Content>

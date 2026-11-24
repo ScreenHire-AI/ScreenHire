@@ -42,7 +42,7 @@
     </Tooltip.Trigger>
     <Tooltip.Content>{label}</Tooltip.Content>
   </Tooltip.Root>
-  <DropdownMenu.Content align="end" class="min-w-52" onCloseAutoFocus={() => onclosed && setTimeout(onclosed)}>
+  <DropdownMenu.Content align="end" class="w-auto max-w-[min(24rem,calc(100vw-2rem))] min-w-52" onCloseAutoFocus={() => onclosed && setTimeout(onclosed)}>
     {@render children()}
   </DropdownMenu.Content>
 </DropdownMenu.Root>

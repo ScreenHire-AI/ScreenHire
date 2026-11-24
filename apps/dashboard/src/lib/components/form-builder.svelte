@@ -31,9 +31,9 @@
   import { Switch } from '#lib/components/ui/switch/index.js';
   import { Textarea } from '#lib/components/ui/textarea/index.js';
   import FieldErrors from '#lib/components/workflow/field-errors.svelte';
-  import { choicesSummary, insertAt, kindIn, type AnswerKind, type AnswerKindGroup, type AnswerOption } from '#lib/form-builder.js';
+  import { choicesSummary, kindIn, type AnswerKind, type AnswerKindGroup, type AnswerOption } from '#lib/form-builder.js';
   import { addSection, fromRows, removeSection, rowsOf, syncSections, type BuilderRow, type SectionDraft } from '#lib/form-sections.js';
-  import { idFrom } from '#lib/workflow.js';
+  import { idFrom, insertAt } from '#lib/workflow.js';
 
   // The form builder (design system section 11), modelled on Google Forms: one panel of questions, each a row that reads
   // as text until it is opened. Only one question is open at a time, marked by an accent bar; it edits its text, its

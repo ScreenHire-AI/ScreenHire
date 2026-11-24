@@ -50,6 +50,24 @@ describe('a new step', () => {
   });
 });
 
+describe('a removed part', () => {
+  it('leaves the focus on the remove button that takes its place, else on the control that adds one', async () => {
+    renderForm([{ type: 'NotifyTeam' }, { type: 'AssignReviewer' }]);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove action 1' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Remove action 1' })).toHaveFocus());
+    expect(types()).toEqual(['AssignReviewer']);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove action 1' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add action' })).toHaveFocus());
+    expect(types()).toEqual([]);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Add condition' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Remove condition 1' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add condition' })).toHaveFocus());
+  });
+});
+
 describe('an empty step', () => {
   it('is dropped when focus leaves it, and offers to put it back', async () => {
     renderForm([{ type: 'NotifyTeam' }, { type: 'AddTag', tag: '' }]);

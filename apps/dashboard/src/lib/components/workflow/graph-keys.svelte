@@ -39,8 +39,15 @@
       if (event.target instanceof HTMLElement && element.contains(event.target)) unscroll(event.target);
     }
 
+    // A press on a node focuses it where it already is. Panning then would move it out from under the pointer before the
+    // press ends, and the click would be lost.
+    let pressed = false;
+    const onpointerdown = () => (pressed = true);
+    const onpointerup = () => (pressed = false);
+
     function onfocusin(event: FocusEvent) {
       unscroll(event.target instanceof HTMLElement ? event.target.parentElement : null);
+      if (pressed) return;
       const node = nodeOf(event.target);
       const pane = element.querySelector('.svelte-flow')?.getBoundingClientRect();
       const placed = node?.dataset.id ? flow.getInternalNode(node.dataset.id) : undefined;
@@ -58,7 +65,13 @@
     element.addEventListener('keydown', onkeydown);
     element.addEventListener('focusin', onfocusin);
     element.addEventListener('scroll', onscroll, true);
+    element.addEventListener('pointerdown', onpointerdown, true);
+    window.addEventListener('pointerup', onpointerup, true);
+    window.addEventListener('pointercancel', onpointerup, true);
     return () => {
+      element.removeEventListener('pointerdown', onpointerdown, true);
+      window.removeEventListener('pointerup', onpointerup, true);
+      window.removeEventListener('pointercancel', onpointerup, true);
       element.removeEventListener('scroll', onscroll, true);
       element.removeEventListener('keydown', onkeydown);
       element.removeEventListener('focusin', onfocusin);

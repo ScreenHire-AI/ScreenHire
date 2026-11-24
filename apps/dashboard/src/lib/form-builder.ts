@@ -100,9 +100,6 @@ export function choicesSummary(options: readonly AnswerOption[]): string {
   return `${options.length} ${options.length === 1 ? 'choice' : 'choices'}: ${labels}`;
 }
 
-/** `list` with `item` at `index`. */
-export const insertAt = <T>(list: readonly T[], index: number, item: T): T[] => [...list.slice(0, index), item, ...list.slice(index)];
-
 /**
  * An id for a copy of `id`: `{id}_copy`, then `{id}_copy_2` and on, unique among `taken`. The original's part is cut
  * so the id stays within the definition's 40 characters.

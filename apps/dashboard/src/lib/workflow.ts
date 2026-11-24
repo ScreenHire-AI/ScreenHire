@@ -615,7 +615,7 @@ export const replaceAt = <T>(list: readonly T[], index: number, item: T): T[] =>
 /** `list` without the item at `index`. */
 export const removeAt = <T>(list: readonly T[], index: number): T[] => list.filter((_, i) => i !== index);
 
-/** `list` with `item` put back at `index`, or at its end when the list is shorter by now. */
+/** `list` with `item` at `index`, or at its end when the list is shorter. */
 export const insertAt = <T>(list: readonly T[], index: number, item: T): T[] => [...list.slice(0, index), item, ...list.slice(index)];
 
 /**

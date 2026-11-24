@@ -212,7 +212,7 @@
       {#if data.removes}
         <!-- Inset by its own size on touch, so the 44px target stays inside the node. -->
         <MoreMenu label={menuLabel} size="icon-xs" quiet onclosed={removeOnceClosed} class="nodrag nopan absolute top-1 right-1 transition-none pointer-coarse:top-0 pointer-coarse:right-0 pointer-coarse:items-start pointer-coarse:justify-end pointer-coarse:p-1.5">
-          <DropdownMenu.Item onSelect={() => (removing = true)}><Trash2Icon aria-hidden="true" />{data.removes}<Kbd class="ml-auto">Delete</Kbd></DropdownMenu.Item>
+          <DropdownMenu.Item onSelect={() => (removing = true)}><Trash2Icon aria-hidden="true" />{data.removes}<DropdownMenu.Shortcut><Kbd>Delete</Kbd></DropdownMenu.Shortcut></DropdownMenu.Item>
         </MoreMenu>
       {/if}
     {:else}
