@@ -7,7 +7,7 @@
 
 /* Steps that move with no script (apply-flow.md §7): every careers page opts in to cross-document view transitions, so a
    step of the apply form, a follow-up page or the page after Send slides in from the right as the last one leaves, while
-   the header holds still and the progress bar cross-fades to its new value. Only for people who have not asked for
+   the header holds still and the progress bar's fill grows from the last step's width to this one's. Only for people who have not asked for
    reduced motion; a browser without view transitions loads the next page as it always has. The transition runs no
    script, but only where scripting is on: Chromium with JavaScript off starts a cross-document transition and never
    ends it, which leaves the new page under the transition's layer and every click on it caught there. */
@@ -22,6 +22,24 @@
 
   ::view-transition-new(apply-step) {
     animation: 220ms ease-out both step-in;
+  }
+
+  /* The row and its fill move together, at the pace the fill grows in the dashboard's preview (questions.css). */
+  ::view-transition-group(apply-progress),
+  ::view-transition-group(apply-progress-fill) {
+    animation-duration: 300ms;
+    animation-timing-function: ease-out;
+  }
+
+  /* The fill is one colour, so its old and new pictures cross-fade with no visible change while the group's width grows.
+     They keep the bar's height and their round right end, instead of scaling with the width, and the group rounds the left. */
+  ::view-transition-group(apply-progress-fill) {
+    @apply overflow-clip rounded-full;
+  }
+
+  ::view-transition-old(apply-progress-fill),
+  ::view-transition-new(apply-progress-fill) {
+    @apply h-full object-cover object-right;
   }
 }
 
@@ -51,6 +69,10 @@
   view-transition-name: apply-progress;
 }
 
+.apply-progress .page-progress-fill {
+  view-transition-name: apply-progress-fill;
+}
+
 @layer base {
   html {
     background: var(--candidate-background);
@@ -74,6 +96,22 @@
 @layer components {
   /* The hand cursor on buttons, summaries, selects and switch labels is one rule in the theme (design-system A10), so no
      class here sets a cursor. .field-input, .file-input and .choice come with the shared question components (@screenhire/ui/questions.css). */
+
+  /* Where the candidate is in a form. On a phone it stays at the top of the window, edge to edge, while the questions
+     scroll under it. It is main's own child, or it would scroll away with its parent. In the widget the frame is as tall as
+     its page, so there is nothing to stick to and the row stays in its place. */
+  .apply-progress {
+    @apply mt-2 max-sm:sticky max-sm:top-0 max-sm:z-10 max-sm:-mx-5 max-sm:bg-candidate-background;
+  }
+
+  .apply-progress .page-progress {
+    @apply max-sm:px-5;
+  }
+
+  /* The row's 48px and 16px of air, so a focused field the browser scrolls to is never under it (WCAG 2.4.11). */
+  html:has(.apply-progress) {
+    @apply max-sm:scroll-pt-16;
+  }
 
   .button-primary {
     @apply inline-flex min-h-11 items-center justify-center rounded-lg border-0 bg-candidate-cta px-6 text-candidate-body font-semibold text-candidate-cta-foreground no-underline;

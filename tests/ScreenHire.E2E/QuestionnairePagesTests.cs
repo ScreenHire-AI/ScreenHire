@@ -13,8 +13,10 @@ namespace ScreenHire.E2E;
 /// The apply form a page at a time (apply-flow.md §7), with JavaScript off: one named section a page with its progress
 /// ("40% done"), Change on the review and back to it, and saving to finish later through the link Mailpit receives; and,
 /// without sections, four questions a page, the focus on each page's first question, Enter moving on where it is safe,
-/// the check line beside a field that was left wrong, and the finish page. Each test applies to a job of its own
-/// organization, copied from the "Software engineer" system template and given two sections or more questions.
+/// the check line beside a field that was left wrong, and the finish page. With JavaScript on, the progress bar on a
+/// phone: it stays at the top without covering a focused field, and it grows from step to step, or stays still with
+/// reduced motion. Each test applies to a job of its own organization, copied from the "Software engineer" system
+/// template and given two sections or more questions.
 /// </summary>
 public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : BrowserTest(fixture)
 {
@@ -55,6 +57,7 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
 
         await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
+        await Expect(Progress()).ToHaveTextAsync("Ready to send");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Eligibility" })).ToContainTextAsync("Yes");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Your experience" })).ToContainTextAsync("A month");
         await ExpectNoAccessibilityViolationsAsync();
@@ -185,10 +188,10 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         await Expect(Page.GetByLabel("Anything else we should know?")).ToBeFocusedAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
 
-        // The review stays short of 100%, and Enter there posts the review back to itself, with the choice kept: it
+        // The review never reads 100% done, and Enter there posts the review back to itself, with the choice kept: it
         // neither sends nor opens a Change.
         await Expect(Page.Locator("#step-heading")).ToHaveTextAsync("Review and send");
-        await Expect(Progress()).ToHaveTextAsync("83% done");
+        await Expect(Progress()).ToHaveTextAsync("Ready to send");
         await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Questions, page 2" })).ToContainTextAsync("Platform");
         await Page.GetByLabel("No, I did not use AI tools").CheckAsync();
         // Each render stamps the time the step was shown into the state, so a new value is the review drawn again.
@@ -208,6 +211,92 @@ public sealed partial class QuestionnairePagesTests(E2EFixture fixture) : Browse
         await Expect(next.GetByRole(AriaRole.Link, new() { Name = "your page" })).ToHaveAttributeAsync("href", $"/{organization.Slug}/my-applications");
         await ExpectNoAccessibilityViolationsAsync();
     }
+
+    [Fact]
+    public async Task On_a_phone_the_progress_bar_stays_at_the_top_clear_of_the_focused_field_and_grows_from_step_to_step()
+    {
+        var (organization, job) = await OrganizationWithSectionedJobAsync();
+        var problems = new List<string>();
+        Page.Console += (_, message) =>
+        {
+            if (message.Type is "error" or "warning")
+            {
+                problems.Add(message.Text);
+            }
+        };
+        await Page.SetViewportSizeAsync(390, 844);
+        // What the browser animates as a step opens: the widths the fill's view transition goes between, or nothing when the
+        // page opened with no transition. pagereveal comes before the page's first frame.
+        await Page.AddInitScriptAsync(
+            """
+            addEventListener('pagereveal', (event) => {
+              window.fillWidths = (event.viewTransition?.ready ?? Promise.resolve()).then(() =>
+                document.getAnimations()
+                  .filter((animation) => animation.effect.pseudoElement === '::view-transition-group(apply-progress-fill)')
+                  .flatMap((animation) => animation.effect.getKeyframes().map((frame) => parseFloat(frame.width))));
+            });
+            """);
+
+        await GoToAsync("careers", $"/{organization.Slug}/jobs/{job.Slug}/apply");
+        await Page.Locator("astro-island:not([ssr])").WaitForAsync(); // hydrated
+        await FillDetailsAsync(ApiSession.NewEmail("phone"));
+        await Page.GetByLabel("Your CV or resume").SetInputFilesAsync(new FilePayload { Name = "Casey CV.pdf", MimeType = "application/pdf", Buffer = Pdf });
+        await Expect(Page.GetByText("Casey CV.pdf")).ToBeVisibleAsync();
+
+        // The end of the form, then back up through it: every field the focus reaches from below is under the bar's edge.
+        var next = Page.GetByRole(AriaRole.Button, new() { Name = "Continue to questions" });
+        await next.FocusAsync();
+        var row = Page.Locator(".apply-progress");
+        (await row.BoundingBoxAsync())!.Y.Should().Be(0, "the bar stays at the top of the window");
+        var covered = new List<string>();
+        var first = Page.GetByLabel("First name");
+        for (var stops = 0; stops < 20 && !await first.EvaluateAsync<bool>("field => field === document.activeElement"); stops++)
+        {
+            await Page.Keyboard.PressAsync("Shift+Tab");
+            var bar = (await row.BoundingBoxAsync())!;
+            var focused = (await Page.Locator(":focus").BoundingBoxAsync())!;
+            if (focused.Y < bar.Y + bar.Height)
+            {
+                covered.Add($"{await Page.Locator(":focus").EvaluateAsync<string>("e => e.name || e.textContent.trim()")} at {focused.Y}, under a bar that ends at {bar.Y + bar.Height}");
+            }
+        }
+
+        await Expect(first).ToBeFocusedAsync();
+        (await row.BoundingBoxAsync())!.Y.Should().Be(0, "the first field is still below the fold, so the bar was over it on the way");
+        covered.Should().BeEmpty("a focused field is never under the bar (WCAG 2.4.11)");
+        await ExpectNoAccessibilityViolationsAsync();
+
+        // The fill grows from the last step's width to this one's, and the sheen crosses it once.
+        var details = await FillWidthAsync();
+        await next.ClickAsync();
+        await Expect(Progress()).ToHaveTextAsync("40% done");
+        var eligibility = await FillWidthAsync();
+        eligibility.Should().BeApproximately(2 * details, 1);
+        var grew = await Page.EvaluateAsync<double[]>("() => window.fillWidths");
+        grew.Should().HaveCount(2);
+        grew[0].Should().BeApproximately(details, 1);
+        grew[1].Should().BeApproximately(eligibility, 1);
+        var sheen = Page.Locator(".page-progress-sheen");
+        await Expect(sheen).ToHaveCSSAsync("animation-iteration-count", "1");
+
+        // Reduced motion: the same form, with nothing moving.
+        await Page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        await RightToWork().GetByLabel("Yes").CheckAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue", Exact = true }).ClickAsync();
+        await Expect(Progress()).ToHaveTextAsync("60% done");
+        (await FillWidthAsync()).Should().BeApproximately(3 * details, 1);
+        (await Page.EvaluateAsync<double[]>("() => window.fillWidths")).Should().BeEmpty();
+        await Expect(sheen).ToBeHiddenAsync();
+        await Expect(Page.Locator(".page-progress-fill")).ToHaveCSSAsync("transition-duration", "0s");
+        await Experience().GetByLabel("3 to 5").CheckAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Continue to review" }).ClickAsync();
+        await Expect(Progress()).ToHaveTextAsync("Ready to send");
+        (await FillWidthAsync()).Should().BeApproximately((await Page.Locator(".page-progress-track").BoundingBoxAsync())!.Width, 1);
+        await ExpectNoAccessibilityViolationsAsync();
+        problems.Should().BeEmpty("the content security policy must not block anything the bar needs");
+    }
+
+    private async Task<double> FillWidthAsync() => (await Page.Locator(".page-progress-fill").BoundingBoxAsync())!.Width;
 
     private ILocator Progress() => Page.Locator("[data-page-progress]");
 

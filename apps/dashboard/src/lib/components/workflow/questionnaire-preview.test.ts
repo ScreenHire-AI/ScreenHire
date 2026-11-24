@@ -114,7 +114,7 @@ describe('QuestionnairePreview pages', () => {
   it('shows each named section as its own step with the progress the candidate sees', async () => {
     render(QuestionnairePreview, { questions, sections: twoSections });
 
-    // Details, two pages and the review: four steps, and the sent form after them, so the review reads 80%.
+    // Details, two pages and the review: four steps, and the sent form after them, so the last page reads 60%.
     expect(screen.getByText('20% done')).toBeInTheDocument();
     await next();
     expect(screen.getByRole('heading', { name: 'Eligibility' })).toHaveFocus();
@@ -122,7 +122,14 @@ describe('QuestionnairePreview pages', () => {
     await next();
     expect(screen.getByRole('heading', { name: 'About the role' })).toBeInTheDocument();
     expect(screen.getByText('60% done')).toBeInTheDocument();
+    // One bar through the steps, so its fill grows rather than being drawn again.
+    const fill = document.querySelector('.page-progress-fill');
+    expect(fill).toHaveAttribute('width', '60%');
     expect(document.querySelectorAll('[data-preview-page]')).toHaveLength(1);
+    await next();
+    expect(screen.getByText('Ready to send')).toBeInTheDocument();
+    expect(document.querySelector('.page-progress-fill')).toBe(fill);
+    expect(fill).toHaveAttribute('width', '100%');
   });
 
   it("splits a questionnaire without sections at the organization's page size", async () => {
@@ -144,7 +151,7 @@ describe('QuestionnairePreview pages', () => {
     expect(screen.getByRole('heading', { name: 'Questions' })).toBeInTheDocument();
     await next();
     expect(screen.getByRole('heading', { name: 'Review and send' })).toBeInTheDocument();
-    expect(screen.getByText('75% done')).toBeInTheDocument();
+    expect(screen.getByText('Ready to send')).toBeInTheDocument();
   });
 
   it('pages a follow-up questionnaire without the details step, ending in Send answers', async () => {
@@ -161,11 +168,11 @@ describe('QuestionnairePreview pages', () => {
     await next();
     await next();
     await next();
-    expect(screen.getByText('80% done')).toBeInTheDocument();
+    expect(screen.getByText('Ready to send')).toBeInTheDocument();
 
     await view.rerender({ questions, sections: null, questionsPerPage: 8 });
 
-    expect(screen.getByText('75% done')).toBeInTheDocument();
+    expect(screen.getByText('Ready to send')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Review and send' })).toBeInTheDocument();
   });
 });

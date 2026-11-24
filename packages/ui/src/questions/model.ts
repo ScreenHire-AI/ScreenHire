@@ -153,11 +153,19 @@ export function questionPages(
 
 /**
  * How far along a form of several pages the candidate is, as a whole percentage (apply-flow.md §7). The sent form is the
- * last step, so the step on screen counts as reached and the last page (the review) stays short of 100: a form of four
- * steps reads 20, 40, 60 and 80, and "done" belongs to the page that says it was sent.
+ * last step, so the step on screen counts as reached and the last one stays short of 100: a form of four steps reads 20,
+ * 40, 60 and 80, and "done" belongs to the page that says it was sent.
  */
 export function progressPercent(step: number, steps: number): number {
   const total = Math.max(1, Math.floor(steps));
   const at = Math.min(Math.max(1, Math.floor(step)), total);
   return Math.round((100 * at) / (total + 1));
+}
+
+/**
+ * The words beside the bar. The review has nothing left to fill in and nothing sent yet, so it says what is true there
+ * instead of a percentage; a form never says 100% done.
+ */
+export function progressLabel(step: number, steps: number, review = false): string {
+  return review ? 'Ready to send' : `${progressPercent(step, steps)}% done`;
 }

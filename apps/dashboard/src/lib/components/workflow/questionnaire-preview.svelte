@@ -87,7 +87,7 @@
 <div class="candidate-preview flex flex-col gap-6 rounded-lg bg-candidate-background p-4 text-candidate-body text-candidate-foreground">
   {#if step}
     <section aria-label={step.kind === 'page' && !step.page.name ? `Questions, page ${step.number}` : stepName(step)} class="flex flex-col gap-4" data-preview-step={step.kind} data-preview-page={step.kind === 'page' ? '' : undefined}>
-      {#if steps.length > 1}<PageProgress step={at + 1} steps={steps.length} />{/if}
+      {#if steps.length > 1}<PageProgress step={at + 1} steps={steps.length} review={step.kind === 'review'} />{/if}
       <h3 bind:this={heading} tabindex="-1" class="font-display text-heading font-bold focus-visible:outline-none">{stepName(step)}</h3>
       {#if step.kind === 'details'}
         <TextField name="preview-firstName" label="First name" required autocomplete="off" bind:value={firstName} />
