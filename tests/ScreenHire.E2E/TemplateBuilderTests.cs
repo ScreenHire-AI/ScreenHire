@@ -162,12 +162,13 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         await Page.Keyboard.PressAsync("Escape");
         await Expect(drawer).ToBeHiddenAsync();
 
-        // The Pipeline tab counts it on the first stage, and its chip opens it on the Automations tab.
+        // The Pipeline tab counts it on the first stage, and its chip goes to the stage's automations on the Automations tab: the one
+        // automation itself, or, where the stage has several (a must-have question adds its own), the list that holds this one.
         await Page.GetByRole(AriaRole.Tab, new() { Name = "Pipeline" }).ClickAsync();
         await Page.GetByRole(AriaRole.Region, new() { Name = "Stages" }).GetByRole(AriaRole.Group, new() { Name = "Stage 1: Applied" })
-            .GetByRole(AriaRole.Button, new() { Name = "1 automation at Applied" }).ClickAsync();
-        var applied = Page.GetByRole(AriaRole.Dialog, new() { Name = "Route for review" });
-        await Expect(applied).ToBeVisibleAsync();
+            .GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^\\d+ automations? at Applied$") }).ClickAsync();
+        var applied = Page.GetByRole(AriaRole.Dialog, new() { Name = "Automations: Applied" });
+        await Expect(applied.GetByRole(AriaRole.Button, new() { NameRegex = new Regex("^Route for review") })).ToBeVisibleAsync();
         await Page.Keyboard.PressAsync("Escape");
         await Expect(applied).ToBeHiddenAsync();
         await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "Automations" })).ToHaveAttributeAsync("aria-selected", "true");
