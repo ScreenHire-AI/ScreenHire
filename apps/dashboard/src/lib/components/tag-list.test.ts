@@ -6,15 +6,13 @@ import TagList from './tag-list.svelte';
 const show = (props: Record<string, unknown>) => render(WithTooltips, { props: { component: TagList, props } });
 
 describe('tag list, compact (a candidate header)', () => {
-  it('shows each tag with its own Remove button, which is hidden until hover, focus or tap but stays in the tab order (F4)', () => {
+  it('shows each tag with its own Remove button, visible without hovering (F4)', () => {
     show({ compact: true, tags: ['Referral', 'Night shift'], onadd: async () => true, onremove: () => {} });
 
     const list = screen.getByRole('list', { name: 'Tags' });
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     const remove = screen.getByRole('button', { name: 'Remove tag Referral' });
-    expect(remove).toHaveClass('opacity-0');
-    expect(remove).toHaveClass('focus-visible:opacity-100');
-    expect(remove).toHaveClass('pointer-coarse:opacity-100');
+    expect(remove).not.toHaveClass('opacity-0');
     // The button sits beside the pill, never inside it (A5).
     expect(remove.closest('[data-slot="badge"]')).toBeNull();
   });

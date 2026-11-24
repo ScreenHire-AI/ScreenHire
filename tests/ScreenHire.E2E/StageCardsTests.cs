@@ -80,6 +80,48 @@ public sealed class StageCardsTests(E2EFixture fixture) : BrowserTest(fixture)
         await SaveScreenshotAsync(Page, $"dashboard-pipeline-form-cards-{width}");
     }
 
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1024)]
+    public async Task On_touch_the_grip_the_name_and_the_plus_are_44px_targets_that_cover_no_chip(int width)
+    {
+        await UseTouchScreenAsync();
+        // Tall, so the sticky Save bar hides nothing and the picture shows the Ends row.
+        await Page.SetViewportSizeAsync(width, 1600);
+        var email = await NewMemberAsync();
+        var jobId = await NewJobAsync(email);
+        await SignInAsync(email);
+        await Page.GotoAsync(DashboardUrl($"/jobs/{jobId}/workflow"));
+        var stages = Page.GetByRole(AriaRole.Region, new() { Name = "Stages" });
+        await Expect(stages.GetByRole(AriaRole.Region, new() { Name = "Ends" })).ToBeVisibleAsync();
+
+        (await Page.EvaluateAsync<bool>("() => matchMedia('(pointer: coarse)').matches")).Should().BeTrue("the page is measured as a touch screen");
+        var small = await stages.Locator("[data-reorder-grip], [data-stage-card] [data-stage-open], [data-stage-add]").EvaluateAllAsync<string[]>(
+            "parts => parts.map(part => [part.getAttribute('aria-label') ?? part.textContent.trim(), part.getBoundingClientRect()]).filter(([, box]) => box.width < 43.5 || box.height < 43.5).map(([name, box]) => `${name} ${box.width}x${box.height}`)");
+        small.Should().BeEmpty("every control of a card is 44px on touch (F4)");
+        var covered = await stages.EvaluateAsync<string[]>(
+            """
+            region => {
+              const meet = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
+              const chips = [...region.querySelectorAll('[data-chip], [data-end-stage]')];
+              return [...region.querySelectorAll('[data-stage-add]')].flatMap(plus => chips
+                .filter(chip => meet(plus.getBoundingClientRect(), chip.getBoundingClientRect()))
+                .map(chip => `${plus.getAttribute('aria-label')} over ${chip.textContent.trim()}`));
+            }
+            """);
+        covered.Should().BeEmpty("the plus takes no tap meant for a chip");
+        (await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth")).Should().BeTrue("the Pipeline tab at {0}px on touch scrolls sideways", width);
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, $"dashboard-pipeline-stage-cards-touch-{width}");
+
+        await stages.GetByRole(AriaRole.Button, new() { Name = "Screening", Exact = true }).TapAsync();
+        await Expect(Page.GetByRole(AriaRole.Dialog, new() { Name = "Screening" }).GetByRole(AriaRole.Button, new() { Name = "Done" })).ToBeVisibleAsync();
+        await ExpectNoAccessibilityViolationsAsync();
+        await SaveScreenshotAsync(Page, $"dashboard-pipeline-stage-sheet-touch-{width}");
+        if (width == 390)
+            (await Page.GetByRole(AriaRole.Dialog, new() { Name = "Screening" }).BoundingBoxAsync())!.X.Should().BeLessThan(1, "the sheet has the whole width of a phone");
+    }
+
     [Fact]
     public async Task Removing_a_stage_from_its_sheet_puts_the_focus_on_the_card_that_took_its_place()
     {

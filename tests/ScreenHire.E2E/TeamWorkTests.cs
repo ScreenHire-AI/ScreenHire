@@ -49,13 +49,11 @@ public sealed class TeamWorkTests(E2EFixture fixture) : BrowserTest(fixture)
         await addTag.ClickAsync();
         await newTag.FillAsync("Referral");
         await header.GetByRole(AriaRole.Button, new() { Name = "Add tag", Exact = true }).ClickAsync();
-        // The tag is a muted pill, and its own Remove button is hidden until the pill is hovered (or focused, or tapped).
+        // The tag is a muted pill, and its own Remove button shows with the pointer away (F4).
         var tags = header.GetByRole(AriaRole.List, new() { Name = "Tags", Exact = true });
         await Expect(tags).ToContainTextAsync("Referral");
         var remove = header.GetByRole(AriaRole.Button, new() { Name = "Remove tag Referral" });
         await Page.Mouse.MoveAsync(0, 0);
-        await Expect(remove).ToHaveCSSAsync("opacity", "0");
-        await tags.GetByRole(AriaRole.Listitem).First.HoverAsync();
         await Expect(remove).ToHaveCSSAsync("opacity", "1");
         await Expect(activity).ToContainTextAsync("Tagged \"Referral\" by you");
         // The Activity line can arrive before the tag's request has settled. Both buttons are disabled until it has, and

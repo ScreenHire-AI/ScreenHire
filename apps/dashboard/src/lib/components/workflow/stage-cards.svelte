@@ -191,7 +191,7 @@
                   >
                     <!-- The circle is smaller than its target, so it sits on the line and leaves the arrow showing. -->
                     <span
-                      class="grid size-5 place-items-center rounded-full border border-input bg-card text-muted-foreground transition-colors duration-150 ease-in-out group-hover/add:border-foreground group-hover/add:bg-muted group-hover/add:text-foreground group-focus-visible/add:border-foreground group-focus-visible/add:text-foreground motion-reduce:transition-none pointer-coarse:size-7"
+                      class="grid size-5 place-items-center rounded-full border border-input bg-card text-muted-foreground transition-colors duration-150 ease-in-out group-hover/add:border-foreground group-hover/add:bg-muted group-hover/add:text-foreground group-focus-visible/add:border-foreground group-focus-visible/add:text-foreground motion-reduce:transition-none pointer-coarse:size-6"
                     >
                       <PlusIcon aria-hidden="true" class="size-3.5 pointer-coarse:size-4" />
                     </span>
@@ -374,7 +374,7 @@
     /* Lower than the edge, so its 44px target stays off the chips above it. */
     .stage-row :global([data-next='end'] > .stage-add),
     .stage-row :global([data-next='none'] > .stage-add) {
-      top: calc(100% + 0.75rem);
+      top: calc(100% + 0.625rem);
     }
   }
 </style>

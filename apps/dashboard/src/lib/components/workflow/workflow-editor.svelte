@@ -431,7 +431,7 @@
 </Sheet.Root>
 
 <Sheet.Root bind:open={scorecardOpen}>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-3xl">
+  <Sheet.Content side="right" class="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-3xl">
     <Sheet.Header>
       <Sheet.Title>Scorecard: {workflow.stages[scorecardIndex]?.name ?? ''}</Sheet.Title>
       <Sheet.Description>Choose one from the library. A job keeps its own copy of the questions.</Sheet.Description>

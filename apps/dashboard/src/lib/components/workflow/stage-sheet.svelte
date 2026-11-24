@@ -154,7 +154,7 @@
 </script>
 
 <Sheet.Root open={stageId !== null} onOpenChange={(open) => !open && (stageId = null)}>
-  <Sheet.Content side="right" class="w-full overflow-y-auto data-[side=right]:sm:max-w-md" {onCloseAutoFocus}>
+  <Sheet.Content side="right" class="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-md" {onCloseAutoFocus}>
     <Sheet.Header>
       <Sheet.Title class="break-words">{stage?.name || 'Stage'}</Sheet.Title>
     </Sheet.Header>
