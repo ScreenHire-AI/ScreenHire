@@ -286,7 +286,7 @@
       label={title}
       itemLabel={(row) => (row.kind === 'section' ? `section ${sectionName(row.section)}` : nameOf(row.item))}
       onreorder={reorder}
-      class="divide-y divide-border-subtle"
+      class="[&>li]:-mt-px [&>li:last-child]:-mb-px"
     >
       {#snippet item(row, grip)}
         {#if row.kind === 'section'}
@@ -294,7 +294,7 @@
           {@const sectionIndex = (sections ?? []).findIndex((each) => each.id === section.id)}
           {@const problems = sectionErrors?.(sectionIndex) ?? []}
           {@const problemsId = `${uid}-section-errors-${sectionIndex}`}
-          <div data-section-row={section.id} class="flex min-w-0 flex-col gap-1 bg-muted py-2 pr-2 pl-2.5">
+          <div data-section-row={section.id} class="flex min-w-0 flex-col gap-1 border border-x-transparent border-y-border-subtle bg-muted py-2 pr-2 pl-2.5">
             <div class="flex min-w-0 items-center gap-2">
               {@render grip()}
               <Input
@@ -323,11 +323,12 @@
         {@const errorsId = `${uid}-errors-${index}`}
         {@const isOpen = openIds.has(id)}
         {@const helpLine = help?.get(question)}
+        <!-- Neighbours share one hairline (each item overlaps the one before by 1px), and an open row's border is drawn over it. -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           data-question-row={id}
           data-open={isOpen || undefined}
-          class={['relative flex min-w-0 flex-col border bg-card', isOpen ? 'border-primary' : 'border-transparent has-[[data-question-edit]:hover]:bg-muted/40']}
+          class={['relative flex min-w-0 flex-col border bg-card', isOpen ? 'z-1 border-primary' : 'border-x-transparent border-y-border-subtle has-[[data-question-edit]:hover]:bg-muted/40']}
           onkeydown={isOpen ? (event) => onrowkeydown(event, id) : undefined}
         >
           <!-- The strip is the same open or closed, so it never moves. Its button's box stretches over the strip, and over the
@@ -377,105 +378,108 @@
               role="group"
               aria-labelledby={`${uid}-name-${index}`}
               data-question-body
-              class="flex min-w-0 flex-col gap-4 border-t border-border-subtle px-4 py-4 @md:pl-13 pointer-coarse:@md:pl-16"
+              class="border-t border-border-subtle px-4 py-4 @md:pl-13 pointer-coarse:@md:pl-16"
               in:slideOpen
               out:slideShut
             >
-              <!-- Where the pane is wide, Answer type and Required sit beside the fields they follow; they stack where it is not. -->
-              <div class="grid min-w-0 gap-x-4 gap-y-3 @2xl:grid-cols-[minmax(0,1fr)_14rem]">
-                <div class={labelClass}>
-                  <label for={`${uid}-text-${index}`}>Question{' '}<span class="sr-only">{index + 1}</span></label>
-                  <Textarea
-                    id={`${uid}-text-${index}`}
-                    data-question-text={id}
-                    rows={1}
-                    value={labelOf(question)}
-                    onkeydown={oneLine}
-                    oninput={(event) => setLabel(question, flatten(event.currentTarget.value))}
-                    maxlength={300}
-                    aria-invalid={errors.length > 0 || undefined}
-                    aria-describedby={errors.length > 0 ? errorsId : undefined}
-                    class={lineClass}
-                  />
-                </div>
-                <div class={labelClass}>
-                  <span aria-hidden="true">Answer type</span>
-                  <AnswerMenu {groups} value={kind.value} onselect={(next) => changeKind(index, next)}>
-                    {#snippet trigger(props)}
-                      {@const Icon = kind.icon}
-                      <Button {...props} variant="outline" size="lg" aria-label={`Answer type: ${kind.label}`} class="justify-start">
-                        {#if Icon}<Icon aria-hidden="true" />{/if}<span class="min-w-0 flex-1 truncate text-left">{kind.label}</span><ChevronDownIcon aria-hidden="true" />
-                      </Button>
-                    {/snippet}
-                  </AnswerMenu>
-                </div>
-                {#if help}
+              <!-- The form keeps its 688px in a wide row (S6), while the strip runs the row's whole width. -->
+              <div class="flex max-w-form min-w-0 flex-col gap-4">
+                <!-- Where the pane is wide, Answer type and Required sit beside the fields they follow; they stack where it is not. -->
+                <div class="grid min-w-0 gap-x-4 gap-y-3 @2xl:grid-cols-[minmax(0,1fr)_14rem]">
                   <div class={labelClass}>
-                    <label for={`${uid}-help-${index}`}>{help.label}</label>
+                    <label for={`${uid}-text-${index}`}>Question{' '}<span class="sr-only">{index + 1}</span></label>
                     <Textarea
-                      id={`${uid}-help-${index}`}
+                      id={`${uid}-text-${index}`}
+                      data-question-text={id}
                       rows={1}
-                      value={help.get(question) ?? ''}
+                      value={labelOf(question)}
                       onkeydown={oneLine}
-                      oninput={(event) => help?.set(question, flatten(event.currentTarget.value) || null)}
-                      maxlength={500}
+                      oninput={(event) => setLabel(question, flatten(event.currentTarget.value))}
+                      maxlength={300}
+                      aria-invalid={errors.length > 0 || undefined}
+                      aria-describedby={errors.length > 0 ? errorsId : undefined}
                       class={lineClass}
                     />
                   </div>
-                {/if}
-                <span class="flex min-h-9 items-center gap-2 self-end pointer-coarse:min-h-11">
-                  <Switch
-                    id={`${uid}-required-${index}`}
-                    checked={requiredOf(question)}
-                    onCheckedChange={(value) => setRequired(question, value)}
-                  />
-                  <Label for={`${uid}-required-${index}`} class="font-semibold">Required</Label>
-                </span>
-              </div>
-              {#if kind.options}
-                {@const mark = kind.options}
-                {@const options = optionsOf(question)}
-                <div class="flex flex-col gap-1">
-                  <ReorderList
-                    items={options}
-                    key={(option) => option.id}
-                    label={`Options for ${nameOf(question)}`}
-                    itemLabel={(option) => option.label || 'Untitled option'}
-                    onreorder={(next) => setOptions(question, next)}
-                    class="gap-1"
-                  >
-                    {#snippet item(option, optionGrip)}
-                      {@const optionIndex = options.indexOf(option)}
-                      <div class="flex min-w-0 items-center gap-2 bg-card">
-                        {@render optionGrip()}
-                        {@render markOf(mark)}
-                        <Input
-                          aria-label={`Option ${optionIndex + 1}`}
-                          value={option.label}
-                          oninput={(event) => {
-                            const label = event.currentTarget.value;
-                            setOptions(question, options.map((existing) => (existing.id === option.id ? { ...existing, label } : existing)));
-                          }}
-                          maxlength={200}
-                        />
-                        <IconButton
-                          label={`Remove option ${option.label || optionIndex + 1}`}
-                          onclick={() => setOptions(question, options.filter((existing) => existing.id !== option.id))}><XIcon /></IconButton
-                        >
-                      </div>
-                    {/snippet}
-                  </ReorderList>
-                  <div class="flex items-center gap-2 pl-10 pointer-coarse:pl-13">
-                    {@render markOf(mark)}
-                    <Button variant="outline" size="sm" onclick={() => addOption(question)}><PlusIcon aria-hidden="true" />Add option</Button>
+                  <div class={labelClass}>
+                    <span aria-hidden="true">Answer type</span>
+                    <AnswerMenu {groups} value={kind.value} onselect={(next) => changeKind(index, next)}>
+                      {#snippet trigger(props)}
+                        {@const Icon = kind.icon}
+                        <Button {...props} variant="outline" size="lg" aria-label={`Answer type: ${kind.label}`} class="justify-start">
+                          {#if Icon}<Icon aria-hidden="true" />{/if}<span class="min-w-0 flex-1 truncate text-left">{kind.label}</span><ChevronDownIcon aria-hidden="true" />
+                        </Button>
+                      {/snippet}
+                    </AnswerMenu>
                   </div>
+                  {#if help}
+                    <div class={labelClass}>
+                      <label for={`${uid}-help-${index}`}>{help.label}</label>
+                      <Textarea
+                        id={`${uid}-help-${index}`}
+                        rows={1}
+                        value={help.get(question) ?? ''}
+                        onkeydown={oneLine}
+                        oninput={(event) => help?.set(question, flatten(event.currentTarget.value) || null)}
+                        maxlength={500}
+                        class={lineClass}
+                      />
+                    </div>
+                  {/if}
+                  <span class="flex min-h-9 items-center gap-2 self-end pointer-coarse:min-h-11">
+                    <Switch
+                      id={`${uid}-required-${index}`}
+                      checked={requiredOf(question)}
+                      onCheckedChange={(value) => setRequired(question, value)}
+                    />
+                    <Label for={`${uid}-required-${index}`} class="font-semibold">Required</Label>
+                  </span>
                 </div>
-              {:else if kind.fixed}
-                <ul class="flex flex-col gap-1.5" aria-label="Choices">
-                  {#each kind.fixed as choice (choice)}<li class="flex items-center gap-2">{@render markOf('circle')}{choice}</li>{/each}
-                </ul>
-              {/if}
-              {@render settings?.(question, index)}
+                {#if kind.options}
+                  {@const mark = kind.options}
+                  {@const options = optionsOf(question)}
+                  <div class="flex flex-col gap-1">
+                    <ReorderList
+                      items={options}
+                      key={(option) => option.id}
+                      label={`Options for ${nameOf(question)}`}
+                      itemLabel={(option) => option.label || 'Untitled option'}
+                      onreorder={(next) => setOptions(question, next)}
+                      class="gap-1"
+                    >
+                      {#snippet item(option, optionGrip)}
+                        {@const optionIndex = options.indexOf(option)}
+                        <div class="flex min-w-0 items-center gap-2 bg-card">
+                          {@render optionGrip()}
+                          {@render markOf(mark)}
+                          <Input
+                            aria-label={`Option ${optionIndex + 1}`}
+                            value={option.label}
+                            oninput={(event) => {
+                              const label = event.currentTarget.value;
+                              setOptions(question, options.map((existing) => (existing.id === option.id ? { ...existing, label } : existing)));
+                            }}
+                            maxlength={200}
+                          />
+                          <IconButton
+                            label={`Remove option ${option.label || optionIndex + 1}`}
+                            onclick={() => setOptions(question, options.filter((existing) => existing.id !== option.id))}><XIcon /></IconButton
+                          >
+                        </div>
+                      {/snippet}
+                    </ReorderList>
+                    <div class="flex items-center gap-2 pl-10 pointer-coarse:pl-13">
+                      {@render markOf(mark)}
+                      <Button variant="outline" size="sm" onclick={() => addOption(question)}><PlusIcon aria-hidden="true" />Add option</Button>
+                    </div>
+                  </div>
+                {:else if kind.fixed}
+                  <ul class="flex flex-col gap-1.5" aria-label="Choices">
+                    {#each kind.fixed as choice (choice)}<li class="flex items-center gap-2">{@render markOf('circle')}{choice}</li>{/each}
+                  </ul>
+                {/if}
+                {@render settings?.(question, index)}
+              </div>
             </div>
           {/if}
         </div>

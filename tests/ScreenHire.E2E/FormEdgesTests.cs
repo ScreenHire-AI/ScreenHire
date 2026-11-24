@@ -95,6 +95,13 @@ public sealed class FormEdgesTests(E2EFixture fixture) : ProofWalk(fixture)
         await CollectThickSidesAsync("the Verification tab");
         var edges = await summary.EvaluateAsync<string[]>("el => { const s = getComputedStyle(el); return [s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth]; }");
         edges.Distinct().Should().ContainSingle("the summary has its full border").Which.Should().Be("1px");
+        foreach (var (width, height) in new[] { (390, 844), (1440, 1000), (2560, 1300) })
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            await CollectOverflowAsync($"the Verification tab at {width}px");
+            await SaveScreenshotAsync(Page, $"dashboard-verification-summary-{width}");
+        }
+
         Problems.Should().BeEmpty("no thick side and no faint field ({0})", string.Join("; ", Problems));
     }
 
