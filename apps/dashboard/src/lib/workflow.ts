@@ -638,16 +638,17 @@ const valueAt = (workflow: HiringWorkflow, path: string): unknown =>
 const isEmpty = (value: unknown): boolean =>
   value === null || value === undefined || (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0);
 
-/** The text a person is still typing: half an address or a name of spaces is not wrong yet. */
-const typedField = /\.(name|tag|note|url|reason|value)$/;
+/** A web address half typed is not wrong yet. Every other text with something in it is judged as it stands. */
+const halfTyped = /\.actions\[\d+\]\.url$/;
 
 /**
- * Whether a problem is something not filled in yet (a blank, or text half typed), rather than something refused. A
- * guardrail's refusal names the step, the fact or the opt-in itself, which are never empty, so it is never unfinished work
- * and always shows (workflow-engine.md section 2).
+ * Whether a problem is something not filled in yet (a blank, or a web address half typed), rather than something refused. A
+ * guardrail's refusal names the step, the fact or the opt-in itself, which are never empty, and one that names a field with
+ * something in it is a refusal of what it says, so it is never unfinished work and always shows (workflow-engine.md
+ * section 2).
  */
 export const isUnfinished = (workflow: HiringWorkflow, error: DefinitionError): boolean =>
-  /^automations\[\d+\]/.test(error.path) && !error.path.endsWith('.allowAutoReject') && (typedField.test(error.path) || isEmpty(valueAt(workflow, error.path)));
+  /^automations\[\d+\]/.test(error.path) && !error.path.endsWith('.allowAutoReject') && (halfTyped.test(error.path) || isEmpty(valueAt(workflow, error.path)));
 
 /** Whether a step asks for one thing (a tag, a message, a stage, a form) and does not have it yet. */
 export function isBlankStep(action: AutomationAction): boolean {

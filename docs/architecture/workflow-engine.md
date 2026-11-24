@@ -404,7 +404,7 @@ form controls; its Pipeline tab draws the stages with `stage-flow.svelte` (desig
     footer with Remove automation in its menu and Done. A name that was the suggestion before a change (`suggestedName`, from
     the trigger and the steps) is the new suggestion after it, so it follows until a person types one; nothing about it is
     stored. While an automation is open, its unfinished problems are left out of the sheet, the map and the problem lines
-    (`isUnfinished`: an empty value, or text being typed), unless Fix opened it. A guardrail's refusal is on the step, the
+    (`isUnfinished`: an empty value, or a web address half typed), unless Fix opened it. A guardrail's refusal is on the step, the
     fact or the opt-in itself, so it is never one of them. As the sheet closes (`tidyAutomation`), a step left without its
     text is dropped and an automation without a step is removed, with Undo. Every automation opens on the tab the person chose
     last (`preferences.automationView`, in the browser); one too complex for a sentence (`sentenceLimit`: a rejection, or

@@ -79,7 +79,7 @@
       <Sheet.Title>New form</Sheet.Title>
       <Sheet.Description>Hiring templates can then send it at a stage, or you can send it by hand.</Sheet.Description>
     </Sheet.Header>
-    <form method="POST" use:enhance novalidate class="flex flex-col gap-5 px-4 pb-4">
+    <form method="POST" use:enhance novalidate class="flex flex-1 flex-col gap-5 px-4 pb-4">
       <Field.Field>
         <Field.Label for="new-form-source">Start from</Field.Label>
         <select id="new-form-source" name="copyFrom" class={selectClass} bind:value={$form.copyFrom}>
@@ -116,10 +116,10 @@
       {#if $errors._errors}
         <FailureText message={$errors._errors[0]} />
       {/if}
-      <div class="flex justify-end gap-2">
+      <Sheet.Footer class="p-0">
         <Sheet.Close type="button" class={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}>Cancel</Sheet.Close>
         <Button type="submit" size="lg" disabled={$submitting}><PlusIcon aria-hidden="true" />Create form</Button>
-      </div>
+      </Sheet.Footer>
     </form>
   </Sheet.Content>
 </Sheet.Root>

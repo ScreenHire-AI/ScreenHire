@@ -670,6 +670,9 @@ describe('work in progress', () => {
     ]) {
       expect(unfinished(path), path).toBe(false);
     }
+    // A field with something in it is judged on what it says: a name or a tag that is refused shows, unlike an empty one.
+    expect(unfinished('automations[0].name')).toBe(false);
+    expect(isUnfinished({ ...draft, automations: [{ ...draft.automations[0]!, actions: [{ type: 'AddTag', tag: 'refused' }] }] }, { path: 'automations[0].actions[0].tag', message: 'm' })).toBe(false);
     // The opt-in to reject without a person has no value until it is ticked, and its message always shows.
     expect(unfinished('automations[0].allowAutoReject')).toBe(false);
   });
