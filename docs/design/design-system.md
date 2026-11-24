@@ -31,6 +31,7 @@ sources:
   - resource: apps/dashboard/src/lib/components/sort-header.svelte
   - resource: apps/dashboard/src/lib/preview-window.svelte.ts
   - resource: apps/dashboard/src/lib/components/edit-preview-layout.svelte
+  - resource: apps/dashboard/src/lib/components/preview-panel.svelte
   - resource: apps/dashboard/src/lib/components/edit-preview-switch.svelte
   - resource: apps/dashboard/src/lib/components/preview-pending.svelte
   - resource: apps/dashboard/src/lib/components/template-list.svelte
