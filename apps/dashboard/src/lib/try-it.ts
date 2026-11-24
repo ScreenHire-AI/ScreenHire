@@ -66,8 +66,8 @@ export function scenariosOf(workflow: HiringWorkflow): Scenario[] {
 export interface Candidate {
   answers: Record<string, string[]>;
   flagged: boolean;
-  /** The must-have question they said no to, for the line that says they wait for a person. */
-  saidNoTo?: string;
+  /** The must-have question they failed and what they said to it, for the line that says they wait for a person. */
+  failed?: { label: string; said: string };
 }
 
 /** The candidate a card stands for. "Fill in the form yourself" passes its answers instead (`candidateFromForm`). */
@@ -76,7 +76,7 @@ export function candidateFor(workflow: HiringWorkflow, scenario: Exclude<Scenari
   const answers = Object.fromEntries(mustHaves.map((mustHave) => [mustHave.question.id, [mustHave.pass]]));
   if (scenario === 'cannot' && mustHaves[0]) {
     answers[mustHaves[0].question.id] = [mustHaves[0].fail];
-    return { answers, flagged: false, saidNoTo: mustHaves[0].question.label };
+    return { answers, flagged: false, failed: { label: mustHaves[0].question.label, said: mustHaves[0].fail } };
   }
   return { answers, flagged: scenario === 'check' };
 }
@@ -89,7 +89,7 @@ export function candidateFromForm(workflow: HiringWorkflow, given: Record<string
     if (values.length > 0) answers[id] = values;
   }
   const failed = mustHavesOf(workflow).find((mustHave) => answers[mustHave.question.id]?.includes(mustHave.fail));
-  return { answers, flagged: false, saidNoTo: failed?.question.label };
+  return { answers, flagged: false, failed: failed && { label: failed.question.label, said: failed.fail } };
 }
 
 // The verification levels as the engine names them (verification-engine.md): the calm ones, and the ones that ask a person
@@ -232,7 +232,7 @@ export function thingsOf(
     return things;
   }
   if (review) {
-    const because = candidate.saidNoTo ? `${candidateName} said no to ${quoted(candidate.saidNoTo)} ` : '';
+    const because = candidate.failed ? `${candidateName} said ${candidate.failed.said} to ${quoted(candidate.failed.label)} ` : '';
     things.push({ kind: 'decide', text: `${because}They wait on your review list, and nobody is turned down until you decide.` });
   } else if (options.first && candidate.flagged) {
     things.push({ kind: 'decide', text: `The checks flagged something about ${candidateName}. A person looks and decides what happens.` });

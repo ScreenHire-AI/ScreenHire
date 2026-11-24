@@ -8827,7 +8827,7 @@
             ]
           }
         },
-        "description": "Marks a yes/no question as an objective eligibility check (work authorisation, a required licence). The answer\nbool Knockout.DisqualifyingAnswer makes the candidate ineligible. It never rejects anyone by itself: an automation\ndecides, and by default it only queues the application for a person to review (workflow-engine.md §2)."
+        "description": "A yes/no question's must-have answer: an objective requirement only, such as the right to work or a licence, never AI\nuse or an accommodation. `disqualifyingAnswer` is the answer that fails it. It never rejects anyone by itself: an\nautomation decides, and by default it only queues the application for a person to review (workflow-engine.md §2).\n`reason` is a team note that is never sent to a candidate."
       },
       "LastUpdate": {
         "required": [

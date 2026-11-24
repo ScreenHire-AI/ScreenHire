@@ -23,8 +23,8 @@ public sealed record ApplicationFormError(string QuestionId, string Message);
 /// <see cref="ResumeQuestionId"/>, unless the questionnaire has its own question with that id.
 /// </summary>
 /// <remarks>
-/// Knockout answers are valid answers. Whether an answer makes someone ineligible is for an automation and a person to
-/// decide after submission (workflow-engine.md §2), never for this form.
+/// An answer that fails a must-have is a valid answer. What follows from it is for an automation and a person to decide
+/// after submission (workflow-engine.md §2), never for this form.
 /// </remarks>
 public static class ApplicationForm
 {
@@ -76,16 +76,22 @@ public static class ApplicationForm
         return Math.Max(2, (seconds + 59) / 60);
     }
 
+    /// <summary>
+    /// The highest maximum length a question of this type may set, which is also what one that sets none accepts. Null
+    /// for a type that takes no maximum length: a link has only <see cref="UrlMaxLength"/>, and the rest are not text.
+    /// </summary>
+    public static int? MaxLengthLimit(QuestionType type) => type switch
+    {
+        QuestionType.ShortText => ShortTextMaxLength,
+        QuestionType.LongText => LongTextMaxLength,
+        _ => null,
+    };
+
     /// <summary>The longest text a question accepts.</summary>
     public static int MaxLengthOf(Question question)
     {
         ArgumentNullException.ThrowIfNull(question);
-        var limit = question.Type switch
-        {
-            QuestionType.LongText => LongTextMaxLength,
-            QuestionType.Url => UrlMaxLength,
-            _ => ShortTextMaxLength,
-        };
+        var limit = question.Type == QuestionType.Url ? UrlMaxLength : MaxLengthLimit(question.Type) ?? ShortTextMaxLength;
         return question.MaxLength is { } max ? Math.Min(max, limit) : limit;
     }
 

@@ -229,7 +229,7 @@ export const settingsElsewhere: readonly SettingsElsewhere[] = [
     href: '/templates',
     group: 'Templates',
     description: 'Stages, questions and automations',
-    keywords: ['stages', 'pipeline', 'questions', 'questionnaire', 'apply form', 'automation', 'automations', 'workflow', 'knockout', 'hiring process'],
+    keywords: ['stages', 'pipeline', 'questions', 'questionnaire', 'apply form', 'automation', 'automations', 'workflow', 'must-have', 'knockout', 'hiring process'],
     allowed: everyone,
   },
   {

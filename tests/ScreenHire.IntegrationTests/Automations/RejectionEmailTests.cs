@@ -37,18 +37,8 @@ public sealed class RejectionEmailTests(AppHostFixture fixture)
         await recruiter.PublishJobAsync(job);
         var slug = (await recruiter.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).Text("slug");
 
-        // The candidate answers "no" to the knockout on the careers apply route, as the careers server sends it.
         var candidateEmail = ApiSession.NewEmail("candidate");
-        using var careers = fixture.CreateHttpClient("api");
-        var response = await careers.PostAsJsonAsync($"/v1/public/organizations/{slug}/jobs/{job}/applications", new JsonObject
-        {
-            ["candidate"] = new JsonObject { ["firstName"] = "Robin", ["lastName"] = "Ellis", ["email"] = candidateEmail },
-            ["privacyNoticeVersion"] = "2026-10-20",
-            ["answers"] = new JsonArray(new JsonObject { ["questionId"] = "work_authorization", ["value"] = "no" }),
-            ["aiUseDeclaration"] = "DidNotUse",
-        }, Ct);
-        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
-        var applicationId = (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("applicationId").GetGuid();
+        var applicationId = await AnswerNoAsync(slug, job, candidateEmail);
 
         var sent = await fixture.Mailpit.WaitForMessagesAsync(candidateEmail, 1, Ct);
         var run = await AutomationSamples.WaitForRunAsync(recruiter, applicationId, "knockout-reject", "Completed");
@@ -103,7 +93,66 @@ public sealed class RejectionEmailTests(AppHostFixture fixture)
             .GetProperty("rejectionReason").GetString().Should().Be("KnockoutAnswer");
     }
 
-    // Replaces the questionnaire with the one yes/no knockout question the rule reads. "No" disqualifies.
+    // What the must-have switch writes (#lib/must-have.ts): the answer that fails it goes to a person, and nothing else happens.
+    [Fact]
+    public async Task A_must_have_answered_no_creates_a_rejection_review_task_and_rejects_nobody()
+    {
+        using var recruiter = await fixture.SignedInWithOrganizationAsync();
+        var definition = Samples.DefinitionWith(ReviewOnNo(), TagCareersApplications());
+        definition["workflow"]!["questionnaire"] = KnockoutQuestionnaire();
+        var (_, versionId) = await recruiter.CreatePublishedTemplateAsync("Must-have template", definition);
+        var jobBody = Samples.RemoteJob("Must-have");
+        jobBody["templateVersionId"] = versionId;
+        var job = (await recruiter.CreateJobAsync(jobBody)).Id();
+        await recruiter.PublishJobAsync(job);
+        var slug = (await recruiter.GetAsync("/v1/organization")).Expect(HttpStatusCode.OK).Text("slug");
+
+        var candidateEmail = ApiSession.NewEmail("candidate");
+        var applicationId = await AnswerNoAsync(slug, job, candidateEmail);
+        await AutomationSamples.WaitForRunAsync(recruiter, applicationId, "recipe-knockout-work_authorization", "Completed");
+        await AutomationSamples.WaitForRunAsync(recruiter, applicationId, "tag-careers", "Completed");
+
+        var tasks = (await recruiter.GetAsync($"/v1/applications/{applicationId}/tasks")).Expect(HttpStatusCode.OK);
+        tasks.Body.GetArrayLength().Should().Be(1);
+        tasks.Text("0.kind").Should().Be("RejectionReview");
+        tasks.Text("0.note").Should().Be("Right to work?: answered No");
+        (await recruiter.GetAsync($"/v1/applications/{applicationId}")).Text("stage.id").Should().Be("applied", "a person decides");
+        (await recruiter.GetAsync($"/v1/applications/{applicationId}/timeline")).Expect(HttpStatusCode.OK).Body.EnumerateArray()
+            .Select(e => e.GetProperty("type").GetString()).Should().NotContain("StageChanged").And.NotContain("EmailSent");
+        (await fixture.Mailpit.MessagesAsync(candidateEmail, Ct)).Should().BeEmpty("nobody is told anything before a person decides");
+    }
+
+    // The candidate answers "no" to the must-have on the careers apply route, as the careers server sends it.
+    private async Task<Guid> AnswerNoAsync(string slug, Guid job, string candidateEmail)
+    {
+        using var careers = fixture.CreateHttpClient("api");
+        var response = await careers.PostAsJsonAsync($"/v1/public/organizations/{slug}/jobs/{job}/applications", new JsonObject
+        {
+            ["candidate"] = new JsonObject { ["firstName"] = "Robin", ["lastName"] = "Ellis", ["email"] = candidateEmail },
+            ["privacyNoticeVersion"] = "2026-10-20",
+            ["answers"] = new JsonArray(new JsonObject { ["questionId"] = "work_authorization", ["value"] = "no" }),
+            ["aiUseDeclaration"] = "DidNotUse",
+        }, Ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync(Ct));
+        return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("applicationId").GetGuid();
+    }
+
+    private static JsonObject ReviewOnNo() => new()
+    {
+        ["id"] = "recipe-knockout-work_authorization",
+        ["name"] = "Review anyone who fails \"Right to work?\"",
+        ["trigger"] = new JsonObject { ["type"] = "ApplicationSubmitted" },
+        ["conditions"] = new JsonObject
+        {
+            ["match"] = "All",
+            ["rules"] = new JsonArray(new JsonObject { ["fact"] = "answers.work_authorization", ["operator"] = "EqualTo", ["value"] = "no" }),
+        },
+        ["actions"] = new JsonArray(new JsonObject { ["type"] = "QueueForRejectionReview", ["reason"] = "Right to work?: answered No" }),
+        ["enabled"] = true,
+        ["allowAutoReject"] = false,
+    };
+
+    // Replaces the questionnaire with the one yes/no must-have the rule reads. "No" fails it.
     private static JsonObject KnockoutQuestionnaire() => new()
     {
         ["questions"] = new JsonArray(new JsonObject

@@ -84,7 +84,7 @@ again before sending. Back, "Change" and "Save and finish later" keep what was t
 show inline and in an error summary at the top that links to each field and takes focus.
 
 The form is built from the API's `GET /v1/public/organizations/{slug}/jobs/{job}/application-form`: the job, its
-questions (resume first; knockouts and automations stay on the server), the AI-use policy in force (the job's own, else the organization's), upload limits and the bot
+questions (resume first; must-have answers and automations stay on the server), the AI-use policy in force (the job's own, else the organization's), upload limits and the bot
 challenge's site key. Every form asks for a resume: the questionnaire's own `resume` file question, or an optional one
 (`ApplicationForm.DefaultResumeQuestion`).
 
@@ -131,7 +131,7 @@ the same way from the request itself: every careers page reads `Accept-Language`
 the first language `Intl` supports, else en-GB), so a date and a time of day follow the reader and the pages still ship no script.
 
 
-Neither refuses a submission (CLAUDE.md non-negotiable 2), and knockout answers are stored like any other.
+Neither refuses a submission (CLAUDE.md non-negotiable 2), and an answer that fails a must-have is stored like any other.
 
 With a careers-site application the API also stores a `SubmissionObservation` for the verification engine
 (verification-engine.md §10): the candidate's address (from `X-Forwarded-For`), their browser's user agent, which the
@@ -379,8 +379,8 @@ is gone, so the page says "We could not find your saved answers" (whose text cov
 than "expired". Two sends of one resumed form at the same moment can fail the second on the draft delete; sending
 again succeeds or reports the application as already sent.
 
-**Knockouts.** A draft is never an application: saving one raises no event and runs no automation or verification check,
-and the careers server never learns knockout settings. A knockout answer on an early page therefore ends nothing
+**Must-have answers.** A draft is never an application: saving one raises no event and runs no automation or verification check,
+and the careers server never learns which answers are must-haves. An answer that fails one on an early page therefore ends nothing
 before the candidate sends the application; sent, it is judged as on any application (workflow-engine.md §2).
 
 ## 8. Follow-up questionnaires

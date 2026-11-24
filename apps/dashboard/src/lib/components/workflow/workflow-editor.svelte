@@ -329,7 +329,7 @@
   {/if}
 </Tabs.Content>
 <Tabs.Content value="forms">
-  <QuestionnaireBuilder bind:workflow bind:selected={shownForm} {errors} {aiUse} automationsHref={hrefOf('automations')} {automationHref} {templateId} />
+  <QuestionnaireBuilder bind:workflow bind:selected={shownForm} {errors} {aiUse} automationsHref={hrefOf('automations')} {automationHref} onshow={showAutomation} {templateId} />
 </Tabs.Content>
 <Tabs.Content value="test">
   <TryIt bind:workflow {errors} onfix={fix} aiUse={aiUse?.policy} {finish} onchange={openStage} />

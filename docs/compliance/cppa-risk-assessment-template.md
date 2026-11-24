@@ -17,7 +17,7 @@ it is for counsel; the triggers that may apply are below. ScreenHire's facts com
 
 | Trigger | Section | How ScreenHire fits | Your answer |
 |---|---|---|---|
-| ADMT used for a significant decision, employment included | 7150(b)(3) | The checks keep a person in every decision (human involvement, 7001(e)(1)). An automatic knockout rejection you turn on decides without one | |
+| ADMT used for a significant decision, employment included | 7150(b)(3) | The checks keep a person in every decision (human involvement, 7001(e)(1)). An automatic rejection on a must-have answer, which you turn on, decides without one | |
 | Automated processing that infers an applicant's behaviour or reliability from systematic observation | 7150(b)(4) | Form-use checks keep session totals only, after notice, and can be turned off; whether that is "systematic observation" (7001(eee)) is open | |
 | Processing sensitive personal information | 7150(b)(2) | None by design; a candidate may volunteer some | |
 

@@ -14,7 +14,7 @@ namespace ScreenHire.Api.Contracts;
 public sealed record PublicOrganization(string Name, string Slug, PublicBranding Branding, IReadOnlyList<string> EmbedOrigins);
 
 /// <summary>
-/// One question of a job's application form, as a candidate sees it. Knockout settings stay on the server: the form
+/// One question of a job's application form, as a candidate sees it. Must-have answers stay on the server: the form
 /// accepts every answer, and a person reviews what follows from it.
 /// </summary>
 /// <remarks>
@@ -131,7 +131,7 @@ public sealed record PublicApplicationReceipt(Guid ApplicationId, DateTimeOffset
 
 /// <summary>
 /// A follow-up questionnaire as its careers page shows it, through the signed link in the candidate's email.
-/// <c>questions</c>, <c>sections</c> and <c>draft</c> are listed only while the link is <c>Open</c>; knockout settings stay
+/// <c>questions</c>, <c>sections</c> and <c>draft</c> are listed only while the link is <c>Open</c>; must-have answers stay
 /// on the server. <c>sections</c> are its named pages, or null to split it into pages of <c>questionsPerPage</c>.
 /// <c>draft</c> holds the answers the candidate saved to finish later, empty when there are none.
 /// <c>equalityMonitoring</c>: an equality monitoring form, whose page says its answers are optional and only ever counted.

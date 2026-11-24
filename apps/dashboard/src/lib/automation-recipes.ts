@@ -3,7 +3,7 @@
 // "the team" (the sentence picks a teammate), and no recipe turns anyone down on a check (CLAUDE.md non-negotiable 2).
 // A recipe is hidden once the workflow already does the same thing, whoever wrote it, so a starting point's own "thank them
 // when they apply" is never offered twice.
-import type { Automation, AutomationAction, AutomationCondition, HiringWorkflow } from '@screenhire/api-client';
+import type { Automation, AutomationAction, AutomationCondition, HiringWorkflow, Question } from '@screenhire/api-client';
 import { breaksWorkflow } from './automation-sentence.js';
 import { builtInEmailTemplates, isTerminal, placeOf } from './workflow.js';
 
@@ -105,6 +105,39 @@ function make(
   return { key, group, title, line, lane: null, automation: built };
 }
 
+// The validator's limits (DefinitionValidator): an automation's name 120, a step's reason 500. A question may be longer.
+// A cut never leaves half an emoji (a lone surrogate), which the API cannot store.
+const clip = (text: string, length: number): string =>
+  text.length > length
+    ? text
+        .slice(0, length)
+        .replace(/[\uD800-\uDBFF]$/, '')
+        .trimEnd()
+    : text;
+
+/**
+ * The recipe for a must-have answer, an objective requirement the candidate declares: the team looks before anyone is
+ * turned down. The must-have switch on the question adds the same automation (#lib/must-have.ts). Null for a question with none.
+ */
+export function mustHaveRecipe(question: Question): Recipe | null {
+  if (question.type !== 'YesNo' || !question.knockout) return null;
+  const answer = question.knockout.disqualifyingAnswer ? 'yes' : 'no';
+  const word = question.knockout.disqualifyingAnswer ? 'Yes' : 'No';
+  const label = question.label || question.id;
+  const answered = `: answered ${word}`;
+  return make(
+    `knockout-${question.id}`,
+    'Check the must-haves',
+    `Review anyone who fails ${quoted(clip(label, 94))}`,
+    `If ${quoted(label)} is ${word}, the team reviews before anyone is turned down.`,
+    {
+      trigger: { type: 'ApplicationSubmitted' },
+      conditions: { match: 'All', rules: [{ fact: `answers.${question.id}`, operator: 'EqualTo', value: answer }] },
+      actions: [{ type: 'QueueForRejectionReview', reason: `${clip(label, 500 - answered.length)}${answered}` }],
+    },
+  );
+}
+
 /** Every recipe this template's questions and stages allow, added or not. */
 export function allRecipes(workflow: HiringWorkflow): Recipe[] {
   const recipes: Recipe[] = [
@@ -157,25 +190,9 @@ export function allRecipes(workflow: HiringWorkflow): Recipe[] {
     );
   });
 
-  // A knockout is an objective must-have the candidate declares. The recipe asks the team to look before anyone is turned down.
   for (const question of workflow.questionnaire.questions) {
-    if (question.type !== 'YesNo' || !question.knockout) continue;
-    const answer = question.knockout.disqualifyingAnswer ? 'yes' : 'no';
-    const word = question.knockout.disqualifyingAnswer ? 'Yes' : 'No';
-    const label = question.label || question.id;
-    recipes.push(
-      make(
-        `knockout-${question.id}`,
-        'Check the must-haves',
-        `Review anyone who fails ${quoted(label)}`,
-        `If ${quoted(label)} is ${word}, the team reviews before anyone is turned down.`,
-        {
-          trigger: { type: 'ApplicationSubmitted' },
-          conditions: { match: 'All', rules: [{ fact: `answers.${question.id}`, operator: 'EqualTo', value: answer }] },
-          actions: [{ type: 'QueueForRejectionReview', reason: `${label}: answered ${word}` }],
-        },
-      ),
-    );
+    const recipe = mustHaveRecipe(question);
+    if (recipe) recipes.push(recipe);
   }
 
   recipes.push(

@@ -59,7 +59,7 @@ describe('activity', () => {
     const rejected = entry('r', { type: 'StageChanged', fromStageId: 'applied', toStageId: 'rejected', rejectionReason: 'KnockoutAnswer' });
     const named = { ...names, stageName: (id: string | null | undefined) => (id === 'rejected' ? 'Rejected' : 'Applied') };
 
-    expect(describeEvent(rejected, named)).toBe('Moved from Applied to Rejected: An answer to a knockout question');
+    expect(describeEvent(rejected, named)).toBe('Moved from Applied to Rejected: A must-have answer');
     expect(describeEvent({ ...rejected, rejectionReason: null }, named)).toBe('Moved from Applied to Rejected');
   });
 

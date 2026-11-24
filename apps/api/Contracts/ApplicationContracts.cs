@@ -413,7 +413,7 @@ internal sealed class MoveApplicationRequestValidator : AbstractValidator<MoveAp
         RuleFor(r => r.ToStageId).NotEmpty().MaximumLength(40);
         RuleFor(r => r.Note).MaximumLength(1000);
         RuleFor(r => r.RejectionReason).IsInEnum()
-            .NotEqual(RejectionReason.KnockoutAnswer).WithMessage("A knockout answer is the reason an automation gives; choose another.");
+            .NotEqual(RejectionReason.KnockoutAnswer).WithMessage("A must-have answer is the reason an automation gives. Choose another.");
     }
 }
 
