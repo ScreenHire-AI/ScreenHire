@@ -321,7 +321,7 @@ export function validateDetails(state: ApplyState, questions: readonly PublicQue
   return { ...errors, ...validateAnswers(state, detailsQuestions(questions)) };
 }
 
-/** Problems with the answers to `questions`, matching the API's rules. Knockout answers are valid answers. */
+/** Problems with the answers to `questions`, matching the API's rules. An answer that fails a must-have is a valid answer. */
 export function validateAnswers(state: ApplyState, questions: readonly PublicQuestion[]): FieldErrors {
   const errors: FieldErrors = {};
   for (const question of questions) {

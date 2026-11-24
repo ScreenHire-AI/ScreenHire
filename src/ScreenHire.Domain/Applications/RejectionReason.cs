@@ -12,7 +12,7 @@ public enum RejectionReason
     /// <summary>The application did not meet a requirement the job states.</summary>
     RequirementNotMet,
 
-    /// <summary>An answer to a knockout question; set by an automation that rejects on one, and by nobody else.</summary>
+    /// <summary>An answer that fails a must-have; set by an automation that rejects on one, and by nobody else.</summary>
     KnockoutAnswer,
 
     /// <summary>Another candidate was a closer fit.</summary>

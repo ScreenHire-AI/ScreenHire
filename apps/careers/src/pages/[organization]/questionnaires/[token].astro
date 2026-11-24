@@ -107,12 +107,12 @@ const message = {
               </p>
             )
           }
-          {steps.length > 1 && (
-            <div class="apply-progress">
-              <PageProgress step={index + 1} steps={steps.length} />
-            </div>
-          )}
         </div>
+        {steps.length > 1 && (
+          <div class="apply-progress">
+            <PageProgress step={index + 1} steps={steps.length} />
+          </div>
+        )}
 
         <form method="POST" action={actions.questionnaire} novalidate aria-labelledby="questions-heading" class="apply-step mt-5 flex flex-col gap-4">
           {/* On the last page Enter in a field must not send the answers. Enter presses the form's first submit button

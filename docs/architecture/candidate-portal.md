@@ -118,7 +118,7 @@ Interview until the team decides, and a check after the offer shows Offer. The s
 the application back. Offer shows as soon as the team moves an application there, so a team moves it when it extends the
 offer, as a rejection shows the moment it is made.
 
-Not moving forward says the application is not moving forward and that the candidate can ask the employer to have a person review it, because an eligibility automation can end an application with no person involved. An application the team kept in mind for future roles reads as Not moving forward, with no word about a list or a reason. An
+Not moving forward says the application is not moving forward and that the candidate can ask the employer to have a person review it, because an automation on a must-have answer can end an application with no person involved. An application the team kept in mind for future roles reads as Not moving forward, with no word about a list or a reason. An
 ending stage decides first, so a withdrawn application that was once saved is still Withdrawn. Once an application has ended
 no step is drawn, only the status.
 

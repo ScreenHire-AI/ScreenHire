@@ -234,7 +234,7 @@ describe('validation', () => {
     expect(validateDetails({ ...emptyState(), firstName: 'Casey', email: 'casey@example.com', files: { resume: upload } }, questions)).toEqual({});
   });
 
-  it('accepts a knockout answer like any other', () => {
+  it('accepts an answer that fails a must-have like any other', () => {
     const state = { ...emptyState(), answers: { work_authorization: 'no', experience: 'junior' } };
 
     expect(validateAnswers(state, [authorization, experience])).toEqual({});
