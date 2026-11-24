@@ -195,6 +195,15 @@ describe('form builder', () => {
     await waitFor(() => expect(edit(/^Edit question 3: /)).toHaveFocus());
   });
 
+  it('leaves Escape to a word being composed in a field, which it cancels', async () => {
+    setup();
+    await fireEvent.click(edit(/^Edit question 3: /));
+
+    await fireEvent.keyDown(within(openRow()!).getByRole('textbox', { name: 'Question 3' }), { key: 'Escape', isComposing: true });
+
+    expect(openRow()).not.toBeNull();
+  });
+
   it('leaves Escape to a popover open inside the row, such as an Info button', async () => {
     setup();
     await fireEvent.click(edit(/^Edit question 3: /));

@@ -492,6 +492,8 @@ public sealed class TemplateBuilderTests(E2EFixture fixture) : BrowserTest(fixtu
         {
             await Page.SetViewportSizeAsync(width, height);
             await ExpectNoSidewaysScrollAsync();
+            (await pane.GetByRole(AriaRole.Heading, new() { Name = "Screening questionnaire", Exact = true }).Locator("span").First.EvaluateAsync<bool>("title => title.scrollWidth <= title.clientWidth"))
+                .Should().BeTrue("the form's title is whole beside its library version at {0}px", width);
             await SaveScreenshotAsync(Page, $"dashboard-forms-{width}");
         }
         await forms.GetByRole(AriaRole.Button, new() { Name = "Actions for Screening questionnaire" }).ClickAsync();

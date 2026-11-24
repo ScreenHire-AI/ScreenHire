@@ -245,6 +245,32 @@ describe('replaceForm', () => {
     expect(kept.workflow.automations).toEqual(current.automations);
   });
 
+  it('reads a choice question as another one when its choices say something else', () => {
+    const { workflow: current, formId } = withForm(workflow(), 'Trial', { kind: 'stage', stageId: 'trial' });
+    const asking = (label: string): LibraryVersion => ({
+      ...library('Shifts'),
+      content: { name: 'Shifts', questions: [{ id: 'q_shift', type: 'SingleChoice', label: 'Which shift?', required: false, options: [{ id: 'option_1', label }] }] },
+    });
+    const days = useLibraryVersion(current, formId, asking('Days'));
+    days.automations.push(tagBy('answers.q_shift'));
+
+    expect(replaceForm(days, formId, asking('Days')).removed).toEqual([]);
+    expect(replaceForm(days, formId, asking('Nights')).removed).toEqual(['Tag by answers.q_shift']);
+  });
+
+  it('lets nothing act on an equality monitoring form that takes its place, and keeps when it is sent', () => {
+    const { workflow: current, formId } = withForm(workflow(), 'Trial', { kind: 'stage', stageId: 'trial' });
+    const answered: Automation = { ...tagBy('none', { type: 'QuestionnaireCompleted', questionnaireId: formId }), name: 'After it is answered', conditions: null };
+    current.automations.push(tagBy('answers.q_trial'), answered);
+
+    // Even the same question: its answers are only counted.
+    const result = replaceForm(current, formId, { ...library('Trial'), formTemplateId: 'form-equality', kind: 'EqualityMonitoring' });
+
+    expect(result.removed).toEqual(['Tag by answers.q_trial', 'After it is answered']);
+    expect(result.workflow.automations.map((automation) => automation.name)).toEqual(['Email the form when they enter Trial shift']);
+    expect(sendingOf(result.workflow, formId).moment).toEqual({ kind: 'stage', stageId: 'trial' });
+  });
+
   it('changes nothing for the application form or an unknown id', () => {
     const current = withForm(workflow(), 'Trial', { kind: 'stage', stageId: 'trial' }).workflow;
 

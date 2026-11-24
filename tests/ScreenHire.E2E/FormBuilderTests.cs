@@ -127,6 +127,9 @@ public sealed class FormBuilderTests(E2EFixture fixture) : BrowserTest(fixture)
             var collapse = questions.GetByRole(AriaRole.Button, new() { Name = "Collapse all" });
             await collapse.ClickAsync();
             await Expect(questions.Locator("[data-open]")).ToHaveCountAsync(0);
+            var lefts = await Row(1).EvaluateAsync<double[]>(
+                "row => ['[data-question-edit] > span', '[data-question-summary] > *'].map(part => row.querySelector(part).getBoundingClientRect().x)");
+            lefts[1].Should().BeApproximately(lefts[0], 0.5, "the line under a question starts where its words do at {0}px", width);
 
             foreach (var position in new[] { 1, 2 })
             {
