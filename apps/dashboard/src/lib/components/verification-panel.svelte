@@ -32,7 +32,6 @@
   } from '#lib/verification.js';
   import { can } from '#lib/permissions.js';
   import { describeError } from '#lib/query.js';
-  import { statuses, type StatusTone } from '#lib/status.js';
 
   // A candidate's Verification tab (ADR-0004, design system section 16, docs/architecture/verification-engine.md section 7).
   // The level is the header's mark, shown once; here are its suggested next step, AI help as information, a map of the six
@@ -72,14 +71,6 @@
   // Clear: no finding in any group. It says so with a check, never "Verified" or "Genuine": the checks found nothing unusual,
   // which says nothing more about the person. The tiles say which groups found nothing, were off or did not run.
   const calm = $derived(panels.length === 0);
-  // The next step's edge takes its level's colour, as the level's badge does.
-  const edges: Record<StatusTone, string> = {
-    clear: 'border-status-clear-mark',
-    review: 'border-status-review-mark',
-    verify: 'border-status-verify-mark',
-    ai: 'border-status-ai-mark',
-    neutral: 'border-border',
-  };
   const audited = $derived(authenticity ?? aiAssistance);
 
   const canExplain = (finding: Finding) => reviewer && concern && finding.kind === 'authenticity' && finding.signal.countsTowardLevel && !finding.signal.explained;
@@ -197,11 +188,12 @@
   {:else}
     <Panel title="Verification" data-verification-summary actions={audited ? checked : undefined}>
       <div class="flex flex-col gap-5">
-        <!-- The suggested next step every result carries (CLAUDE.md non-negotiable 1). It leads, in a callout in the level's colour,
-             when the level needs a look; otherwise it is one quiet line, the summary then its next step (W10). -->
+        <!-- The suggested next step every result carries (CLAUDE.md non-negotiable 1). It leads, in a callout
+             with a soft fill and its full border (S11), when the level needs a look; otherwise it is one quiet line, the summary
+             then its next step (W10). The callout takes no status colour: the level's icon and label are the header's mark (T1). -->
         {#if authenticity && level}
           {#if concern}
-            <div data-summary class={['flex gap-3 rounded-md border-l-4 bg-secondary/60 px-4 py-3', edges[statuses[level.status].tone]]}>
+            <div data-summary class="flex gap-3 rounded-md border border-border bg-secondary/60 px-4 py-3">
               <ArrowRightIcon aria-hidden="true" class="mt-0.5 size-5 shrink-0" />
               <div class="flex min-w-0 flex-col gap-1">
                 <p class="max-w-measure font-semibold" data-next-step>{authenticity.nextStep}</p>

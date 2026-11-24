@@ -8,7 +8,7 @@
 </script>
 
 {#if orphaned}
-  <p role="status" class="text-muted-foreground">No editor is open for this preview. Open it from the editor's window icon.</p>
+  <p role="status" class="text-muted-foreground">No editor is open for this preview. Choose Open in a new window in the editor's Preview.</p>
 {:else}
   {@render children?.()}
   <p role="status" class="sr-only">Loading the preview</p>

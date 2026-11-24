@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { HiringWorkflow } from '@screenhire/api-client';
+  import InfoButton from '#lib/components/info-button.svelte';
   import { Input } from '#lib/components/ui/input/index.js';
   import { laterStages, MAX_DAYS_LATER, sendingOf, setSendMoment, type SendMoment } from '#lib/forms-timeline.js';
   import { cn } from '#lib/utils.js';
@@ -8,7 +9,8 @@
 
   // When a form is sent, chosen on the form itself (workflow-engine.md section 7, Forms): when the candidate applies, when
   // they enter a stage, some days after they enter it, or only when someone sends it by hand from the candidate's page.
-  // Each choice writes the automation behind it, so the Pipeline card of that stage says "Sends <form>". A form an
+  // Each choice writes the automation behind it, so the Pipeline card of that stage says "Sends <form>", and the Info button
+  // beside the choice says so (W14). A form an
   // automation sends that does more than send it is not rewritten here: the line says so and links to that automation.
   let {
     workflow = $bindable(),
@@ -46,9 +48,16 @@
 
 {#if sending.editable}
   <div class="flex min-w-0 flex-wrap items-end gap-3">
-    <label class={cn(labelClass, 'flex-[1_1_14rem]')}>
-      When it's sent
-      <select class={selectClass} value={kind} onchange={(event) => chooseKind(event.currentTarget.value)}>
+    <div class={cn(labelClass, 'flex-[1_1_14rem]')}>
+      <span class="flex items-center gap-1">
+        <label for={`${uid}-when`}>When it's sent</label>
+        <InfoButton
+          label="About when it's sent"
+          text={kind === 'hand' ? "Send it from a candidate's page, on their Application tab." : 'We add the email automation for you.'}
+          class="-my-1"
+        />
+      </span>
+      <select id={`${uid}-when`} class={selectClass} value={kind} onchange={(event) => chooseKind(event.currentTarget.value)}>
         <option value="apply">When they apply</option>
         {#if stages.length > 0}
           <option value="stage">When they enter a stage</option>
@@ -56,7 +65,7 @@
         {/if}
         <option value="hand">Only when sent by hand</option>
       </select>
-    </label>
+    </div>
     {#if kind === 'stage' || kind === 'later'}
       <label class={cn(labelClass, 'flex-[1_1_12rem]')}>
         Stage
@@ -94,11 +103,6 @@
       </div>
     {/if}
   </div>
-  {#if kind === 'hand'}
-    <p class="text-muted-foreground">Send it from a candidate's page, on their Application tab.</p>
-  {:else}
-    <p class="text-muted-foreground">We add the email automation for you.</p>
-  {/if}
 {:else}
   <p>
     {sending.words}, by the automation

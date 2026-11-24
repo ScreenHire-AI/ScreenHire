@@ -12,6 +12,7 @@
     title,
     label,
     count,
+    mark,
     tools,
     actions,
     footer,
@@ -26,6 +27,8 @@
     label?: string;
     /** Shown as a count pill after the title (T4). */
     count?: number;
+    /** A quiet label after the title, such as where the panel's content comes from. Words, never a control. */
+    mark?: Snippet;
     /** A list's search and filters, on the header's left after any title. Containers query it as `@container/panel`. */
     tools?: Snippet;
     /** Controls on the header's right, 32px high (`size="default"`). */
@@ -40,7 +43,7 @@
   const id = $props.id();
   // A panel named only for screen readers, with nothing to show in its header, has no header: an empty band reads as a
   // missing title (a report with nothing in its dates).
-  const headed = $derived(Boolean(title) || count !== undefined || Boolean(tools) || Boolean(actions));
+  const headed = $derived(Boolean(title) || count !== undefined || Boolean(mark) || Boolean(tools) || Boolean(actions));
 </script>
 
 <section
@@ -59,6 +62,9 @@
       {/if}
       {#if count !== undefined}
         <Badge variant="count">{count}</Badge>
+      {/if}
+      {#if mark}
+        <div class="shrink-0">{@render mark()}</div>
       {/if}
       {#if tools}
         <div class="flex min-w-0 flex-1 items-center gap-2">{@render tools()}</div>

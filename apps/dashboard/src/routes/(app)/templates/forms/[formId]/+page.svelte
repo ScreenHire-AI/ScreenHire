@@ -41,6 +41,7 @@
   import MoreMenu from '#lib/components/more-menu.svelte';
   import Panel from '#lib/components/panel.svelte';
   import PreviewFrame from '#lib/components/preview-frame.svelte';
+  import PreviewPanel from '#lib/components/preview-panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import StatusBadge from '#lib/components/status-badge.svelte';
   import TopBar from '#lib/components/top-bar.svelte';
@@ -386,7 +387,7 @@
     />
 
     <div class="flex w-full flex-col px-4 py-6 md:px-6">
-      <EditPreviewLayout bind:mode wide readOnly={!editable} onpopout={() => source.open('/preview/form')}>
+      <EditPreviewLayout bind:mode wide readOnly={!editable}>
         {#snippet editor()}
           <Panel title="Details">
             <Field.Field data-invalid={nameErrors.length > 0 ? true : undefined}>
@@ -435,11 +436,11 @@
           </FormBuilder>
         {/snippet}
         {#snippet preview()}
-          <Panel title="Preview">
+          <PreviewPanel onpopout={() => source.open('/preview/form')}>
             <PreviewFrame>
               <QuestionnairePreview {questions} {sections} {questionsPerPage} followUp />
             </PreviewFrame>
-          </Panel>
+          </PreviewPanel>
         {/snippet}
       </EditPreviewLayout>
     </div>

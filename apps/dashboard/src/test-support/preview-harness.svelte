@@ -1,5 +1,6 @@
 <script lang="ts">
   import EditPreviewSwitch from '#lib/components/edit-preview-switch.svelte';
+  import PreviewPanel from '#lib/components/preview-panel.svelte';
   import * as Tooltip from '#lib/components/ui/tooltip/index.js';
   import { createPreviewSource } from '#lib/preview-window.svelte.js';
 
@@ -10,10 +11,10 @@
 </script>
 
 <Tooltip.Provider>
-  <EditPreviewSwitch bind:mode onpopout={() => source.open('/preview/form')} />
+  <EditPreviewSwitch bind:mode />
   {#if mode === 'edit'}
     <label>Question <input bind:value={title} /></label>
   {:else}
-    <p data-testid="preview">{title}</p>
+    <PreviewPanel onpopout={() => source.open('/preview/form')}><p data-testid="preview">{title}</p></PreviewPanel>
   {/if}
 </Tooltip.Provider>

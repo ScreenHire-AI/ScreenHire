@@ -5,6 +5,7 @@ import {
   laterStages,
   questionClashes,
   removeForm,
+  replaceForm,
   sendingOf,
   setSendMoment,
   timelineOf,
@@ -185,6 +186,70 @@ describe('timelineOf', () => {
     expect(sendingOf({ ...current, automations: [off] }, formId).words).toBe('Only when sent by hand');
     expect(sendingOf({ ...current, automations: [{ ...off, enabled: true, trigger: { type: 'TimeElapsed', stageId: 'phone', afterHours: 5 } }] }, formId))
       .toMatchObject({ editable: false, words: 'Sent 5 hours after they enter Phone call' });
+  });
+});
+
+describe('replaceForm', () => {
+  const tagBy = (fact: string, trigger: Automation['trigger'] = { type: 'StageEntered', stageId: 'offer' }): Automation => ({
+    id: `tag-${fact}`,
+    name: `Tag by ${fact}`,
+    trigger,
+    conditions: { match: 'All', rules: [{ fact, operator: 'EqualTo', value: 'yes' }] },
+    actions: [{ type: 'AddTag', tag: 'a' }],
+    enabled: true,
+    allowAutoReject: false,
+  });
+
+  it('swaps the questions under the same id, and keeps when it is sent and what runs once it is answered', () => {
+    const { workflow: current, formId } = withForm(workflow(), 'Screening questionnaire', { kind: 'later', stageId: 'trial', days: 3 });
+    current.automations.push({
+      id: 'answered',
+      name: 'After it is answered',
+      trigger: { type: 'QuestionnaireCompleted', questionnaireId: formId },
+      conditions: null,
+      actions: [{ type: 'AddTag', tag: 'answered' }],
+      enabled: true,
+      allowAutoReject: false,
+    });
+
+    const result = replaceForm(current, formId, library('References', 'q_ref', 4));
+
+    expect(result.removed).toEqual([]);
+    expect(result.workflow.followUpQuestionnaires).toMatchObject([{ id: formId, name: 'References', formTemplateId: 'form-References', formVersion: 4, questions: [{ id: 'q_ref' }] }]);
+    expect(sendingOf(result.workflow, formId).moment).toEqual({ kind: 'later', stageId: 'trial', days: 3 });
+    expect(result.workflow.automations).toEqual(current.automations);
+    expect(timelineOf(result.workflow)[1]).toMatchObject({ id: formId, name: 'References', whenShort: '3 days after Trial shift' });
+  });
+
+  it('takes along an automation that reads an answer the new form does not ask, and says which', () => {
+    const { workflow: current, formId } = withForm(workflow(), 'Trial', { kind: 'stage', stageId: 'trial' });
+    current.automations.push(tagBy('answers.q_trial'), tagBy('answers.q1'));
+
+    const result = replaceForm(current, formId, library('References'));
+
+    expect(result.removed).toEqual(['Tag by answers.q_trial']);
+    expect(result.workflow.automations.map((automation) => automation.name)).toEqual(['Email the form when they enter Trial shift', 'Tag by answers.q1']);
+  });
+
+  it('never points a rule at a different question that only shares its id', () => {
+    const { workflow: current, formId } = withForm(workflow(), 'Trial', { kind: 'stage', stageId: 'trial' });
+    current.automations.push(tagBy('answers.q_trial'));
+
+    // Another library form whose own question happens to have the id.
+    expect(replaceForm(current, formId, library('References', 'q_trial')).removed).toEqual(['Tag by answers.q_trial']);
+
+    // A copy of the form in the library asks the same question, so the rule still reads what it did.
+    const copy: LibraryVersion = { ...library('Trial'), formTemplateId: 'form-copy', content: { ...library('Trial').content, name: 'Trial (copy)' } };
+    const kept = replaceForm(current, formId, copy);
+    expect(kept.removed).toEqual([]);
+    expect(kept.workflow.automations).toEqual(current.automations);
+  });
+
+  it('changes nothing for the application form or an unknown id', () => {
+    const current = withForm(workflow(), 'Trial', { kind: 'stage', stageId: 'trial' }).workflow;
+
+    expect(replaceForm(current, 'apply', library('References'))).toEqual({ workflow: current, removed: [] });
+    expect(replaceForm(current, 'nope', library('References'))).toEqual({ workflow: current, removed: [] });
   });
 });
 

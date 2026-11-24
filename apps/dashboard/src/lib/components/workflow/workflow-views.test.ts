@@ -318,8 +318,9 @@ describe('workflow builder', () => {
     await expectNoAxeViolations(container);
   });
 
-  it('adds a library form, sends it when they enter a stage, reads its questions from the library and removes it with its automation', async () => {
+  it('adds a library form, sends it when they enter a stage, reads its questions, replaces it and removes it with its automation', async () => {
     const formId = '01a157d4-0000-7000-8000-00000000f001';
+    const referencesId = '01a157d4-0000-7000-8000-00000000f002';
     vi.stubGlobal(
       'fetch',
       vi.fn(
@@ -328,6 +329,7 @@ describe('workflow builder', () => {
             Response.json({
               forms: [
                 { id: formId, name: 'Screening questionnaire', kind: 'Standard', questions: 1, latestPublishedVersion: 1, draftVersion: null, lastUpdated: { at: null, by: null }, archived: false },
+                { id: referencesId, name: 'References', kind: 'Standard', questions: 2, latestPublishedVersion: 3, draftVersion: null, lastUpdated: { at: null, by: null }, archived: false },
                 { id: 'clash', name: 'Right to work again', kind: 'Standard', questions: 1, latestPublishedVersion: 1, draftVersion: null, lastUpdated: { at: null, by: null }, archived: false },
               ],
               equalityMonitoringEnabled: false,
@@ -339,6 +341,22 @@ describe('workflow builder', () => {
               status: 'Published',
               kind: 'Standard',
               content: { name: 'Screening questionnaire', questions: [{ id: 'q_notice', type: 'ShortText', label: 'How much notice do you give?', required: false }] },
+              createdAt: '2026-11-20T09:00:00Z',
+              publishedAt: '2026-11-20T09:00:00Z',
+            }),
+          [`GET /v1/form-templates/${referencesId}/versions/3`]: () =>
+            Response.json({
+              formTemplateId: referencesId,
+              version: 3,
+              status: 'Published',
+              kind: 'Standard',
+              content: {
+                name: 'References',
+                questions: [
+                  { id: 'q_who', type: 'ShortText', label: 'Who can we ask?', required: true },
+                  { id: 'q_when', type: 'ShortText', label: 'When can we ask them?', required: false },
+                ],
+              },
               createdAt: '2026-11-20T09:00:00Z',
               publishedAt: '2026-11-20T09:00:00Z',
             }),
@@ -368,6 +386,13 @@ describe('workflow builder', () => {
     expect(apply).toHaveTextContent('When they apply');
     expect(apply).toHaveTextContent('1 question');
 
+    // Its panel is like every other form's, with a moment that is fixed and says so; it has no menu, so no remove or replace.
+    const applyPanel = within(pane).getByRole('region', { name: 'Application form' });
+    expect(applyPanel).toHaveTextContent("When it's sent");
+    expect(applyPanel.querySelector('[data-apply-moment]')).toHaveTextContent('When they apply Fixed for the application form.');
+    expect(controls(applyPanel)).toHaveLength(0);
+    expect(within(forms).queryByRole('button', { name: /^Actions for / })).toBeNull();
+
     // The AI-use question is locked: ScreenHire asks it, and the policy is the organization's.
     expect(pane.querySelector('[data-ai-use-row]')).toHaveTextContent('AI use. Asked by ScreenHire. Policy: Not allowed.');
     expect(within(pane).getByRole('link', { name: 'Change policy' })).toHaveAttribute('href', '/verification/checks');
@@ -380,32 +405,62 @@ describe('workflow builder', () => {
     expect(sheet).toHaveTextContent('Another form here already asks "Right to work?". Change one of them in the library first.');
     await fireEvent.click(within(sheet).getByRole('button', { name: 'Add Screening questionnaire' }));
 
-    const added = await within(forms).findByRole('button', { name: /Screening questionnaire/ });
+    const added = await within(forms).findByRole('button', { name: /^Screening questionnaire/ });
     expect(added).toHaveAttribute('aria-pressed', 'true');
     expect(added).toHaveTextContent('By hand only');
+
+    // Where its questions come from is beside its name, and how it is sent is one press away.
+    const formPanel = within(pane).getByRole('region', { name: 'Screening questionnaire' });
+    expect(formPanel).toHaveTextContent('Library form, version 1');
+    expect(pane).not.toHaveTextContent('Send it from a candidate');
+    await fireEvent.click(within(formPanel).getByRole('button', { name: "About when it's sent" }));
+    expect(await screen.findByText("Send it from a candidate's page, on their Application tab.")).toBeInTheDocument();
+    await fireEvent.keyDown(document.body, { key: 'Escape' });
 
     // When it is sent is the form's own choice, and it writes the automation behind it.
     await fireEvent.change(within(pane).getByRole('combobox', { name: "When it's sent" }), { target: { value: 'stage' } });
     expect(added).toHaveTextContent('Entering Phone screen');
     expect(within(pane).getByRole('combobox', { name: 'Stage' })).toHaveValue('phone-screen');
+    expect(pane).not.toHaveTextContent('We add the email automation for you.');
     expect(screen.getByTestId('draft')).toHaveTextContent('"trigger":{"type":"StageEntered","stageId":"phone-screen"},"conditions":null,"actions":[{"type":"SendQuestionnaire","questionnaireId":"screening_questionnaire"}]');
 
     // Its questions read here and change in the library, so every template that uses it can take the change.
     const questions = within(pane).getByRole('region', { name: 'Questions' });
     expect(controls(questions)).toHaveLength(0);
     expect(questions).toHaveTextContent('How much notice do you give?');
-    expect(within(questions).getByRole('link', { name: 'Edit in the library' })).toHaveAttribute('href', `/templates/forms/${formId}`);
+    expect(within(questions).getByRole('link', { name: 'Edit' })).toHaveAttribute('href', `/templates/forms/${formId}`);
     expect(pane.querySelector('[data-ai-use-row]')).toBeNull();
     await expectNoAxeViolations(container);
 
-    // Removing the form takes the automation that emails it, and says so first.
-    await fireEvent.pointerDown(within(pane).getByRole('button', { name: 'Actions for Screening questionnaire' }), { button: 0, pointerType: 'mouse' });
-    await fireEvent.click(await screen.findByRole('menuitem', { name: 'Remove form' }));
-    const dialog = await screen.findByRole('dialog', { name: /Remove Screening questionnaire/ });
+    // Replacing it, from its card's menu, offers the library's other forms, swaps the questions and keeps when it is sent.
+    async function chooseOnCard(form: string, item: string) {
+      await fireEvent.pointerDown(within(forms).getByRole('button', { name: `Actions for ${form}` }), { button: 0, pointerType: 'mouse' });
+      await fireEvent.click(await screen.findByRole('menuitem', { name: item }));
+    }
+    await fireEvent.click(apply);
+    await chooseOnCard('Screening questionnaire', 'Replace with another form');
+    const swap = await screen.findByRole('dialog', { name: 'Replace Screening questionnaire' });
+    expect(swap).toHaveTextContent('It keeps when the form is sent: Entering Phone screen.');
+    expect(within(swap).queryByRole('button', { name: 'Use Screening questionnaire' })).toBeNull();
+    expect(within(swap).queryByRole('button', { name: 'Build a new form' })).toBeNull();
+    await waitFor(() => expect(within(swap).getByRole('button', { name: 'Use References' })).toBeEnabled());
+    await fireEvent.click(within(swap).getByRole('button', { name: 'Use References' }));
+    const references = await within(forms).findByRole('button', { name: /^References/ });
+    expect(references).toHaveAttribute('aria-pressed', 'true');
+    expect(references).toHaveTextContent('Entering Phone screen');
+    expect(within(pane).getByRole('region', { name: 'References' })).toHaveTextContent('Library form, version 3');
+    expect(within(pane).getByRole('region', { name: 'Questions' })).toHaveTextContent('Who can we ask?');
+    expect(screen.getByTestId('draft')).toHaveTextContent('"actions":[{"type":"SendQuestionnaire","questionnaireId":"screening_questionnaire"}]');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    // Removing it, from the same menu, takes the automation that emails it, and says so first. The focus goes to the card left.
+    await chooseOnCard('References', 'Remove form');
+    const dialog = await screen.findByRole('dialog', { name: /Remove References/ });
     expect(dialog).toHaveTextContent('This also removes Email the form when they enter Phone screen.');
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Remove form' }));
-    await waitFor(() => expect(within(forms).queryByRole('button', { name: /Screening questionnaire/ })).toBeNull());
-    expect(within(forms).getByRole('button', { name: /Application form/ })).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => expect(within(forms).queryByRole('button', { name: /References/ })).toBeNull());
+    expect(apply).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => expect(apply).toHaveFocus());
     vi.unstubAllGlobals();
   });
 
@@ -416,7 +471,7 @@ describe('workflow builder', () => {
     };
     render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: own, errors: [], mode: 'editor', tab: 'forms' } } });
     const pane = screen.getByRole('tabpanel', { name: 'Forms' });
-    await fireEvent.click(within(within(pane).getByRole('group', { name: 'Forms' })).getByRole('button', { name: /Availability/ }));
+    await fireEvent.click(within(within(pane).getByRole('group', { name: 'Forms' })).getByRole('button', { name: /^Availability/ }));
 
     const formPanel = within(pane).getByRole('region', { name: 'Form' });
     expect(within(formPanel).getByRole('textbox', { name: 'Name' })).toHaveValue('Availability');
@@ -451,7 +506,7 @@ describe('workflow builder', () => {
     render(WithQueryClient, { props: { component: WorkflowHarness, props: { workflow: unsent, errors: [], mode: 'editor', tab: 'forms' } } });
     const pane = screen.getByRole('tabpanel', { name: 'Forms' });
 
-    expect(within(within(pane).getByRole('group', { name: 'Forms' })).getByRole('button', { name: /References/ })).toHaveTextContent('By hand only');
+    expect(within(within(pane).getByRole('group', { name: 'Forms' })).getByRole('button', { name: /^References/ })).toHaveTextContent('By hand only');
   });
 
   it("opens a stage's form on the Forms tab with its card chosen, from the stage's questions list", async () => {

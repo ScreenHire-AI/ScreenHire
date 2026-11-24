@@ -11,6 +11,7 @@
   import EmailPreview from '#lib/components/email-preview.svelte';
   import FailureText from '#lib/components/failure-text.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import PreviewPanel from '#lib/components/preview-panel.svelte';
   import RichTextEditor from '#lib/components/rich-text-editor.svelte';
   import { Button } from '#lib/components/ui/button/index.js';
   import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -281,12 +282,12 @@
   </Panel>
 {/snippet}
 {#snippet result()}
-  <Panel title="Preview">
+  <PreviewPanel {onpopout}>
     {#snippet actions()}
       {#if sendingEnabled && editable}
         <Button type="button" variant="outline" onclick={sendTest} disabled={blank || test.isPending}><SendIcon aria-hidden="true" />Send me a test</Button>
       {/if}
-  {/snippet}
+    {/snippet}
     <div class="flex flex-col gap-3">
       {#if blank}
         <p class="text-muted-foreground">Write a subject and a message to see the email.</p>
@@ -296,9 +297,9 @@
       <p role="status" class="text-muted-foreground empty:hidden">{tested}</p>
       <FailureText message={testFailure} />
     </div>
-  </Panel>
+  </PreviewPanel>
 {/snippet}
 
 <form id={formId} method="POST" use:enhance novalidate aria-label={template ? 'Edit email template' : 'New email template'} class="flex w-full flex-col gap-5">
-  <EditPreviewLayout bind:mode readOnly={!editable} readLabel="Wording" {onpopout} editor={wording} preview={result} />
+  <EditPreviewLayout bind:mode readOnly={!editable} readLabel="Wording" editor={wording} preview={result} />
 </form>

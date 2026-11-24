@@ -26,6 +26,7 @@
   import HistoryFact from '#lib/components/history-fact.svelte';
   import ImageField from '#lib/components/image-field.svelte';
   import Panel from '#lib/components/panel.svelte';
+  import PreviewPanel from '#lib/components/preview-panel.svelte';
   import QueryError from '#lib/components/query-error.svelte';
   import SettingsMenu from '#lib/components/settings-menu.svelte';
   import { settingsCrumbs } from '#lib/settings.js';
@@ -257,7 +258,7 @@
         </div>
       </div>
     {:else}
-      <EditPreviewLayout wide bind:mode onpopout={() => source.open('/preview/branding')}>
+      <EditPreviewLayout wide bind:mode>
         {#snippet actions()}
           <FailureText message={$errors._errors?.[0]} />
           <p role="status" class="text-muted-foreground empty:hidden">
@@ -341,7 +342,7 @@
         {/snippet}
 
         {#snippet preview()}
-          <Panel title="Preview">
+          <PreviewPanel onpopout={() => source.open('/preview/branding')}>
             {#snippet actions()}
               {#if organization.data}
                 <Button href={organization.data.data.careersUrl} target="_blank" rel="noopener" variant="outline">
@@ -353,7 +354,7 @@
               <p class="text-muted-foreground">This follows your unsaved changes. Candidates see none of it until you save.</p>
               <BrandingPreview {draft} />
             </div>
-          </Panel>
+          </PreviewPanel>
         {/snippet}
       </EditPreviewLayout>
     {/if}
